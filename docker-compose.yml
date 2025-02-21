@@ -23,7 +23,7 @@ services:
     environment:
       DATABASE_URL: postgres://${PSQL_USER}:${PSQL_PASSWORD}@db:${PSQL_PORT}/${PSQL_DATABASE}?sslmode=${PSQL_SSLMODE}
     depends_on:
-      - postgres
+      - db
     env_file:
       - .env
     networks:
