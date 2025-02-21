@@ -23,9 +23,6 @@ jobs:
           echo "${{ secrets.SSH_PASSPHRASE }}" | ssh-add ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts  
 
-      - name: Check the passphrase
-        run:
-
       - name: List files
         run: ls -la
 
