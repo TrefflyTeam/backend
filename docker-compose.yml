@@ -1,57 +1,10 @@
 version: '3.9'
-
 services:
   frontend:
     image: g0dd0r0/treffly-client:latest
     ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-    networks:
-      - app-network
-
+      - "80:80"
   backend:
     image: m1ll3r1337/treffly-server:latest
     ports:
       - "8080:8080"
-    volumes:
-      - ./backend:/app
-    environment:
-      DATABASE_URL: postgres://${PSQL_USER}:${PSQL_PASSWORD}@db:${PSQL_PORT}/${PSQL_DATABASE}?sslmode=${PSQL_SSLMODE}
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file:
-      - .env
-    networks:
-      - app-network
-
-  db:
-    container_name: postgres
-    image: postgres:15
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_HOST: ${PSQL_HOST}
-      POSTGRES_USER: ${PSQL_USER}
-      POSTGRES_PASSWORD: ${PSQL_PASSWORD}
-      POSTGRES_DB: ${PSQL_DATABASE}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks:
-      - app-network
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${PSQL_USER} -d ${PSQL_DATABASE}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres-data:
-
-networks:
-  app-network:
-    driver: bridge
