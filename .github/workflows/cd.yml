@@ -48,8 +48,10 @@ jobs:
         run: |
           docker push m1ll3r1337/treffly-server:latest
 
-      - name: Deploy frontend to server
+      - name: Deploy backend to server
         run: |
+          eval $(ssh-agent -s)
+          echo "${{ secrets.SSH_PASSPHRASE }}" | ssh-add ~/.ssh/id_rsa
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'ENDSSH'
           cd ${{ secrets.APP_PATH }} &&
           docker-compose pull front &&
