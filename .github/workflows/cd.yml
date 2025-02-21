@@ -21,6 +21,9 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
             ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts  
 
+      - name: List files
+        run: ls -la
+
       - name: Copy docker-compose.yml to server
         run: |
           scp -o StrictHostKeyChecking=no ./docker-compose.yml \ 
