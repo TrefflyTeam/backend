@@ -54,6 +54,6 @@ jobs:
           echo "${{ secrets.SSH_PASSPHRASE }}" | ssh-add ~/.ssh/id_rsa
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'ENDSSH'
           cd ${{ secrets.APP_PATH }} &&
-          docker-compose pull front &&
-          docker-compose up -d front
+          docker-compose pull backend &&
+          docker-compose up -d backend
           ENDSSH

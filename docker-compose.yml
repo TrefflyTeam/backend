@@ -14,7 +14,6 @@ services:
       - app-network
 
   backend:
-    container_name: backend
     image: m1ll3r1337/treffly-server:latest
     ports:
       - "8080:8080"
