@@ -22,7 +22,8 @@ services:
     environment:
       DATABASE_URL: postgres://${PSQL_USER}:${PSQL_PASSWORD}@db:${PSQL_PORT}/${PSQL_DATABASE}?sslmode=${PSQL_SSLMODE}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - .env
     networks:
@@ -42,6 +43,11 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${PSQL_USER} -d ${PSQL_DATABASE}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres-data:
