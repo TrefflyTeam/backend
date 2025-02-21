@@ -42,7 +42,7 @@ jobs:
 
       - name: Build Docker image for backend
         run: |
-          docker build -t m1ll3r1337/treffly-server:latest ./backend
+          docker build -t m1ll3r1337/treffly-server:latest .
 
       - name: Push Docker image to Docker Hub
         run: |
