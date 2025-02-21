@@ -28,6 +28,7 @@ jobs:
 
       - name: Copy docker-compose.yml to server
         run: |
+          eval $(ssh-agent -s)
           echo "${{ secrets.SSH_PASSPHRASE }}" | ssh-add ~/.ssh/id_rsa
           scp -o StrictHostKeyChecking=no ./docker-compose.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.APP_PATH }}/docker-compose.yml
       - name: Set up Docker Buildx
