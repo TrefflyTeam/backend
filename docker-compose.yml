@@ -1,11 +1,11 @@
 services:
-  frontend:
-    image: g0dd0r0/treffly-client:latest
-    expose:
-      - "80"
-    restart: always
-    networks:
-      - app-network
+#  frontend:
+#    image: g0dd0r0/treffly-client:latest
+#    expose:
+#      - "80"
+#    restart: always
+#    networks:
+#      - app-network
 
   backend:
     image: m1ll3r1337/treffly-server:latest
