@@ -1,8 +1,6 @@
 services:
   frontend:
     image: g0dd0r0/treffly-client:latest
-    ports:
-      - "80:80"
     restart: always
     networks:
       - app-network
@@ -10,7 +8,7 @@ services:
   backend:
     image: m1ll3r1337/treffly-server:latest
     expose:
-      - "8080:8080"
+      - "8080"
     restart: always
     networks:
       - app-network
