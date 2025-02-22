@@ -1,11 +1,11 @@
 services:
-#  frontend:
-#    image: g0dd0r0/treffly-client:latest
-#    expose:
-#      - "80"
-#    restart: always
-#    networks:
-#      - app-network
+  frontend:
+    image: g0dd0r0/treffly-client:latest
+    expose:
+      - "80"
+    restart: always
+    networks:
+      - app-network
 
   backend:
     image: m1ll3r1337/treffly-server:latest
@@ -22,6 +22,8 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
     restart: always
     networks:
       - app-network
@@ -29,3 +31,7 @@ services:
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
