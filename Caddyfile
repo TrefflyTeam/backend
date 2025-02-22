@@ -1,4 +1,6 @@
 treffly.ru {
+    root * /var/www/html
+    file_server
 
     reverse_proxy /api/* backend:8080
     reverse_proxy / frontend:80
