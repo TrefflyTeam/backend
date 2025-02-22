@@ -3,8 +3,7 @@ version: '3.9'
 services:
   frontend:
     image: g0dd0r0/treffly-client:latest
-    volumes:
-      - ./frontend/dist:/usr/share/nginx/html
+
     expose:
       - "80"
     restart: always
@@ -17,17 +16,17 @@ services:
     restart: always
 
 
-  caddy:
-    image: caddy:latest
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    restart: always
-
-volumes:
-  caddy_data:
-  caddy_config:
+#    caddy:
+#      image: caddy:latest
+#      ports:
+#        - "80:80"
+#        - "443:443"
+#      volumes:
+#        - ./Caddyfile:/etc/caddy/Caddyfile
+#        - caddy_data:/data
+#        - caddy_config:/config
+#      restart: always
+#
+#  volumes:
+#    caddy_data:
+#    caddy_config:
