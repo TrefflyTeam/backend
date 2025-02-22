@@ -1,28 +1,22 @@
 services:
-  frontend:
-    image: g0dd0r0/treffly-client:latest
-    restart: always
-    networks:
-      - app-network
-
   backend:
     image: m1ll3r1337/treffly-server:latest
     expose:
       - "8080"
-    restart: always
     networks:
       - app-network
 
   caddy:
-    image: caddy:latest
+    image: caddy:2-alpine
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
-    restart: always
     networks:
       - app-network
+    depends_on:
+      - backend
 
 networks:
   app-network:
