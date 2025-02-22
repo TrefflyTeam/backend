@@ -3,6 +3,8 @@ version: '3.9'
 services:
   frontend:
     image: g0dd0r0/treffly-client:latest
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
     expose:
       - "80"
     restart: always
