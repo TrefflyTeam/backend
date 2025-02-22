@@ -6,12 +6,16 @@ services:
     expose:
       - "80"
     restart: always
+    networks:
+      - app-network
 
   backend:
     image: m1ll3r1337/treffly-server:latest
     expose:
       - "8080"
     restart: always
+    networks:
+      - app-network
 
   caddy:
     image: caddy:latest
@@ -27,3 +31,7 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+
+networks:
+  app-network:
+    driver: bridge
