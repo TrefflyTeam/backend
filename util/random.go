@@ -13,7 +13,7 @@ func init() {
 	rng = rand.New(source)
 }
 
-const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789_"
+const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 func RandomInt(min int64, max int64) int64 {
 	return min + rng.Int63n(max-min+1)
