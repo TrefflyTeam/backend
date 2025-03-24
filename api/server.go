@@ -34,10 +34,11 @@ func (server *Server) setupRouter() {
 	router := gin.Default()
 
 	router.POST("/users", server.createUser)
-
 	router.POST("/login", server.loginUser)
 	router.POST("/tokens/refresh", server.refreshTokens)
 
+	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
+	authRoutes.POST("/logout", server.logoutUser)
 	server.router = router
 }
 

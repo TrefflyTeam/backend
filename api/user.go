@@ -134,3 +134,11 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func (server *Server) logoutUser(ctx *gin.Context) {
+	ctx.SetCookie("access_token", "", -1, accessTokenCookiePath, "localhost", false, true)
+	ctx.SetCookie("refresh_token", "", -1, refreshTokenCookiePath, "localhost", false, true)
+	//TODO: block session
+	//TODO: domain const
+	ctx.JSON(http.StatusNoContent, gin.H{})
+}
