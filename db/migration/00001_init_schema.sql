@@ -12,12 +12,12 @@ CREATE TABLE "users"
 
 CREATE TABLE "sessions"
 (
-    "uuid"               UUID PRIMARY KEY,
-    "user_id"            integer     NOT NULL,
-    "refresh_token_hash" text        NOT NULL,
-    "expires_at"         timestamptz NOT NULL,
-    "is_blocked"         boolean     NOT NULL DEFAULT false,
-    "created_at"         timestamptz NOT NULL DEFAULT (now())
+    "uuid"          UUID PRIMARY KEY,
+    "user_id"       integer     NOT NULL,
+    "refresh_token" text        NOT NULL,
+    "expires_at"    timestamptz NOT NULL,
+    "is_blocked"    boolean     NOT NULL DEFAULT false,
+    "created_at"    timestamptz NOT NULL DEFAULT (now())
 );
 
 CREATE INDEX "idx_sessions_user_id" ON "sessions" ("user_id");

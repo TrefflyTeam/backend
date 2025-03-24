@@ -11,12 +11,12 @@ import (
 )
 
 type Session struct {
-	Uuid             uuid.UUID `json:"uuid"`
-	UserID           int32     `json:"user_id"`
-	RefreshTokenHash string    `json:"refresh_token_hash"`
-	ExpiresAt        time.Time `json:"expires_at"`
-	IsBlocked        bool      `json:"is_blocked"`
-	CreatedAt        time.Time `json:"created_at"`
+	Uuid         uuid.UUID `json:"uuid"`
+	UserID       int32     `json:"user_id"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	IsBlocked    bool      `json:"is_blocked"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type User struct {
