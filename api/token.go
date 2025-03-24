@@ -13,6 +13,7 @@ import (
 const (
 	accessTokenCookiePath  = "/"
 	refreshTokenCookiePath = "/tokens/refresh"
+	cookieDomain = "localhost"
 )
 
 type refreshTokensResponse struct {
@@ -112,9 +113,10 @@ func setTokenCookie(ctx *gin.Context, name, token, path string, maxAge time.Dura
 		token,
 		int(maxAge.Seconds()),
 		path,
-		"localhost", //TODO: set domain before releasing
+		cookieDomain, //TODO: set domain before releasing
 		false, //TODO: set to true before releasing
 		true,
+		//TODO: same site
 	)
 }
 
