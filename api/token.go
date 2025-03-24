@@ -96,6 +96,10 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 		RefreshToken: refreshToken,
 		ExpiresAt: refreshPayload.ExpiredAt,
 	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
 	setTokenCookie(ctx, "access_token", accessToken, accessTokenCookiePath, server.config.AccessTokenDuration)
 	setTokenCookie(ctx, "refresh_token", refreshToken, refreshTokenCookiePath, server.config.RefreshTokenDuration)
