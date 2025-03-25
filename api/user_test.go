@@ -385,3 +385,72 @@ func TestLoginUser(t *testing.T) {
 		})
 	}
 }
+
+
+func TestLogoutUser(t *testing.T) {
+	userID := int32(util.RandomInt(0, 100))
+	tokenMaker, err := token.NewPasetoMaker(util.RandomString(32))
+	require.NoError(t, err)
+
+	testCases := []struct {
+		name          string
+		setupRequest  func(t *testing.T, request *http.Request, tokenMaker token.Maker)
+		checkResponse func(*httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			setupRequest: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, userID, time.Hour)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNoContent, recorder.Code)
+
+				cookies := recorder.Result().Cookies()
+				require.Len(t, cookies, 2)
+
+				for _, cookie := range cookies {
+					require.Equal(t, -1, cookie.MaxAge)
+				}
+			},
+		},
+		{
+			name: "Unauthorized",
+			setupRequest: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+
+				cookies := recorder.Result().Cookies()
+				require.Len(t, cookies, 0)
+			},
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+
+			router := gin.New()
+
+			server := newTestServer(t, store)
+
+			router.POST(
+				"/logout",
+				authMiddleware(tokenMaker),
+				server.logoutUser,
+			)
+
+			recorder := httptest.NewRecorder()
+			request, _ := http.NewRequest("POST", "/logout", nil)
+			tc.setupRequest(t, request, tokenMaker)
+
+			router.ServeHTTP(recorder, request)
+			tc.checkResponse(recorder)
+		})
+	}
+}
