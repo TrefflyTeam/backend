@@ -28,7 +28,13 @@ func RandomString(length int) string {
 }
 
 func RandomUsername() string {
-	return randomAlphabetString(10, usernameAlphabet)
+	usernameRunes := []rune(usernameAlphabet)
+	n := rand.Intn(10) + 6
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = usernameRunes[rand.Intn(len(usernameRunes))]
+	}
+	return string(b)
 }
 
 func RandomEmail() string {

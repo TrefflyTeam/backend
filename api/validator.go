@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	passwordRegexString = "^\\p{L}-]+$"
+	usernameRegexString = "^[\\p{L}-]+$"
 )
 
 var validUsername validator.Func = func(fl validator.FieldLevel) bool {
@@ -15,5 +15,5 @@ var validUsername validator.Func = func(fl validator.FieldLevel) bool {
 		return false
 	}
 
-	return regexp.MustCompile(passwordRegexString).MatchString(username)
+	return regexp.MustCompile(usernameRegexString).MatchString(username)
 }
