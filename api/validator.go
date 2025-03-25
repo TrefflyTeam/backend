@@ -5,11 +5,15 @@ import (
 	"regexp"
 )
 
+const (
+	passwordRegexString = "^\\p{L}-]+$"
+)
+
 var validUsername validator.Func = func(fl validator.FieldLevel) bool {
 	username, ok := fl.Field().Interface().(string)
 	if !ok {
 		return false
 	}
 
-	return regexp.MustCompile(`^\p{L}-]+$`).MatchString(username)
+	return regexp.MustCompile(passwordRegexString).MatchString(username)
 }
