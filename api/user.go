@@ -11,7 +11,7 @@ import (
 )
 
 type CreateUserRequest struct {
-	Username string `json:"username" binding:"required,alphanum,min=2,max=16"`
+	Username string `json:"username" binding:"required,username,min=2,max=16"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6,max=32"`
 }

@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	db "treffly/db/sqlc"
 	"treffly/token"
 	"treffly/util"
@@ -24,6 +26,13 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		store:      store,
 		tokenMaker: tokenMaker,
 		config:     config,
+	}
+
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		err := v.RegisterValidation("username", validUsername)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	server.setupRouter()
