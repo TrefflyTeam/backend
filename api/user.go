@@ -85,6 +85,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 	}
 
 	err = util.CheckPassword(req.Password, user.PasswordHash)
@@ -126,7 +127,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	resp := loginUserResponse{
 		User:                  newUserResponse(user),
 		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
-		RefreshTokenExpiresAt: accessPayload.ExpiredAt,
+		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
 	}
 
 	setTokenCookie(ctx, "access_token", accessToken, accessTokenCookiePath, server.config.AccessTokenDuration)
