@@ -10,7 +10,7 @@ import (
 
 const (
 	dbDriver = "pgx"
-	dbSource = "postgresql://postgres@localhost:5432/postgres?sslmode=disable&password=balls"
+	dbSource = "postgresql://postgres@localhost:5432/postgres?sslmode=disable&password=secret"
 )
 
 var testQueries *Queries
