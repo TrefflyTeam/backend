@@ -130,15 +130,16 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
 	}
 
-	setTokenCookie(ctx, "access_token", accessToken, accessTokenCookiePath, server.config.AccessTokenDuration)
-	setTokenCookie(ctx, "refresh_token", refreshToken, refreshTokenCookiePath, server.config.RefreshTokenDuration)
+	server.setTokenCookie(ctx, "access_token", accessToken, accessTokenCookiePath, server.config.AccessTokenDuration)
+	server.setTokenCookie(ctx, "refresh_token", refreshToken, refreshTokenCookiePath, server.config.RefreshTokenDuration)
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
 func (server *Server) logoutUser(ctx *gin.Context) {
-	ctx.SetCookie("access_token", "", -1, accessTokenCookiePath, cookieDomain, false, true)
-	ctx.SetCookie("refresh_token", "", -1, refreshTokenCookiePath, cookieDomain, false, true)
+	isSecure := server.config.Environment == "production"
+	ctx.SetCookie("access_token", "", -1, accessTokenCookiePath, cookieDomain, isSecure, true)
+	ctx.SetCookie("refresh_token", "", -1, refreshTokenCookiePath, cookieDomain, isSecure, true)
 	//TODO: block session
 	ctx.JSON(http.StatusNoContent, gin.H{})
 }

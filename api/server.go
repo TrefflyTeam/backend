@@ -34,7 +34,9 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 			return nil, err
 		}
 	}
-
+	if server.config.Environment == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	server.setupRouter()
 	return server, nil
 }

@@ -101,8 +101,8 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 		return
 	}
 
-	setTokenCookie(ctx, "access_token", accessToken, accessTokenCookiePath, server.config.AccessTokenDuration)
-	setTokenCookie(ctx, "refresh_token", refreshToken, refreshTokenCookiePath, server.config.RefreshTokenDuration)
+	server.setTokenCookie(ctx, "access_token", accessToken, accessTokenCookiePath, server.config.AccessTokenDuration)
+	server.setTokenCookie(ctx, "refresh_token", refreshToken, refreshTokenCookiePath, server.config.RefreshTokenDuration)
 
 	rsp := refreshTokensResponse{
 		AccessTokenExpiresAt: accessPayload.ExpiredAt,
@@ -111,16 +111,17 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, rsp)
 }
 
-func setTokenCookie(ctx *gin.Context, name, token, path string, maxAge time.Duration) {
+func (server *Server) setTokenCookie(ctx *gin.Context, name, token, path string, maxAge time.Duration) {
+	ctx.SetSameSite(http.SameSiteLaxMode)
+	isSecure :=  server.config.Environment == "production"
 	ctx.SetCookie(
 		name,
 		token,
 		int(maxAge.Seconds()),
 		path,
 		cookieDomain, //TODO: set domain before releasing
-		false, //TODO: set to true before releasing
+		isSecure, //TODO: set to true before releasing
 		true,
-		//TODO: same site
 	)
 }
 
