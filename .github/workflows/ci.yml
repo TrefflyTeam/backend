@@ -43,15 +43,16 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Create .env file
+      - name: Create app.env file
         run: |
-          echo "DB_DRIVER=$DB_DRIVER" > .env
-          echo "DB_SOURCE=$DB_SOURCE" >> .env
-          echo "SERVER_ADDRESS=$SERVER_ADDRESS" >> .env
-          echo "TOKEN_SYMMETRIC_KEY=$TOKEN_SYMMETRIC_KEY" >> .env
-          echo "ACCESS_TOKEN_DURATION=$ACCESS_TOKEN_DURATION" >> .env
-          echo "REFRESH_TOKEN_DURATION=$REFRESH_TOKEN_DURATION" >> .env
+          echo "DB_DRIVER=$DB_DRIVER" > app.env
+          echo "DB_SOURCE=$DB_SOURCE" >> app.env
+          echo "SERVER_ADDRESS=$SERVER_ADDRESS" >> app.env
+          echo "TOKEN_SYMMETRIC_KEY=$TOKEN_SYMMETRIC_KEY" >> app.env
+          echo "ACCESS_TOKEN_DURATION=$ACCESS_TOKEN_DURATION" >> app.env
+          echo "REFRESH_TOKEN_DURATION=$REFRESH_TOKEN_DURATION" >> app.env
           echo "ENVIRONMENT=$ENVIRONMENT" >> .env
+          cat app.env
 
       - name: Install goose
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
