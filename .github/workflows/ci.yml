@@ -43,6 +43,16 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
+      - name: Create .env file
+        run: |
+          echo "DB_DRIVER=${{ env.DB_DRIVER }}" > app.env
+          echo "DB_SOURCE=${{ env.DB_SOURCE }}" >> app.env
+          echo "SERVER_ADDRESS=${{ env.SERVER_ADDRESS }}" >> app.env
+          echo "TOKEN_SYMMETRIC_KEY=${{ env.TOKEN_SYMMETRIC_KEY }}" >> app.env
+          echo "ACCESS_TOKEN_DURATION=${{ env.ACCESS_TOKEN_DURATION }}" >> app.env
+          echo "REFRESH_TOKEN_DURATION=${{ env.REFRESH_TOKEN_DURATION }}" >> app.env
+          echo "ENVIRONMENT=${{ env.ENVIRONMENT }}" >> app.env
+
       - name: Install goose
         run: |
           go install github.com/pressly/goose/v3/cmd/goose@latest
