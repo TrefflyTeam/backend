@@ -42,7 +42,7 @@ jobs:
           goose -version
 
       - name: Run migrations
-        run: goose -dir ./db/migration postgres "dbname=postgres user=postgres password=secret" up
+        run: goose -dir ./db/migration postgres "host=localhost dbname=postgres user=postgres password=secret sslmode=disable" up
 
       - name: Run tests
         run: go test -v ./...
