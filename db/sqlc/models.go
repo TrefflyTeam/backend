@@ -5,24 +5,25 @@
 package db
 
 import (
-	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Session struct {
-	ID               int32     `json:"id"`
-	UserID           int32     `json:"user_id"`
-	RefreshTokenHash string    `json:"refresh_token_hash"`
-	ExpiresAt        time.Time `json:"expires_at"`
-	IsBlocked        bool      `json:"is_blocked"`
-	CreatedAt        time.Time `json:"created_at"`
+	Uuid         uuid.UUID `json:"uuid"`
+	UserID       int32     `json:"user_id"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	IsBlocked    bool      `json:"is_blocked"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type User struct {
-	ID           int32        `json:"id"`
-	Username     string       `json:"username"`
-	Email        string       `json:"email"`
-	PasswordHash string       `json:"password_hash"`
-	CreatedAt    time.Time    `json:"created_at"`
-	IsAdmin      sql.NullBool `json:"is_admin"`
+	ID           int32     `json:"id"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	CreatedAt    time.Time `json:"created_at"`
+	IsAdmin      bool      `json:"is_admin"`
 }
