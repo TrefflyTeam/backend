@@ -1,4 +1,21 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${PSQL_USER}
+      POSTGRES_PASSWORD: ${PSQL_PASSWORD}
+      POSTGRES_DB: ${PSQL_DATABASE
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
   frontend:
     image: g0dd0r0/treffly-client:latest
     expose:
@@ -9,8 +26,11 @@ services:
 
   backend:
     image: m1ll3r1337/treffly-server:latest
-    expose:
-      - "8080"
+    environment:
+      DB_SOURCE: ${DB_SOURCE}
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: always
     networks:
       - app-network
@@ -35,3 +55,4 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
+  postgres_data:
