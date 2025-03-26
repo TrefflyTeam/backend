@@ -8,18 +8,54 @@ on:
 
 jobs:
 
-  build:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.23
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Install goose
+        run: |
+          go install github.com/pressly/goose/v3/cmd/goose@latest
+          goose -version
+
+      - name: Run migrations
+        run: goose -dir ./db/migration postgres "dbname=postgres user=postgres password=secret" up
+
+      - name: Run tests
+        run: go test -v ./...
+
+
+  trigger-cd:
+    needs: [ test ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.23'
-
-      - name: Build
-        run: go build -v ./...
-
-      - name: Test
-        run: go test -v ./...
+      - name: Trigger CD
+        run: |
+          curl -X POST \
+          -H "Authorization: token ${{ secrets.PAT  }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/TrefflyTeam/backend/actions/workflows/cd.yml/dispatches?ref=develop \
+          -d '{"ref":"develop"}'
