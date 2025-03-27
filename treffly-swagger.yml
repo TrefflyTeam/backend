@@ -1,0 +1,1324 @@
+openapi: 3.0.0
+info:
+  title: Treffly API
+  version: 0.1.0
+
+servers:
+  - url: https://treffly.ru/api
+    description: Production server
+
+
+paths:
+  /login:
+    post:
+      summary: Аутентифицировать пользователя
+      description: Проверяет учетные данные и возвращает токены доступа
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "secret123"
+              required:
+                - email
+                - password
+      responses:
+        200:
+          description: Успешная аутентификация
+          headers:
+            Set-Cookie:
+              schema:
+                type: array 
+                items:
+                  type: string                  
+                example: 
+                - "refresh_token=abc123; Path=/tokens/refresh; HttpOnly; Secure; SameSite=Strict; Max-Age=604800"
+                - "access_token=xyz789; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600"
+          
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+  /isAuth:
+    get:
+      summary: Проверить аутентифицированность пользователя
+      description: Проверяет наличие валидной сессии пользователя
+      tags:
+        - Authentication
+      security:
+        - CookieAuth: []
+      responses:
+        200:
+          description: Пользователь аутентифицирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isAuthenticated:
+                    type: boolean
+                    example: true
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+  /tokens/refresh:
+    post:
+      summary: Обновить токены
+      description: Генерирует новые access и refresh токены
+      tags:
+        - Authentication
+      security:
+        - CookieAuth: []
+      responses:
+        200:
+          description: Токены успешно обновлены
+          headers:           
+            Set-Cookie:
+              schema:
+                type: array 
+                items:
+                  type: string                  
+                example: 
+                - "refresh_token=new_refresh_token; Path=/tokens/refresh; HttpOnly; Secure; SameSite=Strict; Max-Age=604800"
+                - "access_token=new_access_token; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600"
+          
+        401:
+          $ref: "#/components/responses/InvalidToken"
+
+  /logout:
+    post:
+      summary: Выйти из текущей сессии
+      description: Инвалидирует текущую сессию пользователя
+      tags:
+        - Authentication
+      security:
+        - CookieAuth: []
+      responses:
+        204:
+          description: Сессия успешно завершена
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: "refresh_token=; Path=/tokens/refresh; HttpOnly; Secure; SameSite=Strict; Max-Age=0"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/users:
+    get:
+      summary: Получить список всех пользователей (только для администраторов)
+      description: |
+        Возвращает полные данные всех пользователей, включая их теги.
+        Требуются права администратора.
+      tags:
+        - Users
+      security:
+        - CookieAuth: [admin]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Номер страницы для пагинации
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Количество записей на странице
+      responses:
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserWithTags"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+  /users:
+    post:
+      summary: Создать пользователя
+      description: Создаёт пользователя без тегов.
+      tags: 
+        - Users
+      requestBody: 
+        required: true
+        content: 
+          application/json:
+            schema:              
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        200:
+          description: Успешное создание пользователя.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        409:
+          description: Конфликт данных
+  /admin/users/{id}:
+    get:
+      summary: Получить данные пользователя
+      description: Возвращает полную информацию о пользователе по его ID (требуются права администратора).      
+      tags:
+        - Users
+      security:
+        - CookieAuth: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithTags"
+        404:
+          description: Пользователь не найден
+
+    put:
+      summary: Обновить данные пользователя
+      description: Обновляет информацию о пользователе (требуются права администратора).
+      tags:
+        - Users
+      security:
+        - CookieAuth: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        200:
+          description: Данные обновлены
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithTags"
+        204:
+          description: Нет изменений для применения
+
+    delete:
+      summary: Удалить пользователя
+      description: Удаляет пользователя по ID (требуются права администратора).
+      tags:
+        - Users
+      security:
+        - CookieAuth: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        204:
+          description: Пользователь успешно удалён
+
+  /users/me:
+    get:
+      summary: Получить данные текущего пользователя
+      description: Возвращает информацию о текущем аутентифицированном пользователе, используя access токен.   
+      tags:
+        - Users
+      security:
+        - CookieAuth: []      
+      responses:
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithTags"
+        401:
+          description: Неавторизованный доступ
+          
+        404:
+          description: Пользователь не найден          
+    put:
+      summary: Изменить данные текущего пользователя.
+      description: Изменяет данные текущего пользователя, используя access токен.   
+      tags:
+        - Users
+      security:
+        - CookieAuth: []   
+      requestBody: 
+        required: true
+        content: 
+          application/json:
+            schema: 
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateUserResponse"
+        401:
+          description: Неавторизованный доступ
+          
+        404:
+          description: Пользователь не найден          
+    delete:
+      summary: Удалить текущего пользователя 
+      description: Удаляет текущего пользователя, используя access токен.   
+      tags:
+        - Users
+      security:
+        - CookieAuth: []      
+      responses:
+        204:
+          description: Пользователь успешно удалён
+        401:
+          description: Неавторизованный доступ          
+        404:
+          description: Пользователь не найден  
+  /tags:
+    get: 
+      summary: Получить доступные теги 
+      description: Получает доступные теги
+      tags: 
+        - Tags     
+      responses:            
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: "#/components/schemas/Tag"           
+
+
+  /users/me/tags/{id}:
+    post:
+      summary: Добавить тег текущему пользователю
+      description: Добавляет тег текущему пользователю, используя access токен.
+      tags: 
+        - Users
+      security: 
+        - CookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:       
+        200:
+          description: Успешное добавление тега        
+        401:
+          description: Неавторизованный доступ        
+        404:
+          description: Тег не найден
+          
+    delete: 
+      summary: Удалить тег у текущего пользователя
+      description: Удаляет тег у текущего пользователя, используя access токен.
+      tags: 
+        - Users
+      security: 
+        - CookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:       
+        200:
+          description: Успешное удаление тега          
+        401:
+          description: Неавторизованный доступ        
+        404:
+          description: Тег не найден
+
+  /forgot-pw:
+    post:
+      summary: Отправить запрос на смену пароля
+      description: Отправляет код для подтверждения запроса на почту.
+      tags: 
+        - Password reset 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "ivan@example.com"
+      responses:
+        200: 
+          description: Код отправлен на почту
+        400:
+          description: Неверный формат почты
+        404:
+          description: Почта не зарегистрирована
+  /verify-code:
+    post:
+      summary: Получить токен для смены пароля
+      description: Валидирует код с почты и устанавливает куку с токеном на смену пароля.
+      tags: 
+        - Password reset 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "ivan@example.com"
+                code: 
+                  type: string
+                  example: "123456"
+
+      responses:
+        200: 
+          description: Установлена кука с токеном
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: "reset_token=abc123; Path=/reset-pw; HttpOnly; Secure; SameSite=Strict; Max-Age=600"
+        400:
+          description: Неверный формат почты
+        401:
+          description: Неверный код
+        404:
+          description: Почта не найдена
+  /reset-pw:
+    post:
+      summary: Изменить пароль
+      description: Изменяет пароль пользователя с переданной почтой, используя reset_token куку.
+      tags: 
+        - Password reset
+      security: 
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "ivan@example.com"
+                password: 
+                  type: string
+                  format: password
+                  example: "secret123"
+      responses:
+        200:
+          description: Пароль успешно изменён
+        400: 
+          description: Неверный формат данных
+        401:
+          description: Неверный токен
+        404: 
+          description: Почта не найдена
+
+  /events:
+    get:
+      summary: Получить список мероприятий
+      description: Возвращает список мероприятий в пределах 100 км с пагинацией. 
+      tags:
+        - Events                  
+      parameters:       
+        - in: query
+          name: keywords
+          schema:
+            type: string 
+          description: Ключевые слова
+        - in: query
+          name: tags
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: false
+          description: Теги мероприятия 
+        - in: cookie
+          name: latitude
+          schema:
+            type: number
+            format: double
+            example: 55.755825
+          description: Широта координаты пользователя
+          required: true
+        - in: cookie
+          name: longitude
+          schema: 
+            type: number
+            format: double
+            example: 37.617298    
+          description: Долгота координаты пользователя
+          required: true
+
+      responses:
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventResponse"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+                example:
+                  data:
+                    - id: 1
+                      name: "Концерт"
+                      description: "Грандиозный концерт"
+                      capacity: 50
+                      latitude: 55.755825
+                      longitude: 37.617298
+                      address: "Москва, Красная площадь"
+                      date: "2024-06-20T14:48:00Z"
+                      owner_id: 1
+                      is_private: false
+                      is_premium: true
+                      tags: 
+                        - id: 5
+                          name: "музыка"
+                      created_at: "2024-05-20T14:48:00Z"
+        400: 
+          description: Неверный формат запроса
+
+    post:
+      summary: Создать новое мероприятие
+      description: Создает новое мероприятие с указанными параметрами
+      tags:
+        - Events
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+            example:
+              name: "Вечеринка в стиле 90-х"
+              description: "Ночная вечеринка с хитами 90-х"
+              latitude: 55.752023
+              longitude: 37.617499
+              address: "Москва, ул. Тверская, 15"
+              date: "2024-07-15T20:00:00Z"
+              is_private: false
+              is_premium: true
+              tags: [5, 7]
+      responses:
+        200:
+          description: мероприятие успешно создано
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResponse"
+              example:
+                id: 123
+                name: "Вечеринка в стиле 90-х"
+                description: "Ночная вечеринка с хитами 90-х"
+                latitude: 55.752023
+                longitude: 37.617499
+                address: "Москва, ул. Тверская, 15"
+                date: "2024-07-15T20:00:00Z"
+                owner_id: 1
+                is_private: false
+                is_premium: true
+                tags:
+                  - id: 5
+                    name: "музыка"                  
+                created_at: "2024-05-20T15:30:00Z"
+        400:
+          description: Неправильный формат данных       
+        401:
+          description: Неавторизованный пользователь
+
+  /events/{id}:
+    get:
+      summary: Получить детальную информацию о мероприятии
+      description: Возвращает полную информацию о мероприятии по его ID
+      tags:
+        - Events
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID мероприятия
+      responses:
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResponse"
+              example:
+                id: 123
+                name: "Вечеринка в стиле 90-х"
+                description: "Ночная вечеринка с хитами 90-х"
+                latitude: 55.752023
+                longitude: 37.617499
+                address: "Москва, ул. Тверская, 15"
+                date: "2024-07-15T20:00:00Z"
+                owner_id: 1
+                is_private: false
+                is_premium: true
+                tags:
+                  - id: 5
+                    name: "музыка"
+                created_at: "2024-05-20T15:30:00Z"
+        404:
+          description: мероприятие не найдено
+
+    put:
+      summary: Обновить мероприятие
+      description: Обновляет информацию о мероприятии
+      tags:
+        - Events
+      security:
+        - CookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID мероприятия
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+            example:
+              name: "Обновленная вечеринка 90-х"
+              description: "Ночная вечеринка с расширенной программой"
+              is_premium: true
+      responses:
+        200:
+          description: мероприятие обновлено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResponse"
+        400:
+          description: Неверный формат данных
+        403:
+          description: Доступ запрещен          
+        404:
+          description: мероприятие не найдено
+
+
+    delete:
+      summary: Удалить мероприятие
+      description: Удаляет мероприятие 
+      tags:
+        - Events
+      security:
+        - CookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID мероприятия
+      responses:
+        200:
+          description: мероприятие успешно удалено
+        403:
+          description: Доступ запрещен          
+        404:
+          description: мероприятие не найдено
+
+  /events/{id}/subscribe:
+    post:
+      summary: Участвовать в мероприятии
+      description: Регистрирует текущего пользователя на участие в мероприятии, используя access токен.
+      tags:
+        - Events
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+          description: ID мероприятия
+      responses:
+        200:
+          description: Пользователь зарегистрирован на мероприятие
+        400:
+          description: Неверный формат данных
+        401:
+          description: Неавторизованный пользователь
+        403:
+          description: Приватное мероприятие
+        404:
+          description: мероприятие не найдено
+
+  /events/{id}/unsubscribe:
+      post:
+        summary: Отменить участие в мероприятии
+        description: Отменяет участие текущего пользователя в мероприятии, используя access токен.
+        tags:
+          - Events
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: integer
+              example: 1
+            description: ID мероприятия
+        responses:
+          200:
+            description: Участие пользователя отменено
+          400:
+            description: Неверный формат данных
+          401:
+            description: Неавторизованный пользователь
+          404:
+            description: мероприятие не найдено
+
+  /events/generate-desc:
+    post:
+      summary: Улучшить описание с помощью ИИ
+      description: Генерирует улучшенное описание на основе предоставленного.
+      tags:
+        - Events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+              example: "Ночная вечеринка"
+
+      responses:
+        200:
+          description: Пользователь зарегистрирован на мероприятие
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "Улучшенная ночная вечеринка"
+        400:
+          description: Неверный формат данных
+        500:
+          description: Проблемы работы ИИ
+  /admin/events:
+    get:
+      summary: Получить список мероприятий с фильтрами администратора
+      description: Возвращает список мероприятий с пагинацией и фильтрами администратора.
+      tags:
+        - Events
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Номер страницы
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Количество мероприятий на странице
+        - in: query
+          name: keywords
+          schema:
+            type: string 
+          description: Ключевые слова
+        - in: query
+          name: tags
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: false
+          description: Теги мероприятия 
+        - in: query
+          name: ownerID
+          schema: 
+            type: integer
+          description: ID владельца мероприятия
+        - in: query
+          name: userID
+          schema: 
+            type: integer
+          description: ID участника мероприятия    
+
+      responses:
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventResponse"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+                example:
+                  data:
+                    - id: 1
+                      name: "Концерт"
+                      description: "Грандиозный концерт"
+                      capacity: 50
+                      latitude: 55.755825
+                      longitude: 37.617298
+                      address: "Москва, Красная площадь"
+                      date: "2024-06-20T14:48:00Z"
+                      owner_id: 1
+                      is_private: false
+                      is_premium: true
+                      tags: 
+                        - id: 5
+                          name: "музыка"
+                      created_at: "2024-05-20T14:48:00Z"
+
+                  meta:
+                    total: 150
+                    page: 1
+                    limit: 20
+                    total_pages: 8
+        400: 
+          description: Неверный формат запроса
+  /events/home:
+    get:
+      summary: Получить списки мероприятий для главной страницы
+      description: |
+        Возвращает 4 блока мероприятий для главной страницы:
+        - Премиум мероприятия (6 штук)
+        - Рекомендованные мероприятия (6 штук, учитывая теги и расстояние)
+        - Новые мероприятия (6 штук, отсортированные по дате создания)
+        - Популярные мероприятия (6 штук, отсортированные по количеству участников)
+      tags:
+        - Events
+      parameters: 
+        - in: cookie
+          name: latitude
+          schema:
+            type: number
+            format: double
+            example: 55.755825
+          description: Широта координаты пользователя
+          required: true
+        - in: cookie
+          name: longitude
+          schema: 
+            type: number
+            format: double
+            example: 37.617298
+          description: Долгота координаты пользователя 
+          required: true
+           
+      responses:
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  premium:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventResponse"
+                    maxItems: 6
+                  recommended:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventResponse"
+                    maxItems: 6 
+                  new:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventResponse"
+                    maxItems: 6
+                  popular:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventResponse"
+                    maxItems: 6
+                example:
+                  premium:
+                    - id: 1
+                      name: "Концерт"
+                      description: "Грандиозный концерт"
+                      capacity: 50
+                      latitude: 55.755825
+                      longitude: 37.617298
+                      address: "Москва, Красная площадь"
+                      date: "2024-06-20T14:48:00Z"
+                      owner_id: 1
+                      is_private: false
+                      is_premium: true
+                      tags: 
+                        - id: 5
+                          name: "музыка"
+                      created_at: "2024-05-20T14:48:00Z"
+                  recommended:
+                    - id: 1
+                      name: "Концерт"
+                      description: "Грандиозный концерт"
+                      capacity: 50
+                      latitude: 55.755825
+                      longitude: 37.617298
+                      address: "Москва, Красная площадь"
+                      date: "2024-06-20T14:48:00Z"
+                      owner_id: 1
+                      is_private: false
+                      is_premium: true
+                      tags: 
+                        - id: 5
+                          name: "музыка"
+                      created_at: "2024-05-20T14:48:00Z"
+                  new:
+                    - id: 1
+                      name: "Концерт"
+                      description: "Грандиозный концерт"
+                      capacity: 50
+                      latitude: 55.755825
+                      longitude: 37.617298
+                      address: "Москва, Красная площадь"
+                      date: "2024-06-20T14:48:00Z"
+                      owner_id: 1
+                      is_private: false
+                      is_premium: true
+                      tags: 
+                        - id: 5
+                          name: "музыка"
+                      created_at: "2024-05-20T14:48:00Z"
+                  popular:
+                    - id: 1
+                      name: "Концерт"
+                      description: "Грандиозный концерт"
+                      capacity: 50
+                      latitude: 55.755825
+                      longitude: 37.617298
+                      address: "Москва, Красная площадь"
+                      date: "2024-06-20T14:48:00Z"
+                      owner_id: 1
+                      is_private: false
+                      is_premium: true
+                      tags: 
+                        - id: 5
+                          name: "музыка"
+                      created_at: "2024-05-20T14:48:00Z"
+
+  /users/me/upcoming-events:
+    get:
+      summary: Получить список предстоящих мероприятий для текущего пользователя
+      description: Получает список предстоящих мероприятий для текущего пользователья, используя access токен.
+      tags:
+        - Users
+      security:
+        - CookieAuth: []
+      responses:
+        200:
+          description: Успешно возвращает список мероприятий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:                 
+                  $ref: "#/components/schemas/EventResponse"
+        401: 
+          description: Пользователь неавторизован 
+
+  /users/me/past-events:
+    get:
+      summary: Получить список прошедших мероприятий для текущего пользователя
+      description: Получает список прошедших мероприятий для текущего пользователья, используя access токен.
+      tags:
+        - Users
+      security:
+        - CookieAuth: []
+      responses:
+        200:
+          description: Успешно возвращает список мероприятий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:                 
+                  $ref: "#/components/schemas/EventResponse"
+        401: 
+          description: Пользователь неавторизован                
+
+  /premium-payment/me:
+    post:
+      summary: Отправить запрос на создание счета на отплату покупки премиума
+      description: Содаёт счёт, привязанный к текущему пользователю.
+      tags:
+        - Premium
+      security:
+        - CookieAuth: []
+      responses:
+        200:
+          description: Успешно возвращает ID счета
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: 
+                    type: integer
+                    example: 1 
+
+  /premium-payment/{id}:
+    get:
+      summary: Валидировать пользователя и получить счет
+      description: Валидирует привязку пользователя к нужному счету и возвращает счет, используя access токен. 
+      tags:
+        - Premium
+      security:
+        - CookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: 
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Успешно возвращает счет
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: 
+                    type: integer
+                    example: 1 
+                  number:
+                    type: string
+                    example: "7777777777777777777777777"
+                    
+                  shop:
+                    type: string
+                    example: "Treffly"
+                  Price: 
+                    type: integer
+                    example: 100
+
+  /premium-payment/complete:
+    post:
+      summary: Изменить статус покупки премиума на завершённый
+      description: Изменяет статус покупки премиума текущего пользователя на завершённый.
+      tags:
+        - Premium
+      security:
+        - CookieAuth: []
+      responses:
+        200:
+          description: Успешно изменяет статус            
+                    
+components: 
+  schemas:    
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: "ivan_ivanov"
+        email:
+          type: string
+          format: email
+          example: "ivan@example.com"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-01-05T14:48:00Z"
+        is_admin:
+          type: boolean
+          example: false
+   
+    UserWithTags:
+      allOf:
+        - $ref: "#/components/schemas/User" 
+        - type: object
+          properties:
+            tags:
+              type: array
+              items:
+                $ref: "#/components/schemas/Tag"
+          required:
+            - tags
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 5
+        name:
+          type: string
+          example: "музыка"
+      required:
+        - id
+        - name
+    CreateUserRequest:
+      type: object
+      properties:       
+        username:
+          type: string
+          example: "ivan_ivanov"
+        email:
+          type: string
+          format: email
+          example: "ivan@example.com"
+        password:
+          type: string 
+          format: password
+          example: secret123        
+      required:
+        - username
+        - email
+        - password
+    UpdateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          example: "new_username"
+        email:
+          type: string
+          format: email
+          example: "new@example.com"        
+        tags:
+          type: array
+          items:
+            type: integer
+            example: 5
+
+    UpdateUserResponse:
+      $ref: "#/components/schemas/UpdateUserRequest"
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+            
+    EventResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Концерт"
+        description:
+          type: string
+          example: "Грандиозный концерт"
+        capacity:
+          type: integer
+          example: 50
+        latitude:
+          type: number
+          format: double
+          example: 55.755825
+        longitude:
+          type: number
+          format: double
+          example: 37.617298
+        address:
+          type: string
+          example: "Москва, Красная площадь"
+        date: 
+          type: string
+          format: date-time
+        owner_id:
+          type: integer
+          example: 1
+        is_private:
+          type: boolean
+          example: false
+        is_premium:
+          type: boolean
+          example: true
+        tags:
+          type: array
+          items: 
+            $ref: "#/components/schemas/Tag"          
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-05-20T14:48:00Z"
+      example:
+        data:
+          - id: 1
+            name: "Концерт"
+            description: "Грандиозный концерт"
+            capacity: 50
+            latitude: 55.755825
+            longitude: 37.617298
+            address: "Москва, Красная площадь"
+            date: "2024-06-20T14:48:00Z"
+            owner_id: 1
+            is_private: false
+            is_premium: true
+            tags: 
+              - id: 5
+                name: "музыка"
+            created_at: "2024-05-20T14:48:00Z"       
+    CreateEventRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: "Вечеринка в стиле 90-х"
+        description:
+          type: string
+          maxLength: 1000
+          example: "Ночная вечеринка с хитами 90-х"
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          example: 55.752023
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          example: 37.617499
+        address:
+          type: string
+          maxLength: 200
+          example: "Москва, ул. Тверская, 15"
+        date:
+          type: string
+          format: date-time
+          example: "2024-07-15T20:00:00Z"
+        is_private:
+          type: boolean
+          default: false
+        is_premium:
+          type: boolean
+          default: false
+        tags:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          example: [5, 7]
+      required:
+        - name
+        - latitude
+        - longitude
+        - address
+        - date
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 150
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total_pages:
+          type: integer
+          example: 8        
+
+
+  responses:
+    BadRequest:
+      description: Неверный формат запроса
+      
+    Unauthorized:
+      description: Ошибка аутентификации
+      
+    InvalidToken:
+      description: Невалидный токен
+      
+    Forbidden:
+      description: Доступ запрещен
+              
+
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+    
+      
