@@ -28,8 +28,7 @@ services:
     image: m1ll3r1337/treffly-server:latest
     expose:
       - "8080"
-    environment:
-      DB_SOURCE: ${DB_SOURCE}
+    env_file: app.env
     depends_on:
       postgres:
         condition: service_healthy
