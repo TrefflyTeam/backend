@@ -436,7 +436,7 @@ func TestLogoutUser(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 
 			router := gin.New()
-
+			router.Use(ErrorHandler())
 			server := newTestServer(t, store)
 
 			router.POST(

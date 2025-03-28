@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
+	"treffly/apperror"
 	db "treffly/db/sqlc"
 )
 
@@ -25,50 +26,51 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 	reqRefreshToken, err := ctx.Cookie("refresh_token")
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
-			ctx.JSON(http.StatusUnauthorized, errorResponse(fmt.Errorf("missing refresh token")))
+			ctx.Error(apperror.TokenExpired.WithCause(err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(err)
 		return
 	}
 
 	reqRefreshPayload, err := server.tokenMaker.VerifyToken(reqRefreshToken)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		ctx.Error(apperror.TokenExpired.WithCause(err))
 		return
 	}
 
 	session, err := server.store.GetSession(ctx, reqRefreshPayload.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			ctx.Error(apperror.NotFound.WithCause(err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(err)
 		return
 	}
 
 	if session.IsBlocked {
 		err := fmt.Errorf("blocked session")
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		ctx.Error(apperror.TokenExpired.WithCause(err))
 		return
 	}
 
 	if session.UserID != reqRefreshPayload.UserID {
 		err := fmt.Errorf("incorrect session user")
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		ctx.Error(apperror.TokenExpired.WithCause(err))
 		return
 	}
 
 	if session.RefreshToken != reqRefreshToken {
 		err := fmt.Errorf("mismatched session token")
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		ctx.Error(apperror.TokenExpired.WithCause(err))
+
 		return
 	}
 
 	if time.Now().After(session.ExpiresAt) {
 		err := fmt.Errorf("expired session")
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		ctx.Error(apperror.TokenExpired.WithCause(err))
 		return
 	}
 
@@ -77,7 +79,7 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 		server.config.AccessTokenDuration,
 	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(apperror.InternalServer.WithCause(err))
 		return
 	}
 
@@ -86,7 +88,7 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 		server.config.RefreshTokenDuration,
 	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(apperror.InternalServer.WithCause(err))
 		return
 	}
 
@@ -97,7 +99,7 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 		ExpiresAt: refreshPayload.ExpiredAt,
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(apperror.InternalServer.WithCause(err))
 		return
 	}
 

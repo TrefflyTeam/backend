@@ -1,11 +1,10 @@
 package api
 
 import (
-	"database/sql"
-	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
+	"treffly/apperror"
 	db "treffly/db/sqlc"
 	"treffly/util"
 )
@@ -33,13 +32,13 @@ func newUserResponse(user db.User) userResponse {
 func (server *Server) createUser(ctx *gin.Context) {
 	var req CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
 
 	hashedPassword, err := util.HashPassword(req.Password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(err)
 		return
 	}
 
@@ -51,7 +50,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	user, err := server.store.CreateUser(ctx, arg)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
@@ -74,23 +73,19 @@ type loginUserResponse struct {
 func (server *Server) loginUser(ctx *gin.Context) {
 	var req loginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
 
 	user, err := server.store.GetUserByEmail(ctx, req.Email)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
 	err = util.CheckPassword(req.Password, user.PasswordHash)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		ctx.Error(apperror.InvalidCredentials.WithCause(err))
 		return
 	}
 
@@ -99,7 +94,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		server.config.AccessTokenDuration,
 	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(err)
 		return
 	}
 
@@ -108,7 +103,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		server.config.RefreshTokenDuration,
 	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(err)
 		return
 	}
 
@@ -120,7 +115,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		IsBlocked:    false,
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 

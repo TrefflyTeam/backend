@@ -154,7 +154,6 @@ func TestRefreshTokensAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Contains(t, recorder.Body.String(), "blocked session")
 			},
 		},
 		{
@@ -174,7 +173,6 @@ func TestRefreshTokensAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Contains(t, recorder.Body.String(), "expired session")
 			},
 		},
 		{
@@ -194,7 +192,6 @@ func TestRefreshTokensAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Contains(t, recorder.Body.String(), "incorrect session user")
 			},
 		},
 		{
@@ -287,7 +284,6 @@ func TestRefreshTokensAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Contains(t, recorder.Body.String(), "mismatched session token")
 			},
 		},
 		{
@@ -300,7 +296,6 @@ func TestRefreshTokensAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Contains(t, recorder.Body.String(), "missing refresh token")
 			},
 		},
 	}
