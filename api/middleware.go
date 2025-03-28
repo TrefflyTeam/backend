@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"treffly/apperror"
 	"treffly/token"
 )
 
@@ -32,5 +33,22 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 
 		ctx.Set(authorizationPayloadKey, payload)
 		ctx.Next()
+	}
+}
+
+func ErrorHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Next()
+
+		if len(ctx.Errors) > 0 {
+			err := ctx.Errors.Last()
+			var e apperror.ErrorResponse
+			switch {
+			case errors.As(err.Err, &e):
+				ctx.JSON(e.HTTPCode, e)
+			default:
+				ctx.JSON(http.StatusInternalServerError, apperror.InternalServer)
+			}
+		}
 	}
 }
