@@ -1,6 +1,6 @@
 treffly.ru {
     handle /api/* {
-        rewrite /api/* /{path.1}
+        uri strip_prefix /api
         reverse_proxy backend:8080
     }
 
