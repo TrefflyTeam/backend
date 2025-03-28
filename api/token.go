@@ -14,7 +14,7 @@ import (
 const (
 	accessTokenCookiePath  = "/"
 	refreshTokenCookiePath = "/tokens/refresh"
-	cookieDomain = "localhost"
+	cookieDomain = ""
 )
 
 type refreshTokensResponse struct {
@@ -115,7 +115,11 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 
 func (server *Server) setTokenCookie(ctx *gin.Context, name, token, path string, maxAge time.Duration) {
 	ctx.SetSameSite(http.SameSiteLaxMode)
-	isSecure :=  server.config.Environment == "production"
+	isSecure := false
+	if server.config.Environment == "production" {
+		isSecure = true
+		path = "/api"+path
+	}
 	ctx.SetCookie(
 		name,
 		token,

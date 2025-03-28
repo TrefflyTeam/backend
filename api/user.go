@@ -133,8 +133,8 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 func (server *Server) logoutUser(ctx *gin.Context) {
 	isSecure := server.config.Environment == "production"
-	ctx.SetCookie("access_token", "", -1, accessTokenCookiePath, cookieDomain, isSecure, true)
-	ctx.SetCookie("refresh_token", "", -1, refreshTokenCookiePath, cookieDomain, isSecure, true)
+	ctx.SetCookie("access_token", "", -1, "/api"+accessTokenCookiePath, cookieDomain, isSecure, true)
+	ctx.SetCookie("refresh_token", "", -1, "/api"+refreshTokenCookiePath, cookieDomain, isSecure, true)
 	//TODO: block session
 	ctx.JSON(http.StatusNoContent, gin.H{})
 }
