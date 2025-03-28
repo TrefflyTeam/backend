@@ -99,6 +99,9 @@ func WrapDBError(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
 		return NotFound.WithCause(err)
 	}
+	if errors.Is(err, sql.ErrConnDone) {
+		return InternalServer.WithCause(err)
+	}
 
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {

@@ -44,6 +44,8 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 func (server *Server) setupRouter() {
 	router := gin.Default()
 
+	router.Use(ErrorHandler())
+
 	router.POST("/users", server.createUser)
 	router.POST("/login", server.loginUser)
 	router.POST("/tokens/refresh", server.refreshTokens)
@@ -57,6 +59,3 @@ func (server *Server) Start(address string) error {
 	return server.router.Run(address)
 }
 
-func errorResponse(err error) gin.H {
-	return gin.H{"error": err.Error()}
-}
