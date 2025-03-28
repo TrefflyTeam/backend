@@ -1,65 +1,92 @@
 package apperror
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 type ErrorResponse struct {
 	HTTPCode int    `json:"-"`
 	Title    string `json:"title"`
 	Subtitle string `json:"subtitle"`
+	Cause    error  `json:"-"`
 }
 
 var (
-	GeneralBadRequest = ErrorResponse{
+	GeneralBadRequest = ErrorTemplate{
 		HTTPCode: http.StatusBadRequest,
 		Title:    "Ошибка запроса",
 		Subtitle: "Перезагрузите страницу",
 	}
 
-	NotFound = ErrorResponse{
+	NotFound = ErrorTemplate{
 		HTTPCode: http.StatusNotFound,
 		Title:    "Ничего не найдено",
 		Subtitle: "Запрашиваемый ресурс недоступен или не существует",
 	}
 
-	InvalidCredentials = ErrorResponse{
+	InvalidCredentials = ErrorTemplate{
 		HTTPCode: http.StatusUnauthorized,
 		Title:    "Неверный логин или пароль",
 		Subtitle: "Попробуйте ещё раз",
 	}
 
-	TokenExpired = ErrorResponse{
+	TokenExpired = ErrorTemplate{
 		HTTPCode: http.StatusUnauthorized,
 		Title: "Сессия завершена",
 		Subtitle: "Войдите снова, чтобы продолжить",
 	}
 
-	EmailTaken = ErrorResponse{
+	EmailTaken = ErrorTemplate{
 		HTTPCode: http.StatusUnauthorized,
 		Title: "Почта уже занята",
 		Subtitle: "Укажите другую почту или войдите в аккаунт",
 	}
 
-	BadRequest = ErrorResponse{
+	BadRequest = ErrorTemplate{
 		HTTPCode: http.StatusBadRequest,
 		Title: "Некорректные данные",
 		Subtitle: "Проверьте введённую информацию и попробуйте снова",
 	}
 
-	Forbidden = ErrorResponse{
+	Forbidden = ErrorTemplate{
 		HTTPCode: http.StatusForbidden,
 		Title: "Недостаточно прав",
 		Subtitle: "У вас нет доступа к этому разделу",
 	}
 
-	InternalServer = ErrorResponse{
+	InternalServer = ErrorTemplate{
 		HTTPCode: http.StatusInternalServerError,
 		Title: "Ошибка сервера",
 		Subtitle: "Что-то пошло не так. Попробуйте позже",
 	}
 
-	BadGateway = ErrorResponse{
+	BadGateway = ErrorTemplate{
 		HTTPCode: http.StatusBadGateway,
 		Title: "Сервер не отвечает",
 		Subtitle: "Запрос занял слишком много времени. Попробуйте позже",
 	}
 )
+
+type ErrorTemplate struct {
+	HTTPCode  int
+	Title     string
+	Subtitle  string
+}
+
+func (t ErrorTemplate) WithCause(cause error) ErrorResponse {
+	return ErrorResponse{
+		HTTPCode:  t.HTTPCode,
+		Title:     t.Title,
+		Subtitle:  t.Subtitle,
+		Cause:     cause,
+	}
+}
+
+func (e ErrorResponse) Error() string {
+	return fmt.Sprintf("%s: %s", e.Title, e.Subtitle)
+}
+
+func (e ErrorResponse) Unwrap() error {
+	return e.Cause
+}
