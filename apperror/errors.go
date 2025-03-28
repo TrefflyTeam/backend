@@ -1,7 +1,11 @@
 package apperror
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"net/http"
 )
 
@@ -33,53 +37,53 @@ var (
 
 	TokenExpired = ErrorTemplate{
 		HTTPCode: http.StatusUnauthorized,
-		Title: "Сессия завершена",
+		Title:    "Сессия завершена",
 		Subtitle: "Войдите снова, чтобы продолжить",
 	}
 
 	EmailTaken = ErrorTemplate{
 		HTTPCode: http.StatusUnauthorized,
-		Title: "Почта уже занята",
+		Title:    "Почта уже занята",
 		Subtitle: "Укажите другую почту или войдите в аккаунт",
 	}
 
 	BadRequest = ErrorTemplate{
 		HTTPCode: http.StatusBadRequest,
-		Title: "Некорректные данные",
+		Title:    "Некорректные данные",
 		Subtitle: "Проверьте введённую информацию и попробуйте снова",
 	}
 
 	Forbidden = ErrorTemplate{
 		HTTPCode: http.StatusForbidden,
-		Title: "Недостаточно прав",
+		Title:    "Недостаточно прав",
 		Subtitle: "У вас нет доступа к этому разделу",
 	}
 
 	InternalServer = ErrorTemplate{
 		HTTPCode: http.StatusInternalServerError,
-		Title: "Ошибка сервера",
+		Title:    "Ошибка сервера",
 		Subtitle: "Что-то пошло не так. Попробуйте позже",
 	}
 
 	BadGateway = ErrorTemplate{
 		HTTPCode: http.StatusBadGateway,
-		Title: "Сервер не отвечает",
+		Title:    "Сервер не отвечает",
 		Subtitle: "Запрос занял слишком много времени. Попробуйте позже",
 	}
 )
 
 type ErrorTemplate struct {
-	HTTPCode  int
-	Title     string
-	Subtitle  string
+	HTTPCode int
+	Title    string
+	Subtitle string
 }
 
 func (t ErrorTemplate) WithCause(cause error) ErrorResponse {
 	return ErrorResponse{
-		HTTPCode:  t.HTTPCode,
-		Title:     t.Title,
-		Subtitle:  t.Subtitle,
-		Cause:     cause,
+		HTTPCode: t.HTTPCode,
+		Title:    t.Title,
+		Subtitle: t.Subtitle,
+		Cause:    cause,
 	}
 }
 
@@ -89,4 +93,22 @@ func (e ErrorResponse) Error() string {
 
 func (e ErrorResponse) Unwrap() error {
 	return e.Cause
+}
+
+func WrapDBError(err error) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return NotFound.WithCause(err)
+	}
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case pgerrcode.UniqueViolation:
+			if pgErr.ConstraintName == "users_email_key" {
+				return EmailTaken.WithCause(err)
+			}
+		}
+	}
+
+	return GeneralBadRequest.WithCause(err)
 }
