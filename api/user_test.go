@@ -52,6 +52,7 @@ func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher
 
 func TestCreateUserAPI(t *testing.T) {
 	user, password := randomUser(t)
+	user.ID = int32(util.RandomInt(0,100))
 	log.Println(user.Username)
 	log.Println(user.Email)
 	log.Println(password)
@@ -77,6 +78,25 @@ func TestCreateUserAPI(t *testing.T) {
 					CreateUser(gomock.Any(), EqCreateUserParams(arg, password)).
 					Times(1).
 					Return(user, nil)
+				store.EXPECT().
+					CreateSession(gomock.Any(), gomock.Any()).
+					Times(1).
+					DoAndReturn(func(ctx context.Context, arg db.CreateSessionParams) (db.Session, error) {
+						require.NotEmpty(t, arg.Uuid)
+						require.NotEmpty(t, arg.UserID)
+						require.NotEmpty(t, arg.RefreshToken)
+						require.True(t, arg.ExpiresAt.After(time.Now()))
+						require.False(t, arg.IsBlocked)
+
+						return db.Session{
+							Uuid:         arg.Uuid,
+							UserID:       arg.UserID,
+							RefreshToken: arg.RefreshToken,
+							ExpiresAt:    arg.ExpiresAt,
+							IsBlocked:    arg.IsBlocked,
+							CreatedAt:    time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC),
+						}, nil
+					})
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
@@ -95,6 +115,9 @@ func TestCreateUserAPI(t *testing.T) {
 					CreateUser(gomock.Any(), gomock.Any()).
 					Times(1).
 					Return(db.User{}, sql.ErrConnDone)
+				store.EXPECT().
+					CreateSession(gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -111,6 +134,10 @@ func TestCreateUserAPI(t *testing.T) {
 				store.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any()).
 					Times(0)
+				store.EXPECT().
+					CreateSession(gomock.Any(), gomock.Any()).
+					Times(0)
+
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -126,6 +153,9 @@ func TestCreateUserAPI(t *testing.T) {
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					CreateSession(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -143,6 +173,9 @@ func TestCreateUserAPI(t *testing.T) {
 				store.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any()).
 					Times(0)
+				store.EXPECT().
+					CreateSession(gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -157,6 +190,9 @@ func TestCreateUserAPI(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().
+					CreateSession(gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -266,11 +302,9 @@ func TestLoginUser(t *testing.T) {
 				err := json.Unmarshal(recorder.Body.Bytes(), &response)
 				require.NoError(t, err)
 
-				require.Equal(t, user.Username, response.User.Username)
-				require.Equal(t, user.Email, response.User.Email)
-				require.WithinDuration(t, user.CreatedAt, response.User.CreatedAt, time.Second)
-				require.True(t, response.AccessTokenExpiresAt.After(time.Now()))
-				require.True(t, response.RefreshTokenExpiresAt.After(time.Now()))
+				require.Equal(t, user.Username, response.Username)
+				require.Equal(t, user.Email, response.Email)
+				require.WithinDuration(t, user.CreatedAt, response.CreatedAt, time.Second)
 
 				cookies := recorder.Result().Cookies()
 				require.Len(t, cookies, 2)

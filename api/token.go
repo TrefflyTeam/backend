@@ -17,11 +17,6 @@ const (
 	cookieDomain = ""
 )
 
-type refreshTokensResponse struct {
-	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
-	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
-}
-
 func (server *Server) refreshTokens(ctx *gin.Context) {
 	reqRefreshToken, err := ctx.Cookie("refresh_token")
 	if err != nil {
@@ -74,7 +69,7 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, accessPayload, err := server.tokenMaker.CreateToken(
+	accessToken, _, err := server.tokenMaker.CreateToken(
 		reqRefreshPayload.UserID,
 		server.config.AccessTokenDuration,
 	)
@@ -106,11 +101,7 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 	server.setTokenCookie(ctx, "access_token", accessToken, accessTokenCookiePath, server.config.AccessTokenDuration)
 	server.setTokenCookie(ctx, "refresh_token", refreshToken, refreshTokenCookiePath, server.config.RefreshTokenDuration)
 
-	rsp := refreshTokensResponse{
-		AccessTokenExpiresAt: accessPayload.ExpiredAt,
-		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
-	}
-	ctx.JSON(http.StatusOK, rsp)
+	ctx.JSON(http.StatusOK, gin.H{})
 }
 
 func (server *Server) setTokenCookie(ctx *gin.Context, name, token, path string, maxAge time.Duration) {
