@@ -10,7 +10,7 @@ import (
 )
 
 type CreateUserRequest struct {
-	Username string `json:"username" binding:"required,username,min=2,max=16"`
+	Username string `json:"username" binding:"required,username,min=2,max=20"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
@@ -54,20 +54,18 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	resp := newUserResponse(user)
+	loginResp := server.createAuthSession(ctx, user)
 
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, loginResp)
 }
 
 type loginUserRequest struct {
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6,max=32"`
+	Password string `json:"password" binding:"required,min=6"`
 }
 
 type loginUserResponse struct {
-	User                  userResponse `json:"user"`
-	AccessTokenExpiresAt  time.Time    `json:"access_token_expires_at"`
-	RefreshTokenExpiresAt time.Time    `json:"refresh_token_expires_at"`
+	userResponse
 }
 
 func (server *Server) loginUser(ctx *gin.Context) {
@@ -89,7 +87,13 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, accessPayload, err := server.tokenMaker.CreateToken(
+	resp := server.createAuthSession(ctx, user)
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func (server *Server) createAuthSession(ctx *gin.Context, user db.User) (resp loginUserResponse) {
+	accessToken, _, err := server.tokenMaker.CreateToken(
 		user.ID,
 		server.config.AccessTokenDuration,
 	)
@@ -119,22 +123,35 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
-	resp := loginUserResponse{
-		User:                  newUserResponse(user),
-		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
-		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
+	resp = loginUserResponse{
+		newUserResponse(user),
 	}
 
 	server.setTokenCookie(ctx, "access_token", accessToken, accessTokenCookiePath, server.config.AccessTokenDuration)
 	server.setTokenCookie(ctx, "refresh_token", refreshToken, refreshTokenCookiePath, server.config.RefreshTokenDuration)
 
-	ctx.JSON(http.StatusOK, resp)
+	return resp
 }
 
 func (server *Server) logoutUser(ctx *gin.Context) {
-	isSecure := server.config.Environment == "production"
-	ctx.SetCookie("access_token", "", -1, "/api"+accessTokenCookiePath, cookieDomain, isSecure, true)
-	ctx.SetCookie("refresh_token", "", -1, "/api"+refreshTokenCookiePath, cookieDomain, isSecure, true)
+	isSecure := false
+	path := "" //TODO: define path vars on server init
+	if server.config.Environment == "production" {
+		isSecure = true
+		path = "/api"
+	}
+	ctx.SetCookie("access_token", "", -1, path+accessTokenCookiePath, cookieDomain, isSecure, true)
+	ctx.SetCookie("refresh_token", "", -1, path+refreshTokenCookiePath, cookieDomain, isSecure, true)
 	//TODO: block session
 	ctx.JSON(http.StatusNoContent, gin.H{})
+}
+
+func (server *Server) auth(ctx *gin.Context) {
+	_, err := ctx.Cookie("refresh_token")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{})
 }
