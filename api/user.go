@@ -145,3 +145,13 @@ func (server *Server) logoutUser(ctx *gin.Context) {
 	//TODO: block session
 	ctx.JSON(http.StatusNoContent, gin.H{})
 }
+
+func (server *Server) auth(ctx *gin.Context) {
+	_, err := ctx.Cookie("refresh_token")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{})
+}

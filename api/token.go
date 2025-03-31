@@ -13,7 +13,7 @@ import (
 
 const (
 	accessTokenCookiePath  = "/"
-	refreshTokenCookiePath = "/tokens/refresh"
+	refreshTokenCookiePath = "/auth"
 	cookieDomain = ""
 )
 
