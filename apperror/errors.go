@@ -42,7 +42,7 @@ var (
 	}
 
 	EmailTaken = ErrorTemplate{
-		HTTPCode: http.StatusUnauthorized,
+		HTTPCode: http.StatusBadRequest,
 		Title:    "Почта уже занята",
 		Subtitle: "Укажите другую почту или войдите в аккаунт",
 	}

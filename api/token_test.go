@@ -309,7 +309,7 @@ func TestRefreshTokensAPI(t *testing.T) {
 			server.tokenMaker = tokenMaker
 			recorder := httptest.NewRecorder()
 
-			request, err := http.NewRequest(http.MethodPost, "/tokens/refresh", nil)
+			request, err := http.NewRequest(http.MethodPost, "/auth/refresh", nil)
 			require.NoError(t, err)
 
 			tc.setupRequest(t, request)
