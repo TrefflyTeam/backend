@@ -1,11 +1,13 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
+	"treffly/token"
 	"treffly/util"
 )
 
@@ -26,6 +28,18 @@ func newUserResponse(user db.User) userResponse {
 		Username:  user.Username,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
+	}
+}
+
+type userWithTagsResponse struct {
+	userResponse
+	tags []db.Tag
+}
+
+func newUserWithTagsResponse(user db.User, tags []db.Tag) userWithTagsResponse {
+	return userWithTagsResponse{
+		userResponse: newUserResponse(user),
+		tags:         tags,
 	}
 }
 
@@ -154,4 +168,21 @@ func (server *Server) auth(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{})
+}
+
+func (server *Server) getCurrentUser(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
+
+	if userID == 0 {
+		err := fmt.Errorf("invalid user id")
+		ctx.Error(apperror.TokenExpired.WithCause(err))
+	}
+
+	user, err := server.store.GetUserWithTags(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+	}
+
+	ctx.JSON(http.StatusOK, user)
 }
