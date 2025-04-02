@@ -8,7 +8,7 @@ import (
 )
 
 type tagResponse struct {
-	tags []db.Tag
+	Tags []db.Tag `json:"tags"`
 }
 
 func newTagResponse(tags []db.Tag) tagResponse {
