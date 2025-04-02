@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const createSession = `-- name: CreateSession :one
+const createSession = `-- name: CreateSession :exec
 INSERT INTO sessions (
                       uuid,
                       user_id,
@@ -32,24 +32,15 @@ type CreateSessionParams struct {
 	IsBlocked    bool      `json:"is_blocked"`
 }
 
-func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
-	row := q.db.QueryRowContext(ctx, createSession,
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
+	_, err := q.db.ExecContext(ctx, createSession,
 		arg.Uuid,
 		arg.UserID,
 		arg.RefreshToken,
 		arg.ExpiresAt,
 		arg.IsBlocked,
 	)
-	var i Session
-	err := row.Scan(
-		&i.Uuid,
-		&i.UserID,
-		&i.RefreshToken,
-		&i.ExpiresAt,
-		&i.IsBlocked,
-		&i.CreatedAt,
-	)
-	return i, err
+	return err
 }
 
 const getSession = `-- name: GetSession :one
@@ -71,7 +62,7 @@ func (q *Queries) GetSession(ctx context.Context, argUuid uuid.UUID) (Session, e
 	return i, err
 }
 
-const updateSession = `-- name: UpdateSession :one
+const updateSession = `-- name: UpdateSession :exec
 UPDATE sessions
 SET uuid = $1, refresh_token = $2, expires_at = $3
 WHERE uuid = $4
@@ -85,21 +76,12 @@ type UpdateSessionParams struct {
 	OldUuid      uuid.UUID `json:"old_uuid"`
 }
 
-func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (Session, error) {
-	row := q.db.QueryRowContext(ctx, updateSession,
+func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) error {
+	_, err := q.db.ExecContext(ctx, updateSession,
 		arg.NewUuid,
 		arg.RefreshToken,
 		arg.ExpiresAt,
 		arg.OldUuid,
 	)
-	var i Session
-	err := row.Scan(
-		&i.Uuid,
-		&i.UserID,
-		&i.RefreshToken,
-		&i.ExpiresAt,
-		&i.IsBlocked,
-		&i.CreatedAt,
-	)
-	return i, err
+	return err
 }

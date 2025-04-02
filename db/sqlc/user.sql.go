@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -80,6 +81,47 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.IsAdmin,
+	)
+	return i, err
+}
+
+const getUserWithTags = `-- name: GetUserWithTags :one
+SELECT
+    u.id,
+    u.username,
+    u.email,
+    u.created_at,
+    COALESCE(
+            JSON_AGG(
+                    json_build_object('id', t.id, 'name', t.name)
+                        ORDER BY t.name
+            ) FILTER (WHERE t.id IS NOT NULL),
+            '[]'::JSON
+    ) AS tags
+FROM users u
+         LEFT JOIN user_tags ut ON u.id = ut.user_id
+         LEFT JOIN tags t ON ut.tag_id = t.id
+WHERE u.id = $1
+GROUP BY u.id
+`
+
+type GetUserWithTagsRow struct {
+	ID        int32       `json:"id"`
+	Username  string      `json:"username"`
+	Email     string      `json:"email"`
+	CreatedAt time.Time   `json:"created_at"`
+	Tags      interface{} `json:"tags"`
+}
+
+func (q *Queries) GetUserWithTags(ctx context.Context, id int32) (GetUserWithTagsRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserWithTags, id)
+	var i GetUserWithTagsRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.CreatedAt,
+		&i.Tags,
 	)
 	return i, err
 }

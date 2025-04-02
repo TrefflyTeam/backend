@@ -11,14 +11,18 @@ import (
 )
 
 type Querier interface {
-	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
+	AddUserTag(ctx context.Context, arg AddUserTagParams) (UserTag, error)
+	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteUser(ctx context.Context, id int32) error
+	DeleteUserTag(ctx context.Context, arg DeleteUserTagParams) error
 	GetSession(ctx context.Context, argUuid uuid.UUID) (Session, error)
+	GetTags(ctx context.Context) ([]Tag, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserWithTags(ctx context.Context, id int32) (GetUserWithTagsRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
-	UpdateSession(ctx context.Context, arg UpdateSessionParams) (Session, error)
+	UpdateSession(ctx context.Context, arg UpdateSessionParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 
