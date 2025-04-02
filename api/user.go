@@ -237,6 +237,7 @@ func (server *Server) addCurrentUserTag(ctx *gin.Context) {
 	tagID, err := strconv.Atoi(id)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
 	}
 
 	arg := db.AddUserTagParams{
@@ -247,7 +248,34 @@ func (server *Server) addCurrentUserTag(ctx *gin.Context) {
 	userTag, err := server.store.AddUserTag(ctx, arg)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
+		return
 	}
 
 	ctx.JSON(http.StatusOK, newAddTagResponse(userTag))
+}
+
+func (server *Server) deleteCurrentUserTag(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
+
+	id := ctx.Param("id")
+
+	tagID, err := strconv.Atoi(id)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	arg := db.DeleteUserTagParams{
+		UserID: userID,
+		TagID: int32(tagID),
+	}
+
+	err = server.store.DeleteUserTag(ctx, arg)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, gin.H{})
 }

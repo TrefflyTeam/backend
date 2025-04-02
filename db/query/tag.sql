@@ -5,7 +5,6 @@ ORDER BY id;
 -- name: AddUserTag :one
 INSERT INTO user_tags (user_id, tag_id)
 VALUES ($1, $2)
-ON CONFLICT (user_id, tag_id) DO NOTHING
 RETURNING user_id, tag_id;
 
 -- name: DeleteUserTag :exec
