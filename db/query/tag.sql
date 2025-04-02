@@ -10,4 +10,4 @@ RETURNING user_id, tag_id;
 
 -- name: DeleteUserTag :exec
 DELETE FROM user_tags
-WHERE user_id = $1 AND tag_id $2;
+WHERE user_id = $1 AND tag_id = $2;

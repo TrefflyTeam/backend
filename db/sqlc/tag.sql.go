@@ -22,7 +22,7 @@ type AddUserTagParams struct {
 }
 
 func (q *Queries) AddUserTag(ctx context.Context, arg AddUserTagParams) (UserTag, error) {
-	row := q.db.QueryRowContext(ctx, addUserTag, arg.UserID, arg.TagID)
+	row := q.db.QueryRow(ctx, addUserTag, arg.UserID, arg.TagID)
 	var i UserTag
 	err := row.Scan(&i.UserID, &i.TagID)
 	return i, err
@@ -30,16 +30,16 @@ func (q *Queries) AddUserTag(ctx context.Context, arg AddUserTagParams) (UserTag
 
 const deleteUserTag = `-- name: DeleteUserTag :exec
 DELETE FROM user_tags
-WHERE user_id = $1 AND tag_id $2
+WHERE user_id = $1 AND tag_id = $2
 `
 
 type DeleteUserTagParams struct {
-	UserID  int32       `json:"user_id"`
-	Column2 interface{} `json:"column_2"`
+	UserID int32 `json:"user_id"`
+	TagID  int32 `json:"tag_id"`
 }
 
 func (q *Queries) DeleteUserTag(ctx context.Context, arg DeleteUserTagParams) error {
-	_, err := q.db.ExecContext(ctx, deleteUserTag, arg.UserID, arg.Column2)
+	_, err := q.db.Exec(ctx, deleteUserTag, arg.UserID, arg.TagID)
 	return err
 }
 
@@ -49,7 +49,7 @@ ORDER BY id
 `
 
 func (q *Queries) GetTags(ctx context.Context) ([]Tag, error) {
-	rows, err := q.db.QueryContext(ctx, getTags)
+	rows, err := q.db.Query(ctx, getTags)
 	if err != nil {
 		return nil, err
 	}
@@ -61,9 +61,6 @@ func (q *Queries) GetTags(ctx context.Context) ([]Tag, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

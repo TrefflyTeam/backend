@@ -20,7 +20,7 @@ type Querier interface {
 	GetTags(ctx context.Context) ([]Tag, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserWithTags(ctx context.Context, id int32) (GetUserWithTagsRow, error)
+	GetUserWithTags(ctx context.Context, id int32) (UserWithTagsView, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	UpdateSession(ctx context.Context, arg UpdateSessionParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)

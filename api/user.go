@@ -186,3 +186,7 @@ func (server *Server) getCurrentUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, user)
 }
+
+func (server *Server) updateCurrentUser(ctx *gin.Context) {
+
+}

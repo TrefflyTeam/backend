@@ -37,3 +37,11 @@ type UserTag struct {
 	UserID int32 `json:"user_id"`
 	TagID  int32 `json:"tag_id"`
 }
+
+type UserWithTagsView struct {
+	ID        int32     `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+	Tags      []Tag     `json:"tags"`
+}
