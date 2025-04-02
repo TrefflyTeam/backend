@@ -111,7 +111,7 @@ func (server *Server) createAuthSession(ctx *gin.Context, user db.User) (resp lo
 		return
 	}
 
-	_, err = server.store.CreateSession(ctx, db.CreateSessionParams{
+	err = server.store.CreateSession(ctx, db.CreateSessionParams{
 		Uuid:         refreshPayload.ID,
 		UserID:       user.ID,
 		RefreshToken: refreshToken,

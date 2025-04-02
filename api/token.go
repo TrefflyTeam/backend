@@ -87,7 +87,7 @@ func (server *Server) refreshTokens(ctx *gin.Context) {
 		return
 	}
 
-	_, err = server.store.UpdateSession(ctx, db.UpdateSessionParams{
+	err = server.store.UpdateSession(ctx, db.UpdateSessionParams{
 		OldUuid: reqRefreshPayload.ID,
 		NewUuid: refreshPayload.ID,
 		RefreshToken: refreshToken,
