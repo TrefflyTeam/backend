@@ -204,3 +204,15 @@ func (server *Server) updateCurrentUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, newUserResponse(user))
 }
+
+func (server *Server) deleteCurrentUser(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
+
+	err := server.store.DeleteUser(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+	}
+
+	ctx.JSON(http.StatusNoContent, gin.H{})
+}

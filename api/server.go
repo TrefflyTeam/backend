@@ -56,6 +56,7 @@ func (server *Server) setupRouter() {
 	authRoutes.POST("/logout", server.logoutUser)
 	authRoutes.GET("/users/me", server.getCurrentUser)
 	authRoutes.PUT("/users/me", server.updateCurrentUser)
+	authRoutes.DELETE("/users/me", server.deleteCurrentUser)
 
 	server.router = router
 }
