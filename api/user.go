@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"time"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
@@ -215,4 +216,38 @@ func (server *Server) deleteCurrentUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusNoContent, gin.H{})
+}
+
+type addTagResponse struct {
+	db.UserTag
+}
+
+func newAddTagResponse(tag db.UserTag) addTagResponse {
+	return addTagResponse{
+		tag,
+	}
+}
+
+func (server *Server) addCurrentUserTag(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
+
+	id := ctx.Param("id")
+
+	tagID, err := strconv.Atoi(id)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+	}
+
+	arg := db.AddUserTagParams{
+		UserID: userID,
+		TagID: int32(tagID),
+	}
+
+	userTag, err := server.store.AddUserTag(ctx, arg)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+	}
+
+	ctx.JSON(http.StatusOK, newAddTagResponse(userTag))
 }
