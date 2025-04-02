@@ -1,16 +1,18 @@
 package db
 
-import "database/sql"
+import (
+	"github.com/jackc/pgx/v5/pgxpool"
+)
 
 type Store interface {
 	Querier
 }
 
 type SQLStore struct {
-	db *sql.DB
+	db *pgxpool.Pool
 	*Queries
 }
 
-func NewStore(db *sql.DB) Store {
+func NewStore(db *pgxpool.Pool) Store {
 	return &SQLStore{db: db, Queries: New(db)}
 }

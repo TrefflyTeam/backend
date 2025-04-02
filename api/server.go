@@ -28,12 +28,11 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		config:     config,
 	}
 
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		err := v.RegisterValidation("username", validUsername)
-		if err != nil {
-			return nil, err
-		}
+	err = server.registerValidators()
+	if err != nil {
+		return nil, fmt.Errorf("cannot register validators: %w", err)
 	}
+
 	if server.config.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -50,10 +49,28 @@ func (server *Server) setupRouter() {
 	router.POST("/login", server.loginUser)
 	router.POST("/auth/refresh", server.refreshTokens)
 	router.GET("/auth", server.auth)
+	router.GET("/tags", server.getTags)
 
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRoutes.POST("/logout", server.logoutUser)
+	authRoutes.GET("/users/me", server.getCurrentUser)
+	authRoutes.PUT("/users/me", server.updateCurrentUser)
+	authRoutes.DELETE("/users/me", server.deleteCurrentUser)
+	authRoutes.POST("/users/me/tags/:id", server.addCurrentUserTag)
+	authRoutes.DELETE("/users/me/tags/:id", server.deleteCurrentUserTag)
+
 	server.router = router
+}
+
+func (server *Server) registerValidators() error {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		err := v.RegisterValidation("username", validUsername)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (server *Server) Start(address string) error {

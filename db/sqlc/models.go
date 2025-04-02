@@ -19,6 +19,11 @@ type Session struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+type Tag struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
+}
+
 type User struct {
 	ID           int32     `json:"id"`
 	Username     string    `json:"username"`
@@ -26,4 +31,17 @@ type User struct {
 	PasswordHash string    `json:"password_hash"`
 	CreatedAt    time.Time `json:"created_at"`
 	IsAdmin      bool      `json:"is_admin"`
+}
+
+type UserTag struct {
+	UserID int32 `json:"user_id"`
+	TagID  int32 `json:"tag_id"`
+}
+
+type UserWithTagsView struct {
+	ID        int32     `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+	Tags      []Tag     `json:"tags"`
 }

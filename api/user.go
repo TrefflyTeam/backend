@@ -3,9 +3,11 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"time"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
+	"treffly/token"
 	"treffly/util"
 )
 
@@ -26,6 +28,16 @@ func newUserResponse(user db.User) userResponse {
 		Username:  user.Username,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
+	}
+}
+
+type userWithTagsResponse struct {
+	db.UserWithTagsView
+}
+
+func newUserWithTagsResponse(user db.UserWithTagsView) userWithTagsResponse {
+	return userWithTagsResponse{
+		user,
 	}
 }
 
@@ -111,7 +123,7 @@ func (server *Server) createAuthSession(ctx *gin.Context, user db.User) (resp lo
 		return
 	}
 
-	_, err = server.store.CreateSession(ctx, db.CreateSessionParams{
+	err = server.store.CreateSession(ctx, db.CreateSessionParams{
 		Uuid:         refreshPayload.ID,
 		UserID:       user.ID,
 		RefreshToken: refreshToken,
@@ -154,4 +166,116 @@ func (server *Server) auth(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{})
+}
+
+func (server *Server) getCurrentUser(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
+
+	user, err := server.store.GetUserWithTags(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+	}
+
+	ctx.JSON(http.StatusOK, newUserWithTagsResponse(user))
+}
+
+type updateUserRequest struct {
+	Username string `json:"username" binding:"required,username,min=2,max=20"`
+}
+
+func (server *Server) updateCurrentUser(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
+
+	var req updateUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+	}
+
+	arg := db.UpdateUserParams{
+		ID: userID,
+		Username: req.Username,
+	}
+
+	user, err := server.store.UpdateUser(ctx, arg)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+	}
+
+	ctx.JSON(http.StatusOK, newUserResponse(user))
+}
+
+func (server *Server) deleteCurrentUser(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
+
+	err := server.store.DeleteUser(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+	}
+
+	ctx.JSON(http.StatusNoContent, gin.H{})
+}
+
+type addTagResponse struct {
+	db.UserTag
+}
+
+func newAddTagResponse(tag db.UserTag) addTagResponse {
+	return addTagResponse{
+		tag,
+	}
+}
+
+func (server *Server) addCurrentUserTag(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
+
+	id := ctx.Param("id")
+
+	tagID, err := strconv.Atoi(id)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	arg := db.AddUserTagParams{
+		UserID: userID,
+		TagID: int32(tagID),
+	}
+
+	userTag, err := server.store.AddUserTag(ctx, arg)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newAddTagResponse(userTag))
+}
+
+func (server *Server) deleteCurrentUserTag(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
+
+	id := ctx.Param("id")
+
+	tagID, err := strconv.Atoi(id)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	arg := db.DeleteUserTagParams{
+		UserID: userID,
+		TagID: int32(tagID),
+	}
+
+	err = server.store.DeleteUserTag(ctx, arg)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, gin.H{})
 }

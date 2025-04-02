@@ -1,9 +1,12 @@
 package main
 
 import (
-	"database/sql"
+	"context"
+	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"log"
+	"os"
 	"treffly/api"
 	db "treffly/db/sqlc"
 	"treffly/util"
@@ -15,12 +18,13 @@ func main() {
 		log.Fatal("cannot load config:", err)
 	}
 
-	conn, err := sql.Open(config.DBDriver, config.DBSource)
+	dbpool, err := pgxpool.New(context.Background(), config.DBSource)
 	if err != nil {
-		log.Fatal("cannot connect to db")
+		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
+		os.Exit(1)
 	}
-
-	store := db.NewStore(conn)
+	defer dbpool.Close()
+	store := db.NewStore(dbpool)
 	server, err := api.NewServer(config, store)
 	if err != nil {
 		log.Fatal("cannot create server:", err)

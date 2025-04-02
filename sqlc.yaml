@@ -10,6 +10,17 @@ sql:
         emit_empty_slices: true
         emit_interface: true
         package: "db"
+        sql_package: "pgx/v5"
         out: "db/sqlc/"
-
-
+        overrides:
+          - column: "user_with_tags_view.tags"
+            go_type:
+              type: "Tag"
+              slice: true
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - db_type: "timestamptz"
+            go_type:
+              type: "time.Time"
