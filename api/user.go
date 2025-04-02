@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
@@ -32,14 +31,12 @@ func newUserResponse(user db.User) userResponse {
 }
 
 type userWithTagsResponse struct {
-	userResponse
-	tags []db.Tag
+	db.UserWithTagsView
 }
 
-func newUserWithTagsResponse(user db.User, tags []db.Tag) userWithTagsResponse {
+func newUserWithTagsResponse(user db.UserWithTagsView) userWithTagsResponse {
 	return userWithTagsResponse{
-		userResponse: newUserResponse(user),
-		tags:         tags,
+		user,
 	}
 }
 
@@ -174,19 +171,36 @@ func (server *Server) getCurrentUser(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	userID := authPayload.UserID
 
-	if userID == 0 {
-		err := fmt.Errorf("invalid user id")
-		ctx.Error(apperror.TokenExpired.WithCause(err))
-	}
-
 	user, err := server.store.GetUserWithTags(ctx, userID)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 	}
 
-	ctx.JSON(http.StatusOK, user)
+	ctx.JSON(http.StatusOK, newUserWithTagsResponse(user))
+}
+
+type updateUserRequest struct {
+	Username string `json:"username" binding:"required,username,min=2,max=20"`
 }
 
 func (server *Server) updateCurrentUser(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
 
+	var req updateUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+	}
+
+	arg := db.UpdateUserParams{
+		ID: userID,
+		Username: req.Username,
+	}
+
+	user, err := server.store.UpdateUser(ctx, arg)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+	}
+
+	ctx.JSON(http.StatusOK, newUserResponse(user))
 }
