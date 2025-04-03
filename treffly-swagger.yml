@@ -1459,8 +1459,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            $ref: '#/components/examples/GeneralBadRequest'
+          examples:
+            oneOf:
+              $ref: '#/components/examples/GeneralBadRequest'
 
     EmailTaken:
       description: Почта уже занята
@@ -1468,8 +1469,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            $ref: '#/components/examples/EmailTaken'
+          examples:
+            oneOf:
+              $ref: '#/components/examples/EmailTaken'
 
     InvalidCredentials:
       description: Неверные учетные данные
@@ -1477,8 +1479,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            $ref: '#/components/examples/InvalidCredentials'
+          examples:
+            oneOf:
+              $ref: '#/components/examples/InvalidCredentials'
 
 
     TokenExpired:
@@ -1487,8 +1490,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            $ref: '#/components/examples/TokenExpired'
+          examples:
+            oneOf:
+              $ref: '#/components/examples/TokenExpired'
 
     BadRequest:
       description: Некорректные данные
@@ -1496,8 +1500,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            $ref: '#/components/examples/BadRequest'
+          examples:
+            oneOf:
+             $ref: '#/components/examples/BadRequest'
 
     Forbidden:
       description: Доступ запрещен
@@ -1505,8 +1510,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            $ref: '#/components/examples/Forbidden'
+          examples:
+            oneOf:
+              $ref: '#/components/examples/Forbidden'
 
     NotFound:
       description: Ресурс не найден
@@ -1514,8 +1520,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            $ref: '#/components/examples/NotFound'
+          examples:
+            oneOf:
+              $ref: '#/components/examples/NotFound'
 
     InternalServerError:
       description: Внутренняя ошибка сервера
@@ -1523,8 +1530,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            $ref: '#/components/examples/InternalServer'
+          examples:
+            oneOf:
+              $ref: '#/components/examples/InternalServer'
 
     BadGateway:
       description: Сервер не отвечает
