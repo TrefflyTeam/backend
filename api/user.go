@@ -1,6 +1,8 @@
 package api
 
 import (
+	"database/sql"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -89,6 +91,10 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	user, err := server.store.GetUserByEmail(ctx, req.Email)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.Error(apperror.BadRequest.WithCause(err))
+			return
+		}
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
