@@ -20,83 +20,71 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: "user@example.com"
-                password:
-                  type: string
-                  format: password
-                  example: "secret123"
-              required:
-                - email
-                - password
+              $ref: "#/components/schemas/LoginUserRequest"
+
       responses:
         200:
           description: Успешная аутентификация
           headers:
             Set-Cookie:
               schema:
-                type: array 
+                type: array
                 items:
-                  type: string                  
-                example: 
-                - "refresh_token=abc123; Path=/tokens/refresh; HttpOnly; Secure; SameSite=Strict; Max-Age=604800"
-                - "access_token=xyz789; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600"
-          
+                  type: string
+                example:
+                  - $ref: "#/components/examples/RefreshTokenCookie"
+                  - $ref: "#/components/examples/AccessTokenCookie"
+
         400:
           $ref: "#/components/responses/BadRequest"
         401:
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/InvalidCredentials"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
-  /isAuth:
+
+  /auth:
     get:
       summary: Проверить аутентифицированность пользователя
       description: Проверяет наличие валидной сессии пользователя
       tags:
         - Authentication
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       responses:
         200:
           description: Пользователь аутентифицирован
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  isAuthenticated:
-                    type: boolean
-                    example: true
         401:
-          $ref: "#/components/responses/Unauthorized"
+          description: Пользователь неаутентифицирован
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
-  /tokens/refresh:
+  /auth/refresh:
     post:
       summary: Обновить токены
       description: Генерирует новые access и refresh токены
       tags:
         - Authentication
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       responses:
         200:
           description: Токены успешно обновлены
-          headers:           
+          headers:
             Set-Cookie:
               schema:
-                type: array 
+                type: array
                 items:
-                  type: string                  
-                example: 
-                - "refresh_token=new_refresh_token; Path=/tokens/refresh; HttpOnly; Secure; SameSite=Strict; Max-Age=604800"
-                - "access_token=new_access_token; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600"
-          
+                  type: string
+                example:
+                  - $ref: "#/components/examples/RefreshTokenCookie"
+                  - $ref: "#/components/examples/AccessTokenCookie"
         401:
-          $ref: "#/components/responses/InvalidToken"
-
+          $ref: "#/components/responses/TokenExpired"
+        404:
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
   /logout:
     post:
       summary: Выйти из текущей сессии
@@ -104,17 +92,21 @@ paths:
       tags:
         - Authentication
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       responses:
         204:
           description: Сессия успешно завершена
           headers:
             Set-Cookie:
               schema:
-                type: string
-                example: "refresh_token=; Path=/tokens/refresh; HttpOnly; Secure; SameSite=Strict; Max-Age=0"
+                type: array
+                items:
+                  type: string
+                example:
+                  - "refresh_token=; Path=/api/auth; HttpOnly; Secure; SameSite=Lax; Max-Age=0"
+                  - "access_token=; Path=/api/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"
         401:
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/TokenExpired"
 
   /admin/users:
     get:
@@ -125,7 +117,7 @@ paths:
       tags:
         - Users
       security:
-        - CookieAuth: [admin]
+        - CookieAuth: [ admin ]
       parameters:
         - in: query
           name: page
@@ -156,21 +148,25 @@ paths:
                       $ref: "#/components/schemas/UserWithTags"
                   meta:
                     $ref: "#/components/schemas/PaginationMeta"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/TokenExpired"
         403:
           $ref: "#/components/responses/Forbidden"
-        401:
-          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalServerError"
   /users:
     post:
       summary: Создать пользователя
       description: Создаёт пользователя без тегов.
-      tags: 
-        - Users
-      requestBody: 
+      tags:
+        - Authentication
+      requestBody:
         required: true
-        content: 
+        content:
           application/json:
-            schema:              
+            schema:
               $ref: "#/components/schemas/CreateUserRequest"
       responses:
         200:
@@ -181,16 +177,17 @@ paths:
                 $ref: "#/components/schemas/User"
         400:
           $ref: "#/components/responses/BadRequest"
-        409:
-          description: Конфликт данных
+        500:
+          $ref: "#/components/responses/InternalServerError"
+
   /admin/users/{id}:
     get:
       summary: Получить данные пользователя
-      description: Возвращает полную информацию о пользователе по его ID (требуются права администратора).      
+      description: Возвращает полную информацию о пользователе по его ID (требуются права администратора).
       tags:
         - Users
       security:
-        - CookieAuth: [admin]
+        - CookieAuth: [ admin ]
       parameters:
         - in: path
           name: id
@@ -205,16 +202,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserWithTags"
+        401:
+          $ref: "#/components/responses/TokenExpired"
+        403:
+          $ref: "#/components/responses/Forbidden"
         404:
-          description: Пользователь не найден
-
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
     put:
       summary: Обновить данные пользователя
       description: Обновляет информацию о пользователе (требуются права администратора).
       tags:
         - Users
       security:
-        - CookieAuth: [admin]
+        - CookieAuth: [ admin ]
       parameters:
         - in: path
           name: id
@@ -235,8 +237,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserWithTags"
-        204:
-          description: Нет изменений для применения
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/TokenExpired"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
     delete:
       summary: Удалить пользователя
@@ -244,7 +254,7 @@ paths:
       tags:
         - Users
       security:
-        - CookieAuth: [admin]
+        - CookieAuth: [ admin ]
       parameters:
         - in: path
           name: id
@@ -255,15 +265,23 @@ paths:
       responses:
         204:
           description: Пользователь успешно удалён
+        401:
+          $ref: "#/components/responses/TokenExpired"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
   /users/me:
     get:
       summary: Получить данные текущего пользователя
-      description: Возвращает информацию о текущем аутентифицированном пользователе, используя access токен.   
+      description: Возвращает информацию о текущем аутентифицированном пользователе, используя access токен.
       tags:
         - Users
       security:
-        - CookieAuth: []      
+        - CookieAuth: [ ]
       responses:
         200:
           description: Успешный ответ
@@ -272,22 +290,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserWithTags"
         401:
-          description: Неавторизованный доступ
-          
+          $ref: "#/components/responses/TokenExpired"
         404:
-          description: Пользователь не найден          
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
     put:
       summary: Изменить данные текущего пользователя.
-      description: Изменяет данные текущего пользователя, используя access токен.   
+      description: Изменяет данные текущего пользователя, используя access токен.
       tags:
         - Users
       security:
-        - CookieAuth: []   
-      requestBody: 
+        - CookieAuth: [ ]
+      requestBody:
         required: true
-        content: 
+        content:
           application/json:
-            schema: 
+            schema:
               $ref: "#/components/schemas/UpdateUserRequest"
       responses:
         200:
@@ -297,49 +316,54 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateUserResponse"
         401:
-          description: Неавторизованный доступ
-          
+          $ref: "#/components/responses/TokenExpired"
         404:
-          description: Пользователь не найден          
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
     delete:
-      summary: Удалить текущего пользователя 
-      description: Удаляет текущего пользователя, используя access токен.   
+      summary: Удалить текущего пользователя
+      description: Удаляет текущего пользователя, используя access токен.
       tags:
         - Users
       security:
-        - CookieAuth: []      
+        - CookieAuth: [ ]
       responses:
         204:
           description: Пользователь успешно удалён
         401:
-          description: Неавторизованный доступ          
+          $ref: "#/components/responses/TokenExpired"
         404:
-          description: Пользователь не найден  
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
   /tags:
-    get: 
-      summary: Получить доступные теги 
+    get:
+      summary: Получить доступные теги
       description: Получает доступные теги
-      tags: 
-        - Tags     
-      responses:            
+      tags:
+        - Tags
+      responses:
         200:
           description: Успешный ответ
           content:
             application/json:
               schema:
                 type: array
-                items: 
-                  $ref: "#/components/schemas/Tag"           
+                items:
+                  $ref: "#/components/schemas/Tag"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
 
   /users/me/tags/{id}:
     post:
       summary: Добавить тег текущему пользователю
       description: Добавляет тег текущему пользователю, используя access токен.
-      tags: 
+      tags:
         - Users
-      security: 
-        - CookieAuth: []
+      security:
+        - CookieAuth: [ ]
       parameters:
         - in: path
           name: id
@@ -347,21 +371,27 @@ paths:
           schema:
             type: integer
             example: 1
-      responses:       
+      responses:
         200:
-          description: Успешное добавление тега        
+          description: Успешное добавление тега
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/addUserTagResponse"
         401:
-          description: Неавторизованный доступ        
+          $ref: "#/components/responses/TokenExpired"
         404:
-          description: Тег не найден
-          
-    delete: 
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
       summary: Удалить тег у текущего пользователя
       description: Удаляет тег у текущего пользователя, используя access токен.
-      tags: 
+      tags:
         - Users
-      security: 
-        - CookieAuth: []
+      security:
+        - CookieAuth: [ ]
       parameters:
         - in: path
           name: id
@@ -369,20 +399,20 @@ paths:
           schema:
             type: integer
             example: 1
-      responses:       
+      responses:
         200:
-          description: Успешное удаление тега          
+          description: Успешное удаление тега
         401:
-          description: Неавторизованный доступ        
-        404:
-          description: Тег не найден
+          $ref: "#/components/responses/TokenExpired"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
   /forgot-pw:
     post:
       summary: Отправить запрос на смену пароля
       description: Отправляет код для подтверждения запроса на почту.
-      tags: 
-        - Password reset 
+      tags:
+        - Password reset
       requestBody:
         required: true
         content:
@@ -395,18 +425,20 @@ paths:
                   format: email
                   example: "ivan@example.com"
       responses:
-        200: 
+        200:
           description: Код отправлен на почту
-        400:
-          description: Неверный формат почты
+        401:
+          $ref: "#/components/responses/TokenExpired"
         404:
-          description: Почта не зарегистрирована
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
   /verify-code:
     post:
       summary: Получить токен для смены пароля
       description: Валидирует код с почты и устанавливает куку с токеном на смену пароля.
-      tags: 
-        - Password reset 
+      tags:
+        - Password reset
       requestBody:
         required: true
         content:
@@ -418,32 +450,34 @@ paths:
                   type: string
                   format: email
                   example: "ivan@example.com"
-                code: 
+                code:
                   type: string
                   example: "123456"
 
       responses:
-        200: 
+        200:
           description: Установлена кука с токеном
           headers:
             Set-Cookie:
               schema:
                 type: string
-                example: "reset_token=abc123; Path=/reset-pw; HttpOnly; Secure; SameSite=Strict; Max-Age=600"
+                example: "reset_token=abc123; Path=/reset-pw; HttpOnly; Secure; SameSite=Lax; Max-Age=600"
         400:
-          description: Неверный формат почты
+          $ref: "#/components/responses/BadRequest"
         401:
-          description: Неверный код
-        404:
-          description: Почта не найдена
+          $ref: "#/components/responses/TokenExpired"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        500:
+          $ref: "#/components/responses/InternalServerError"
   /reset-pw:
     post:
       summary: Изменить пароль
       description: Изменяет пароль пользователя с переданной почтой, используя reset_token куку.
-      tags: 
+      tags:
         - Password reset
-      security: 
-        - CookieAuth: []
+      security:
+        - CookieAuth: [ ]
       requestBody:
         required: true
         content:
@@ -455,31 +489,33 @@ paths:
                   type: string
                   format: email
                   example: "ivan@example.com"
-                password: 
+                password:
                   type: string
                   format: password
                   example: "secret123"
       responses:
         200:
           description: Пароль успешно изменён
-        400: 
-          description: Неверный формат данных
+        400:
+          $ref: "#/components/responses/BadRequest"
         401:
-          description: Неверный токен
-        404: 
-          description: Почта не найдена
+          $ref: "#/components/responses/TokenExpired"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
   /events:
     get:
       summary: Получить список мероприятий
-      description: Возвращает список мероприятий в пределах 100 км с пагинацией. 
+      description: Возвращает список мероприятий в пределах 100 км с пагинацией.
       tags:
-        - Events                  
-      parameters:       
+        - Events
+      parameters:
         - in: query
           name: keywords
           schema:
-            type: string 
+            type: string
           description: Ключевые слова
         - in: query
           name: tags
@@ -489,7 +525,7 @@ paths:
               type: integer
           style: form
           explode: false
-          description: Теги мероприятия 
+          description: Теги мероприятия
         - in: cookie
           name: latitude
           schema:
@@ -500,10 +536,10 @@ paths:
           required: true
         - in: cookie
           name: longitude
-          schema: 
+          schema:
             type: number
             format: double
-            example: 37.617298    
+            example: 37.617298
           description: Долгота координаты пользователя
           required: true
 
@@ -534,12 +570,16 @@ paths:
                       owner_id: 1
                       is_private: false
                       is_premium: true
-                      tags: 
+                      tags:
                         - id: 5
                           name: "музыка"
                       created_at: "2024-05-20T14:48:00Z"
-        400: 
-          description: Неверный формат запроса
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/TokenExpired"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
     post:
       summary: Создать новое мероприятие
@@ -547,7 +587,7 @@ paths:
       tags:
         - Events
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       requestBody:
         required: true
         content:
@@ -563,7 +603,7 @@ paths:
               date: "2024-07-15T20:00:00Z"
               is_private: false
               is_premium: true
-              tags: [5, 7]
+              tags: [ 5, 7 ]
       responses:
         200:
           description: мероприятие успешно создано
@@ -584,12 +624,14 @@ paths:
                 is_premium: true
                 tags:
                   - id: 5
-                    name: "музыка"                  
+                    name: "музыка"
                 created_at: "2024-05-20T15:30:00Z"
         400:
-          description: Неправильный формат данных       
+          $ref: "#/components/responses/BadRequest"
         401:
-          description: Неавторизованный пользователь
+          $ref: "#/components/responses/TokenExpired"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
   /events/{id}:
     get:
@@ -626,8 +668,14 @@ paths:
                   - id: 5
                     name: "музыка"
                 created_at: "2024-05-20T15:30:00Z"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/TokenExpired"
         404:
-          description: мероприятие не найдено
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
     put:
       summary: Обновить мероприятие
@@ -635,7 +683,7 @@ paths:
       tags:
         - Events
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       parameters:
         - in: path
           name: id
@@ -661,20 +709,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/EventResponse"
         400:
-          description: Неверный формат данных
-        403:
-          description: Доступ запрещен          
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/TokenExpired"
         404:
-          description: мероприятие не найдено
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
 
     delete:
       summary: Удалить мероприятие
-      description: Удаляет мероприятие 
+      description: Удаляет мероприятие
       tags:
         - Events
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       parameters:
         - in: path
           name: id
@@ -685,10 +735,12 @@ paths:
       responses:
         200:
           description: мероприятие успешно удалено
-        403:
-          description: Доступ запрещен          
-        404:
-          description: мероприятие не найдено
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/TokenExpired"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
   /events/{id}/subscribe:
     post:
@@ -708,37 +760,39 @@ paths:
         200:
           description: Пользователь зарегистрирован на мероприятие
         400:
-          description: Неверный формат данных
+          $ref: "#/components/responses/BadRequest"
         401:
-          description: Неавторизованный пользователь
-        403:
-          description: Приватное мероприятие
+          $ref: "#/components/responses/TokenExpired"
         404:
-          description: мероприятие не найдено
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
   /events/{id}/unsubscribe:
-      post:
-        summary: Отменить участие в мероприятии
-        description: Отменяет участие текущего пользователя в мероприятии, используя access токен.
-        tags:
-          - Events
-        parameters:
-          - in: path
-            name: id
-            required: true
-            schema:
-              type: integer
-              example: 1
-            description: ID мероприятия
-        responses:
-          200:
-            description: Участие пользователя отменено
-          400:
-            description: Неверный формат данных
-          401:
-            description: Неавторизованный пользователь
-          404:
-            description: мероприятие не найдено
+    post:
+      summary: Отменить участие в мероприятии
+      description: Отменяет участие текущего пользователя в мероприятии, используя access токен.
+      tags:
+        - Events
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+          description: ID мероприятия
+      responses:
+        200:
+          description: Участие пользователя отменено
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/TokenExpired"
+        404:
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
   /events/generate-desc:
     post:
@@ -763,9 +817,15 @@ paths:
                 type: string
                 example: "Улучшенная ночная вечеринка"
         400:
-          description: Неверный формат данных
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/TokenExpired"
+        404:
+          $ref: "#/components/responses/NotFound"
         500:
-          description: Проблемы работы ИИ
+          $ref: "#/components/responses/InternalServerError"
+        502:
+          $ref: "#/components/responses/BadGateway"
   /admin/events:
     get:
       summary: Получить список мероприятий с фильтрами администратора
@@ -788,7 +848,7 @@ paths:
         - in: query
           name: keywords
           schema:
-            type: string 
+            type: string
           description: Ключевые слова
         - in: query
           name: tags
@@ -798,17 +858,17 @@ paths:
               type: integer
           style: form
           explode: false
-          description: Теги мероприятия 
+          description: Теги мероприятия
         - in: query
           name: ownerID
-          schema: 
+          schema:
             type: integer
           description: ID владельца мероприятия
         - in: query
           name: userID
-          schema: 
+          schema:
             type: integer
-          description: ID участника мероприятия    
+          description: ID участника мероприятия
 
       responses:
         200:
@@ -837,7 +897,7 @@ paths:
                       owner_id: 1
                       is_private: false
                       is_premium: true
-                      tags: 
+                      tags:
                         - id: 5
                           name: "музыка"
                       created_at: "2024-05-20T14:48:00Z"
@@ -847,8 +907,16 @@ paths:
                     page: 1
                     limit: 20
                     total_pages: 8
-        400: 
-          description: Неверный формат запроса
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/TokenExpired"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
   /events/home:
     get:
       summary: Получить списки мероприятий для главной страницы
@@ -860,7 +928,7 @@ paths:
         - Популярные мероприятия (6 штук, отсортированные по количеству участников)
       tags:
         - Events
-      parameters: 
+      parameters:
         - in: cookie
           name: latitude
           schema:
@@ -871,13 +939,13 @@ paths:
           required: true
         - in: cookie
           name: longitude
-          schema: 
+          schema:
             type: number
             format: double
             example: 37.617298
-          description: Долгота координаты пользователя 
+          description: Долгота координаты пользователя
           required: true
-           
+
       responses:
         200:
           description: Успешный ответ
@@ -895,7 +963,7 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/EventResponse"
-                    maxItems: 6 
+                    maxItems: 6
                   new:
                     type: array
                     items:
@@ -919,7 +987,7 @@ paths:
                       owner_id: 1
                       is_private: false
                       is_premium: true
-                      tags: 
+                      tags:
                         - id: 5
                           name: "музыка"
                       created_at: "2024-05-20T14:48:00Z"
@@ -935,7 +1003,7 @@ paths:
                       owner_id: 1
                       is_private: false
                       is_premium: true
-                      tags: 
+                      tags:
                         - id: 5
                           name: "музыка"
                       created_at: "2024-05-20T14:48:00Z"
@@ -951,7 +1019,7 @@ paths:
                       owner_id: 1
                       is_private: false
                       is_premium: true
-                      tags: 
+                      tags:
                         - id: 5
                           name: "музыка"
                       created_at: "2024-05-20T14:48:00Z"
@@ -967,11 +1035,14 @@ paths:
                       owner_id: 1
                       is_private: false
                       is_premium: true
-                      tags: 
+                      tags:
                         - id: 5
                           name: "музыка"
                       created_at: "2024-05-20T14:48:00Z"
-
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          $ref: "#/components/responses/InternalServerError"
   /users/me/upcoming-events:
     get:
       summary: Получить список предстоящих мероприятий для текущего пользователя
@@ -979,7 +1050,7 @@ paths:
       tags:
         - Users
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       responses:
         200:
           description: Успешно возвращает список мероприятий
@@ -987,10 +1058,12 @@ paths:
             application/json:
               schema:
                 type: array
-                items:                 
+                items:
                   $ref: "#/components/schemas/EventResponse"
-        401: 
-          description: Пользователь неавторизован 
+        401:
+          $ref: "#/components/responses/TokenExpired"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
   /users/me/past-events:
     get:
@@ -999,7 +1072,7 @@ paths:
       tags:
         - Users
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       responses:
         200:
           description: Успешно возвращает список мероприятий
@@ -1007,10 +1080,12 @@ paths:
             application/json:
               schema:
                 type: array
-                items:                 
+                items:
                   $ref: "#/components/schemas/EventResponse"
-        401: 
-          description: Пользователь неавторизован                
+        401:
+          $ref: "#/components/responses/TokenExpired"
+        500:
+          $ref: "#/components/responses/InternalServerError"
 
   /premium-payment/me:
     post:
@@ -1019,7 +1094,7 @@ paths:
       tags:
         - Premium
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       responses:
         200:
           description: Успешно возвращает ID счета
@@ -1028,23 +1103,23 @@ paths:
               schema:
                 type: object
                 properties:
-                  id: 
+                  id:
                     type: integer
-                    example: 1 
+                    example: 1
 
   /premium-payment/{id}:
     get:
       summary: Валидировать пользователя и получить счет
-      description: Валидирует привязку пользователя к нужному счету и возвращает счет, используя access токен. 
+      description: Валидирует привязку пользователя к нужному счету и возвращает счет, используя access токен.
       tags:
         - Premium
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       parameters:
         - in: path
           name: id
           required: true
-          schema: 
+          schema:
             type: integer
             example: 1
       responses:
@@ -1055,17 +1130,17 @@ paths:
               schema:
                 type: object
                 properties:
-                  id: 
+                  id:
                     type: integer
-                    example: 1 
+                    example: 1
                   number:
                     type: string
                     example: "7777777777777777777777777"
-                    
+
                   shop:
                     type: string
                     example: "Treffly"
-                  Price: 
+                  Price:
                     type: integer
                     example: 100
 
@@ -1076,13 +1151,13 @@ paths:
       tags:
         - Premium
       security:
-        - CookieAuth: []
+        - CookieAuth: [ ]
       responses:
         200:
-          description: Успешно изменяет статус            
-                    
-components: 
-  schemas:    
+          description: Успешно изменяет статус
+
+components:
+  schemas:
     User:
       type: object
       properties:
@@ -1103,10 +1178,10 @@ components:
         is_admin:
           type: boolean
           example: false
-   
+
     UserWithTags:
       allOf:
-        - $ref: "#/components/schemas/User" 
+        - $ref: "#/components/schemas/User"
         - type: object
           properties:
             tags:
@@ -1128,9 +1203,13 @@ components:
       required:
         - id
         - name
+
+    addUserTagResponse:
+      $ref: "#/components/schemas/Tag"
+
     CreateUserRequest:
       type: object
-      properties:       
+      properties:
         username:
           type: string
           example: "ivan_ivanov"
@@ -1139,28 +1218,35 @@ components:
           format: email
           example: "ivan@example.com"
         password:
-          type: string 
+          type: string
           format: password
-          example: secret123        
+          example: secret123
       required:
         - username
         - email
         - password
+
     UpdateUserRequest:
       type: object
       properties:
         username:
           type: string
           example: "new_username"
-        email:
-          type: string
-          format: email
-          example: "new@example.com"        
-        tags:
-          type: array
-          items:
-            type: integer
-            example: 5
+
+    LoginUserRequest:
+        type: object
+        properties:
+          email:
+            type: string
+            format: email
+            example: "user@example.com"
+          password:
+            type: string
+            format: password
+            example: "secret123"
+        required:
+          - email
+          - password
 
     UpdateUserResponse:
       $ref: "#/components/schemas/UpdateUserRequest"
@@ -1170,7 +1256,7 @@ components:
       properties:
         id:
           type: integer
-            
+
     EventResponse:
       type: object
       properties:
@@ -1197,7 +1283,7 @@ components:
         address:
           type: string
           example: "Москва, Красная площадь"
-        date: 
+        date:
           type: string
           format: date-time
         owner_id:
@@ -1211,8 +1297,8 @@ components:
           example: true
         tags:
           type: array
-          items: 
-            $ref: "#/components/schemas/Tag"          
+          items:
+            $ref: "#/components/schemas/Tag"
         created_at:
           type: string
           format: date-time
@@ -1230,10 +1316,10 @@ components:
             owner_id: 1
             is_private: false
             is_premium: true
-            tags: 
+            tags:
               - id: 5
                 name: "музыка"
-            created_at: "2024-05-20T14:48:00Z"       
+            created_at: "2024-05-20T14:48:00Z"
     CreateEventRequest:
       type: object
       properties:
@@ -1277,7 +1363,7 @@ components:
           items:
             type: integer
             minimum: 1
-          example: [5, 7]
+          example: [ 5, 7 ]
       required:
         - name
         - latitude
@@ -1298,22 +1384,156 @@ components:
           example: 20
         total_pages:
           type: integer
-          example: 8        
+          example: 8
 
+
+    Error:
+      type: object
+      properties:
+        Title:
+          type: string
+        Subtitle:
+          type: string
+      required:
+        - Title
+        - Subtitle
+
+  examples:
+    GeneralBadRequest:
+      value:
+        Title: "Ошибка запроса"
+        Subtitle: "Перезагрузите страницу"
+
+    NotFound:
+      value:
+        Title: "Ничего не найдено"
+        Subtitle: "Запрашиваемый ресурс недоступен или не существует"
+
+    InvalidCredentials:
+      value:
+        Title: "Неверный логин или пароль"
+        Subtitle: "Попробуйте ещё раз"
+
+    TokenExpired:
+      value:
+        Title: "Сессия завершена"
+        Subtitle: "Войдите снова, чтобы продолжить"
+
+    EmailTaken:
+      value:
+        Title: "Почта уже занята"
+        Subtitle: "Укажите другую почту или войдите в аккаунт"
+
+    BadRequest:
+      value:
+        Title: "Некорректные данные"
+        Subtitle: "Проверьте введённую информацию и попробуйте снова"
+
+    Forbidden:
+      value:
+        Title: "Недостаточно прав"
+        Subtitle: "У вас нет доступа к этому разделу"
+
+    InternalServer:
+      value:
+        Title: "Ошибка сервера"
+        Subtitle: "Что-то пошло не так. Попробуйте позже"
+
+    BadGateway:
+      value:
+        Title: "Сервер не отвечает"
+        Subtitle: "Запрос занял слишком много времени. Попробуйте позже"
+
+    RefreshTokenCookie:
+      summary: Пример refresh token cookie
+      value: "refresh_token=abc123; Path=/api/auth; HttpOnly; Secure; SameSite=Lax; Max-Age=604800"
+
+    AccessTokenCookie:
+      summary: Пример access token cookie
+      value: "access_token=xyz789; Path=/api/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600"
 
   responses:
+    GeneralBadRequest:
+      description: Общая ошибка запроса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            $ref: '#/components/examples/GeneralBadRequest'
+
+    EmailTaken:
+      description: Почта уже занята
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            $ref: '#/components/examples/EmailTaken'
+
+    InvalidCredentials:
+      description: Неверные учетные данные
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            $ref: '#/components/examples/InvalidCredentials'
+
+
+    TokenExpired:
+      description: Токен устарел
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            $ref: '#/components/examples/TokenExpired'
+
     BadRequest:
-      description: Неверный формат запроса
-      
-    Unauthorized:
-      description: Ошибка аутентификации
-      
-    InvalidToken:
-      description: Невалидный токен
-      
+      description: Некорректные данные
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            $ref: '#/components/examples/BadRequest'
+
     Forbidden:
       description: Доступ запрещен
-              
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            $ref: '#/components/examples/Forbidden'
+
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            $ref: '#/components/examples/NotFound'
+
+    InternalServerError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            $ref: '#/components/examples/InternalServer'
+
+    BadGateway:
+      description: Сервер не отвечает
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            $ref: '#/components/examples/BadGateway'
 
   securitySchemes:
     CookieAuth:
