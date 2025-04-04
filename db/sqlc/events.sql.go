@@ -90,27 +90,13 @@ func (q *Queries) DeleteEvent(ctx context.Context, id int32) error {
 }
 
 const getEvent = `-- name: GetEvent :one
-SELECT
-    id,
-    name,
-    description,
-    capacity,
-    latitude,
-    longitude,
-    address,
-    date,
-    owner_id,
-    is_private,
-    is_premium,
-    created_at
-FROM events
+SELECT id, name, description, capacity, latitude, longitude, address, date, owner_id, is_private, is_premium, created_at, tags FROM event_with_tags_view
 WHERE id = $1
-LIMIT 1
 `
 
-func (q *Queries) GetEvent(ctx context.Context, id int32) (Event, error) {
+func (q *Queries) GetEvent(ctx context.Context, id int32) (EventWithTagsView, error) {
 	row := q.db.QueryRow(ctx, getEvent, id)
-	var i Event
+	var i EventWithTagsView
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -124,47 +110,35 @@ func (q *Queries) GetEvent(ctx context.Context, id int32) (Event, error) {
 		&i.IsPrivate,
 		&i.IsPremium,
 		&i.CreatedAt,
+		&i.Tags,
 	)
 	return i, err
 }
 
 const listEvents = `-- name: ListEvents :many
-SELECT
-    id,
-    name,
-    description,
-    capacity,
-    latitude,
-    longitude,
-    address,
-    date,
-    owner_id,
-    is_private,
-    is_premium,
-    created_at
-FROM events
+SELECT id, name, description, capacity, latitude, longitude, address, date, owner_id, is_private, is_premium, created_at, tags FROM event_with_tags_view
 WHERE ST_DWithin(
-    ST_MakePoint(longitude, latitude)::GEOGRAPHY,
-    ST_MakePoint($1, $2)::GEOGRAPHY,
-    100000
-    )
+              ST_MakePoint(e.longitude, e.latitude)::GEOGRAPHY,
+              ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY,
+              100000
+      )
 ORDER BY id
 `
 
 type ListEventsParams struct {
-	UserLon interface{} `json:"user_lon"`
-	UserLat interface{} `json:"user_lat"`
+	UserLon pgtype.Numeric `json:"user_lon"`
+	UserLat pgtype.Numeric `json:"user_lat"`
 }
 
-func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]Event, error) {
+func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]EventWithTagsView, error) {
 	rows, err := q.db.Query(ctx, listEvents, arg.UserLon, arg.UserLat)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Event{}
+	items := []EventWithTagsView{}
 	for rows.Next() {
-		var i Event
+		var i EventWithTagsView
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -178,6 +152,7 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]Event
 			&i.IsPrivate,
 			&i.IsPremium,
 			&i.CreatedAt,
+			&i.Tags,
 		); err != nil {
 			return nil, err
 		}

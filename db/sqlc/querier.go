@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	AddEventTag(ctx context.Context, arg AddEventTagParams) (EventTag, error)
 	AddUserTag(ctx context.Context, arg AddUserTagParams) (UserTag, error)
 	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
@@ -18,13 +19,13 @@ type Querier interface {
 	DeleteEvent(ctx context.Context, id int32) error
 	DeleteUser(ctx context.Context, id int32) error
 	DeleteUserTag(ctx context.Context, arg DeleteUserTagParams) error
-	GetEvent(ctx context.Context, id int32) (Event, error)
+	GetEvent(ctx context.Context, id int32) (EventWithTagsView, error)
 	GetSession(ctx context.Context, argUuid uuid.UUID) (Session, error)
 	GetTags(ctx context.Context) ([]Tag, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserWithTags(ctx context.Context, id int32) (UserWithTagsView, error)
-	ListEvents(ctx context.Context, arg ListEventsParams) ([]Event, error)
+	ListEvents(ctx context.Context, arg ListEventsParams) ([]EventWithTagsView, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error)
 	UpdateSession(ctx context.Context, arg UpdateSessionParams) error

@@ -9,6 +9,24 @@ import (
 	"context"
 )
 
+const addEventTag = `-- name: AddEventTag :one
+INSERT INTO event_tags (event_id, tag_id)
+VALUES ($1, $2)
+RETURNING event_id, tag_id
+`
+
+type AddEventTagParams struct {
+	EventID int32 `json:"event_id"`
+	TagID   int32 `json:"tag_id"`
+}
+
+func (q *Queries) AddEventTag(ctx context.Context, arg AddEventTagParams) (EventTag, error) {
+	row := q.db.QueryRow(ctx, addEventTag, arg.EventID, arg.TagID)
+	var i EventTag
+	err := row.Scan(&i.EventID, &i.TagID)
+	return i, err
+}
+
 const addUserTag = `-- name: AddUserTag :one
 INSERT INTO user_tags (user_id, tag_id)
 VALUES ($1, $2)

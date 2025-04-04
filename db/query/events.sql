@@ -23,43 +23,16 @@ INSERT INTO events (
     RETURNING *;
 
 -- name: GetEvent :one
-SELECT
-    id,
-    name,
-    description,
-    capacity,
-    latitude,
-    longitude,
-    address,
-    date,
-    owner_id,
-    is_private,
-    is_premium,
-    created_at
-FROM events
-WHERE id = @id
-LIMIT 1;
+SELECT * FROM event_with_tags_view
+WHERE id = $1;
 
 -- name: ListEvents :many
-SELECT
-    id,
-    name,
-    description,
-    capacity,
-    latitude,
-    longitude,
-    address,
-    date,
-    owner_id,
-    is_private,
-    is_premium,
-    created_at
-FROM events
+SELECT * FROM event_with_tags_view
 WHERE ST_DWithin(
-    ST_MakePoint(longitude, latitude)::GEOGRAPHY,
-    ST_MakePoint(@user_lon, @user_lat)::GEOGRAPHY,
-    100000
-    )
+              ST_MakePoint(e.longitude, e.latitude)::GEOGRAPHY,
+              ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY,
+              100000
+      )
 ORDER BY id;
 
 -- name: UpdateEvent :one
