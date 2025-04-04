@@ -19,3 +19,6 @@ RETURNING event_id, tag_id;
 -- name: DeleteAllEventTags :exec
 DELETE FROM event_tags
 WHERE event_id = $1;
+
+-- name: GetAllUserTags :one
+SELECT tags FROM user_with_tags_view WHERE id = $1;

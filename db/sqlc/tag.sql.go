@@ -70,6 +70,17 @@ func (q *Queries) DeleteUserTag(ctx context.Context, arg DeleteUserTagParams) er
 	return err
 }
 
+const getAllUserTags = `-- name: GetAllUserTags :one
+SELECT tags FROM user_with_tags_view WHERE id = $1
+`
+
+func (q *Queries) GetAllUserTags(ctx context.Context, id int32) ([]Tag, error) {
+	row := q.db.QueryRow(ctx, getAllUserTags, id)
+	var tags []Tag
+	err := row.Scan(&tags)
+	return tags, err
+}
+
 const getTags = `-- name: GetTags :many
 SELECT id, name FROM tags
 ORDER BY id

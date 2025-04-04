@@ -20,6 +20,7 @@ type Querier interface {
 	DeleteEvent(ctx context.Context, id int32) error
 	DeleteUser(ctx context.Context, id int32) error
 	DeleteUserTag(ctx context.Context, arg DeleteUserTagParams) error
+	GetAllUserTags(ctx context.Context, id int32) ([]Tag, error)
 	GetEvent(ctx context.Context, id int32) (EventWithTagsView, error)
 	GetSession(ctx context.Context, argUuid uuid.UUID) (Session, error)
 	GetTags(ctx context.Context) ([]Tag, error)

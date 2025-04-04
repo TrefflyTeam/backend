@@ -261,13 +261,19 @@ func (server *Server) addCurrentUserTag(ctx *gin.Context) {
 		TagID: int32(tagID),
 	}
 
-	userTag, err := server.store.AddUserTag(ctx, arg)
+	_, err = server.store.AddUserTag(ctx, arg)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, newAddTagResponse(userTag))
+	userTags, err := server.store.GetAllUserTags(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, userTags)
 }
 
 func (server *Server) deleteCurrentUserTag(ctx *gin.Context) {
@@ -292,7 +298,13 @@ func (server *Server) deleteCurrentUserTag(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusNoContent, gin.H{})
+	userTags, err := server.store.GetAllUserTags(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, userTags)
 }
 
 func getUserIDFromContextPayload(ctx *gin.Context) int32 {

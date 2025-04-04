@@ -20,7 +20,7 @@ type CreateEventTxParams struct {
 	Tags        []int32        `json:"tags"`
 }
 
-type CreateEventTxResult struct {
+type EventTxResult struct {
 	ID          int32          `json:"id"`
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
@@ -35,8 +35,8 @@ type CreateEventTxResult struct {
 	Tags        []Tag          `json:"tags"`
 }
 
-func (store *SQLStore) CreateEventTx(ctx context.Context, params CreateEventTxParams) (CreateEventTxResult, error) {
-	var result CreateEventTxResult
+func (store *SQLStore) CreateEventTx(ctx context.Context, params CreateEventTxParams) (EventTxResult, error) {
+	var result EventTxResult
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		event, err := q.CreateEvent(ctx, CreateEventParams{
@@ -73,14 +73,14 @@ func (store *SQLStore) CreateEventTx(ctx context.Context, params CreateEventTxPa
 	})
 
 	if err != nil {
-		return CreateEventTxResult{}, fmt.Errorf("transaction failed: %w", err)
+		return EventTxResult{}, fmt.Errorf("transaction failed: %w", err)
 	}
 
 	return result, nil
 }
 
-func convertToEventTxResult(event EventWithTagsView) CreateEventTxResult {
-	return CreateEventTxResult{
+func convertToEventTxResult(event EventWithTagsView) EventTxResult {
+	return EventTxResult{
 		ID:          event.ID,
 		Name:        event.Name,
 		Description: event.Description,
@@ -109,12 +109,9 @@ type UpdateEventTxParams struct {
 	Tags        []int32
 }
 
-type UpdateEventTxResult struct {
-	Event EventWithTagsView
-}
 
-func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) (UpdateEventTxResult, error) {
-	var result UpdateEventTxResult
+func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) (EventTxResult, error) {
+	var result EventTxResult
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		_, err := q.UpdateEvent(ctx, UpdateEventParams{
@@ -152,7 +149,7 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 			return fmt.Errorf("get updated event error: %w", err)
 		}
 
-		result.Event = fullEvent
+		result = convertToEventTxResult(fullEvent)
 		return nil
 	})
 
