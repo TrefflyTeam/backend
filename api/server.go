@@ -53,11 +53,14 @@ func (server *Server) setupRouter() {
 
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRoutes.POST("/logout", server.logoutUser)
+
 	authRoutes.GET("/users/me", server.getCurrentUser)
 	authRoutes.PUT("/users/me", server.updateCurrentUser)
 	authRoutes.DELETE("/users/me", server.deleteCurrentUser)
 	authRoutes.POST("/users/me/tags/:id", server.addCurrentUserTag)
 	authRoutes.DELETE("/users/me/tags/:id", server.deleteCurrentUserTag)
+
+	authRoutes.POST("/events", server.createEvent)
 
 	server.router = router
 }
@@ -69,11 +72,39 @@ func (server *Server) registerValidators() error {
 			return err
 		}
 	}
-
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		err := v.RegisterValidation("event_name", validEventName)
+		if err != nil {
+			return err
+		}
+	}
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		err := v.RegisterValidation("latitude", validLatitude)
+		if err != nil {
+			return err
+		}
+	}
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		err := v.RegisterValidation("longitude", validLongitude)
+		if err != nil {
+			return err
+		}
+	}
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		err := v.RegisterValidation("date", validDate)
+		if err != nil {
+			return err
+		}
+	}
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		err := v.RegisterValidation("positive", validPositiveInteger)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (server *Server) Start(address string) error {
 	return server.router.Run(address)
 }
-
