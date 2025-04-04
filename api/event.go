@@ -267,6 +267,7 @@ func (server *Server) updateEvent(ctx *gin.Context) {
 
 	if event.OwnerID != userID {
 		ctx.Error(apperror.Forbidden.WithCause(err))
+		return
 	}
 
 	arg := db.UpdateEventTxParams{
@@ -289,6 +290,35 @@ func (server *Server) updateEvent(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, newUpdateEventResponse(eventUpdated))
+}
+
+func (server *Server) deleteEvent(ctx *gin.Context) {
+	eventID, err := getEventID(ctx)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	userID := getUserIDFromContextPayload(ctx)
+
+	event, err := server.store.GetEvent(ctx, eventID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	if event.OwnerID != userID {
+		ctx.Error(apperror.Forbidden.WithCause(err))
+		return
+	}
+
+	err = server.store.DeleteEvent(ctx, eventID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, gin.H{})
 }
 
 func getEventID(ctx *gin.Context) (int32, error) {
