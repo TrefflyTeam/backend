@@ -175,12 +175,12 @@ func (server *Server) auth(ctx *gin.Context) {
 }
 
 func (server *Server) getCurrentUser(ctx *gin.Context) {
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-	userID := authPayload.UserID
+	userID := getUserIDFromContextPayload(ctx)
 
 	user, err := server.store.GetUserWithTags(ctx, userID)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
+		return
 	}
 
 	ctx.JSON(http.StatusOK, newUserWithTagsResponse(user))
@@ -191,12 +191,12 @@ type updateUserRequest struct {
 }
 
 func (server *Server) updateCurrentUser(ctx *gin.Context) {
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-	userID := authPayload.UserID
+	userID := getUserIDFromContextPayload(ctx)
 
 	var req updateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
 	}
 
 	arg := db.UpdateUserParams{
@@ -207,18 +207,19 @@ func (server *Server) updateCurrentUser(ctx *gin.Context) {
 	user, err := server.store.UpdateUser(ctx, arg)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
+		return
 	}
 
 	ctx.JSON(http.StatusOK, newUserResponse(user))
 }
 
 func (server *Server) deleteCurrentUser(ctx *gin.Context) {
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-	userID := authPayload.UserID
+	userID := getUserIDFromContextPayload(ctx)
 
 	err := server.store.DeleteUser(ctx, userID)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
+		return
 	}
 
 	ctx.JSON(http.StatusNoContent, gin.H{})
@@ -235,8 +236,7 @@ func newAddTagResponse(tag db.UserTag) addTagResponse {
 }
 
 func (server *Server) addCurrentUserTag(ctx *gin.Context) {
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-	userID := authPayload.UserID
+	userID := getUserIDFromContextPayload(ctx)
 
 	id := ctx.Param("id")
 
@@ -261,8 +261,7 @@ func (server *Server) addCurrentUserTag(ctx *gin.Context) {
 }
 
 func (server *Server) deleteCurrentUserTag(ctx *gin.Context) {
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-	userID := authPayload.UserID
+	userID := getUserIDFromContextPayload(ctx)
 
 	id := ctx.Param("id")
 
@@ -284,4 +283,10 @@ func (server *Server) deleteCurrentUserTag(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusNoContent, gin.H{})
+}
+
+func getUserIDFromContextPayload(ctx *gin.Context) int32 {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userID := authPayload.UserID
+	return userID
 }
