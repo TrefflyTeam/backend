@@ -21,6 +21,36 @@ type createEventRequest struct {
 	Tags        []int32        `json:"tags" binding:"required,min=1,max=3,dive,required,positive"`
 }
 
+type createEventResponse struct {
+	ID          int32          `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Latitude    pgtype.Numeric `json:"latitude"`
+	Longitude   pgtype.Numeric `json:"longitude"`
+	Address     string         `json:"address"`
+	Date        time.Time      `json:"date"`
+	CreatedAt   time.Time      `json:"created_at"`
+	IsPrivate   bool           `json:"is_private"`
+	IsPremium   bool           `json:"is_premium"`
+	Tags        []db.Tag       `json:"tags"`
+}
+
+func newCreateEventResponse(event db.CreateEventTxResult) createEventResponse {
+	return createEventResponse{
+		ID:          event.ID,
+		Name:        event.Name,
+		Description: event.Description,
+		Latitude:    event.Latitude,
+		Longitude:   event.Longitude,
+		Address:     event.Address,
+		Date:        event.Date,
+		CreatedAt:   event.CreatedAt,
+		IsPrivate:   event.IsPrivate,
+		IsPremium:   event.IsPremium,
+		Tags:        event.Tags,
+	}
+}
+
 func (server *Server) createEvent(ctx *gin.Context) {
 	userID := getUserIDFromContextPayload(ctx)
 
@@ -31,7 +61,7 @@ func (server *Server) createEvent(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.CreateEventParams{
+	arg := db.CreateEventTxParams{
 		Name:        req.Name,
 		Description: req.Description,
 		Capacity:    req.Capacity,
@@ -41,13 +71,14 @@ func (server *Server) createEvent(ctx *gin.Context) {
 		Date:        req.Date,
 		IsPrivate:   req.IsPrivate,
 		OwnerID:     userID,
+		Tags:        req.Tags,
 	}
 
-	event, err := server.store.CreateEvent(ctx, arg)
+	event, err := server.store.CreateEventTx(ctx, arg)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, event)
+	ctx.JSON(http.StatusOK, newCreateEventResponse(event))
 }
