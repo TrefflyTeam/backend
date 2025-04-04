@@ -29,7 +29,7 @@ WHERE id = $1;
 -- name: ListEvents :many
 SELECT * FROM event_with_tags_view
 WHERE ST_DWithin(
-              ST_MakePoint(e.longitude, e.latitude)::GEOGRAPHY,
+              ST_MakePoint(longitude, latitude)::GEOGRAPHY,
               ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY,
               100000
       )

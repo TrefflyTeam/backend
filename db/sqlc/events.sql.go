@@ -118,7 +118,7 @@ func (q *Queries) GetEvent(ctx context.Context, id int32) (EventWithTagsView, er
 const listEvents = `-- name: ListEvents :many
 SELECT id, name, description, capacity, latitude, longitude, address, date, owner_id, is_private, is_premium, created_at, tags FROM event_with_tags_view
 WHERE ST_DWithin(
-              ST_MakePoint(e.longitude, e.latitude)::GEOGRAPHY,
+              ST_MakePoint(longitude, latitude)::GEOGRAPHY,
               ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY,
               100000
       )
