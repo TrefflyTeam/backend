@@ -8,7 +8,33 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type Event struct {
+	ID          int32          `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Capacity    int32          `json:"capacity"`
+	Latitude    pgtype.Numeric `json:"latitude"`
+	Longitude   pgtype.Numeric `json:"longitude"`
+	Address     string         `json:"address"`
+	Date        time.Time      `json:"date"`
+	OwnerID     int32          `json:"owner_id"`
+	IsPrivate   bool           `json:"is_private"`
+	IsPremium   bool           `json:"is_premium"`
+	CreatedAt   time.Time      `json:"created_at"`
+}
+
+type EventTag struct {
+	EventID int32 `json:"event_id"`
+	TagID   int32 `json:"tag_id"`
+}
+
+type EventUser struct {
+	UserID  int32 `json:"user_id"`
+	EventID int32 `json:"event_id"`
+}
 
 type Session struct {
 	Uuid         uuid.UUID `json:"uuid"`
