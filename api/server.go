@@ -63,6 +63,7 @@ func (server *Server) setupRouter() {
 	authRoutes.DELETE("/users/me/tags/:id", server.deleteCurrentUserTag)
 
 	authRoutes.POST("/events", server.createEvent)
+	authRoutes.PUT("/events/:id", server.updateEvent)
 
 	server.router = router
 }

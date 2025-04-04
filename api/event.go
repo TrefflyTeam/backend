@@ -171,7 +171,7 @@ func newEventResponse(event db.EventWithTagsView) getEventResponse {
 		Name:        event.Name,
 		Description: event.Description,
 		Capacity:    event.Capacity,
-		OwnerID: 	 event.OwnerID,
+		OwnerID:     event.OwnerID,
 		Latitude:    event.Latitude,
 		Longitude:   event.Longitude,
 		Address:     event.Address,
@@ -184,21 +184,119 @@ func newEventResponse(event db.EventWithTagsView) getEventResponse {
 }
 
 func (server *Server) getEvent(ctx *gin.Context) {
-	eventIDStr := ctx.Param("id")
-	eventID, err := strconv.Atoi(eventIDStr)
-
-
-
+	eventID, err := getEventID(ctx)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
 
-	event, err := server.store.GetEvent(ctx, int32(eventID))
+	event, err := server.store.GetEvent(ctx, eventID)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, newEventResponse(event))
+}
+
+type updateEventRequest struct {
+	Name        string         `json:"name" binding:"required,event_name,min=5,max=50"`
+	Description string         `json:"description" binding:"required,min=50,max=1000"`
+	Capacity    int32          `json:"capacity" binding:"required,min=1,max=500"`
+	Latitude    pgtype.Numeric `json:"latitude" binding:"required,latitude"`
+	Longitude   pgtype.Numeric `json:"longitude" binding:"required,longitude"`
+	Address     string         `json:"address" binding:"required"`
+	Date        time.Time      `json:"date" binding:"required,date"`
+	IsPrivate   bool           `json:"is_private" binding:"boolean"`
+	Tags        []int32        `json:"tags" binding:"required,min=1,max=3,dive,required,positive"`
+}
+
+type updateEventResponse struct {
+	ID          int32          `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Capacity    int32          `json:"capacity"`
+	Latitude    pgtype.Numeric `json:"latitude"`
+	Longitude   pgtype.Numeric `json:"longitude"`
+	Address     string         `json:"address"`
+	Date        time.Time      `json:"date"`
+	IsPrivate   bool           `json:"is_private"`
+	IsPremium   bool           `json:"is_premium"`
+	CreatedAt   time.Time      `json:"created_at"`
+	Tags        []db.Tag       `json:"tags"`
+}
+
+func newUpdateEventResponse(event db.UpdateEventTxResult) updateEventResponse {
+	return updateEventResponse{
+		ID:          event.Event.ID,
+		Name:        event.Event.Name,
+		Description: event.Event.Description,
+		Capacity:    event.Event.Capacity,
+		Latitude:    event.Event.Latitude,
+		Longitude:   event.Event.Longitude,
+		Address:     event.Event.Address,
+		Date:        event.Event.Date,
+		IsPrivate:   event.Event.IsPrivate,
+		IsPremium:   event.Event.IsPremium,
+		CreatedAt:   event.Event.CreatedAt,
+		Tags:        event.Event.Tags,
+	}
+}
+
+func (server *Server) updateEvent(ctx *gin.Context) {
+	var req updateEventRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	eventID, err := getEventID(ctx)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	userID := getUserIDFromContextPayload(ctx)
+
+	event, err := server.store.GetEvent(ctx, eventID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	if event.OwnerID != userID {
+		ctx.Error(apperror.Forbidden.WithCause(err))
+	}
+
+	arg := db.UpdateEventTxParams{
+		EventID:     eventID,
+		Name:        req.Name,
+		Description: req.Description,
+		Capacity:    req.Capacity,
+		Latitude:    req.Latitude,
+		Longitude:   req.Longitude,
+		Address:     req.Address,
+		Date:        req.Date,
+		IsPrivate:   req.IsPrivate,
+		Tags:        req.Tags,
+	}
+
+	eventUpdated, err := server.store.UpdateEventTx(ctx, arg)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newUpdateEventResponse(eventUpdated))
+}
+
+func getEventID(ctx *gin.Context) (int32, error) {
+	eventIDStr := ctx.Param("id")
+	eventID, err := strconv.Atoi(eventIDStr)
+	if err != nil {
+		return 0, err
+	}
+
+	return int32(eventID), nil
 }
