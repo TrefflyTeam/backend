@@ -34,12 +34,20 @@ func newUserResponse(user db.User) userResponse {
 }
 
 type userWithTagsResponse struct {
-	db.UserWithTagsView
+	ID        int32     `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Tags      []db.Tag  `json:"tags"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func newUserWithTagsResponse(user db.UserWithTagsView) userWithTagsResponse {
 	return userWithTagsResponse{
-		user,
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Tags:      user.Tags,
+		CreatedAt: user.CreatedAt,
 	}
 }
 
@@ -226,12 +234,14 @@ func (server *Server) deleteCurrentUser(ctx *gin.Context) {
 }
 
 type addTagResponse struct {
-	db.UserTag
+	UserID int32 `json:"user_id"`
+	TagID  int32 `json:"tag_id"`
 }
 
 func newAddTagResponse(tag db.UserTag) addTagResponse {
 	return addTagResponse{
-		tag,
+		UserID: tag.UserID,
+		TagID:  tag.TagID,
 	}
 }
 
