@@ -45,6 +45,16 @@ func (q *Queries) AddUserTag(ctx context.Context, arg AddUserTagParams) (UserTag
 	return i, err
 }
 
+const deleteAllEventTags = `-- name: DeleteAllEventTags :exec
+DELETE FROM event_tags
+WHERE event_id = $1
+`
+
+func (q *Queries) DeleteAllEventTags(ctx context.Context, eventID int32) error {
+	_, err := q.db.Exec(ctx, deleteAllEventTags, eventID)
+	return err
+}
+
 const deleteUserTag = `-- name: DeleteUserTag :exec
 DELETE FROM user_tags
 WHERE user_id = $1 AND tag_id = $2

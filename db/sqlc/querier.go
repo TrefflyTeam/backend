@@ -16,6 +16,7 @@ type Querier interface {
 	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteAllEventTags(ctx context.Context, eventID int32) error
 	DeleteEvent(ctx context.Context, id int32) error
 	DeleteUser(ctx context.Context, id int32) error
 	DeleteUserTag(ctx context.Context, arg DeleteUserTagParams) error

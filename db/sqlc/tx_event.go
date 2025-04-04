@@ -17,7 +17,7 @@ type CreateEventTxParams struct {
 	Date        time.Time      `json:"date"`
 	OwnerID     int32          `json:"owner_id"`
 	IsPrivate   bool           `json:"is_private"`
-	Tags        []int32          `json:"tags"`
+	Tags        []int32        `json:"tags"`
 }
 
 type CreateEventTxResult struct {
@@ -96,3 +96,65 @@ func convertToEventTxResult(event EventWithTagsView) CreateEventTxResult {
 	}
 }
 
+type UpdateEventTxParams struct {
+	EventID     int32
+	Name        string
+	Description string
+	Capacity    int32
+	Latitude    pgtype.Numeric
+	Longitude   pgtype.Numeric
+	Address     string
+	Date        time.Time
+	IsPrivate   bool
+	Tags        []int32
+}
+
+type UpdateEventTxResult struct {
+	Event EventWithTagsView
+}
+
+func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) (UpdateEventTxResult, error) {
+	var result UpdateEventTxResult
+
+	err := store.execTx(ctx, func(q *Queries) error {
+		_, err := q.UpdateEvent(ctx, UpdateEventParams{
+			ID:          arg.EventID,
+			Name:        arg.Name,
+			Description: arg.Description,
+			Capacity:    arg.Capacity,
+			Latitude:    arg.Latitude,
+			Longitude:   arg.Longitude,
+			Address:     arg.Address,
+			Date:        arg.Date,
+			IsPrivate:   arg.IsPrivate,
+		})
+		if err != nil {
+			return fmt.Errorf("update event error: %w", err)
+		}
+
+		err = q.DeleteAllEventTags(ctx, arg.EventID)
+		if err != nil {
+			return fmt.Errorf("delete old tags error: %w", err)
+		}
+
+		for _, tagID := range arg.Tags {
+			_, err := q.AddEventTag(ctx, AddEventTagParams{
+				EventID: arg.EventID,
+				TagID:   tagID,
+			})
+			if err != nil {
+				return fmt.Errorf("add new tag %d error: %w", tagID, err)
+			}
+		}
+
+		fullEvent, err := q.GetEvent(ctx, arg.EventID)
+		if err != nil {
+			return fmt.Errorf("get updated event error: %w", err)
+		}
+
+		result.Event = fullEvent
+		return nil
+	})
+
+	return result, err
+}
