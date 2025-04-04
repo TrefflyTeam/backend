@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgtype"
 	"net/http"
+	"strconv"
 	"time"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
@@ -27,7 +28,7 @@ type createEventRequest struct {
 	Tags        []int32        `json:"tags" binding:"required,min=1,max=3,dive,required,positive"`
 }
 
-type eventResponse struct {
+type createEventResponse struct {
 	ID          int32          `json:"id"`
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
@@ -42,8 +43,8 @@ type eventResponse struct {
 	Tags        []db.Tag       `json:"tags"`
 }
 
-func newCreateEventResponse(event db.CreateEventTxResult) eventResponse {
-	return eventResponse{
+func newCreateEventResponse(event db.CreateEventTxResult) createEventResponse {
+	return createEventResponse{
 		ID:          event.ID,
 		Name:        event.Name,
 		Description: event.Description,
@@ -92,13 +93,13 @@ func (server *Server) createEvent(ctx *gin.Context) {
 }
 
 type eventsListResponse struct {
-	Events []db.EventWithTagsView `json:"events"`
+	Events []getEventResponse `json:"events"`
 }
 
 func newEventsListResponse(events []db.EventWithTagsView) eventsListResponse {
-	var response []db.EventWithTagsView
+	var response []getEventResponse
 	for _, event := range events {
-		response = append(response, event)
+		response = append(response, newEventResponse(event))
 	}
 	return eventsListResponse{Events: response}
 }
@@ -146,4 +147,58 @@ func getUserLocation(ctx *gin.Context) (pgtype.Numeric, pgtype.Numeric, error) {
 	}
 
 	return latNum, lonNum, nil
+}
+
+type getEventResponse struct {
+	ID          int32          `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Capacity    int32          `json:"capacity"`
+	Latitude    pgtype.Numeric `json:"latitude"`
+	Longitude   pgtype.Numeric `json:"longitude"`
+	Address     string         `json:"address"`
+	Date        time.Time      `json:"date"`
+	OwnerID     int32          `json:"owner_id"`
+	IsPrivate   bool           `json:"is_private"`
+	IsPremium   bool           `json:"is_premium"`
+	CreatedAt   time.Time      `json:"created_at"`
+	Tags        []db.Tag       `json:"tags"`
+}
+
+func newEventResponse(event db.EventWithTagsView) getEventResponse {
+	return getEventResponse{
+		ID:          event.ID,
+		Name:        event.Name,
+		Description: event.Description,
+		Capacity:    event.Capacity,
+		OwnerID: 	 event.OwnerID,
+		Latitude:    event.Latitude,
+		Longitude:   event.Longitude,
+		Address:     event.Address,
+		Date:        event.Date,
+		IsPrivate:   event.IsPrivate,
+		IsPremium:   event.IsPremium,
+		CreatedAt:   event.CreatedAt,
+		Tags:        event.Tags,
+	}
+}
+
+func (server *Server) getEvent(ctx *gin.Context) {
+	eventIDStr := ctx.Param("id")
+	eventID, err := strconv.Atoi(eventIDStr)
+
+
+
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	event, err := server.store.GetEvent(ctx, int32(eventID))
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newEventResponse(event))
 }
