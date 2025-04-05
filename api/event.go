@@ -372,4 +372,26 @@ func (server *Server) subscribeCurrentUserToEvent(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, gin.H{})
 }
 
+func (server *Server) unsubscribeCurrentUserFromEvent(ctx *gin.Context) {
+	eventID, err := getEventID(ctx)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	userID := getUserIDFromContextPayload(ctx)
+
+	arg := db.UnsubscribeFromEventParams{
+		EventID: eventID,
+		UserID:  userID,
+	}
+
+	err = server.store.UnsubscribeFromEvent(ctx, arg)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, gin.H{})
+}
 
