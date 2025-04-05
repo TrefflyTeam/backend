@@ -348,3 +348,28 @@ func getEventID(ctx *gin.Context) (int32, error) {
 
 	return int32(eventID), nil
 }
+
+func (server *Server) subscribeCurrentUserToEvent(ctx *gin.Context) {
+	eventID, err := getEventID(ctx)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	userID := getUserIDFromContextPayload(ctx)
+
+	arg := db.SubscribeToEventParams{
+		EventID: eventID,
+		UserID:  userID,
+	}
+
+	err = server.store.SubscribeToEvent(ctx, arg)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, gin.H{})
+}
+
+

@@ -65,6 +65,7 @@ func (server *Server) setupRouter() {
 	authRoutes.POST("/events", server.createEvent)
 	authRoutes.PUT("/events/:id", server.updateEvent)
 	authRoutes.DELETE("/events/:id", server.deleteEvent)
+	authRoutes.POST("/events/:id/subscription", server.subscribeCurrentUserToEvent)
 
 	server.router = router
 }
