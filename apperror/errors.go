@@ -113,6 +113,9 @@ func WrapDBError(err error) error {
 			if pgErr.ConstraintName == "user_tags_pkey" {
 				return BadRequest.WithCause(err)
 			}
+			if pgErr.ConstraintName == "event_user_pkey" {
+				return BadRequest.WithCause(err)
+			}
 		case pgerrcode.ForeignKeyViolation:
 			return BadRequest.WithCause(err)
 		}
