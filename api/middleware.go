@@ -54,3 +54,23 @@ func ErrorHandler() gin.HandlerFunc {
 		}
 	}
 }
+
+func softAuthMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		accessToken, err := ctx.Cookie("access_token")
+		if err != nil {
+			ctx.Next()
+			return
+		}
+
+		payload, err := tokenMaker.VerifyToken(accessToken)
+		if err != nil {
+			ctx.Next()
+			return
+		}
+
+		userID := payload.UserID
+		ctx.Set("user_id", userID)
+		ctx.Next()
+	}
+}
