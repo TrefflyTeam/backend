@@ -30,3 +30,11 @@ WHERE email = $1 LIMIT 1;
 
 -- name: GetUserWithTags :one
 SELECT * FROM user_with_tags_view WHERE id = $1;
+
+-- name: SubscribeToEvent :exec
+INSERT INTO event_user (user_id, event_id)
+VALUES ($1, $2);
+
+-- name: UnsubscribeFromEvent :exec
+DELETE FROM event_user
+WHERE user_id = $1 AND event_id = $2;

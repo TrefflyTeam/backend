@@ -140,6 +140,36 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 	return items, nil
 }
 
+const subscribeToEvent = `-- name: SubscribeToEvent :exec
+INSERT INTO event_user (user_id, event_id)
+VALUES ($1, $2)
+`
+
+type SubscribeToEventParams struct {
+	UserID  int32 `json:"user_id"`
+	EventID int32 `json:"event_id"`
+}
+
+func (q *Queries) SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) error {
+	_, err := q.db.Exec(ctx, subscribeToEvent, arg.UserID, arg.EventID)
+	return err
+}
+
+const unsubscribeFromEvent = `-- name: UnsubscribeFromEvent :exec
+DELETE FROM event_user
+WHERE user_id = $1 AND event_id = $2
+`
+
+type UnsubscribeFromEventParams struct {
+	UserID  int32 `json:"user_id"`
+	EventID int32 `json:"event_id"`
+}
+
+func (q *Queries) UnsubscribeFromEvent(ctx context.Context, arg UnsubscribeFromEventParams) error {
+	_, err := q.db.Exec(ctx, unsubscribeFromEvent, arg.UserID, arg.EventID)
+	return err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET username = $2

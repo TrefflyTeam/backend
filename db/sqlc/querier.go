@@ -29,6 +29,8 @@ type Querier interface {
 	GetUserWithTags(ctx context.Context, id int32) (UserWithTagsView, error)
 	ListEvents(ctx context.Context, arg ListEventsParams) ([]EventWithTagsView, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) error
+	UnsubscribeFromEvent(ctx context.Context, arg UnsubscribeFromEventParams) error
 	UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error)
 	UpdateSession(ctx context.Context, arg UpdateSessionParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
