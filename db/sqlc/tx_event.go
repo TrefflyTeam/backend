@@ -114,7 +114,7 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 	var result EventTxResult
 
 	err := store.execTx(ctx, func(q *Queries) error {
-		_, err := q.UpdateEvent(ctx, UpdateEventParams{
+		err := q.UpdateEvent(ctx, UpdateEventParams{
 			ID:          arg.EventID,
 			Name:        arg.Name,
 			Description: arg.Description,

@@ -34,7 +34,8 @@ INSERT INTO events (
              $8,
              $9
          )
-    RETURNING id, name, description, capacity, latitude, longitude, address, date, owner_id, is_private, is_premium, created_at
+    RETURNING id, name, description, capacity, latitude, longitude,
+    address, date, owner_id, is_private, is_premium, created_at
 `
 
 type CreateEventParams struct {
@@ -49,7 +50,22 @@ type CreateEventParams struct {
 	IsPrivate   bool           `json:"is_private"`
 }
 
-func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error) {
+type CreateEventRow struct {
+	ID          int32          `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Capacity    int32          `json:"capacity"`
+	Latitude    pgtype.Numeric `json:"latitude"`
+	Longitude   pgtype.Numeric `json:"longitude"`
+	Address     string         `json:"address"`
+	Date        time.Time      `json:"date"`
+	OwnerID     int32          `json:"owner_id"`
+	IsPrivate   bool           `json:"is_private"`
+	IsPremium   bool           `json:"is_premium"`
+	CreatedAt   time.Time      `json:"created_at"`
+}
+
+func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (CreateEventRow, error) {
 	row := q.db.QueryRow(ctx, createEvent,
 		arg.Name,
 		arg.Description,
@@ -61,7 +77,7 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 		arg.OwnerID,
 		arg.IsPrivate,
 	)
-	var i Event
+	var i CreateEventRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -115,6 +131,301 @@ func (q *Queries) GetEvent(ctx context.Context, id int32) (EventWithTagsView, er
 	return i, err
 }
 
+const getGuestRecommendedEvents = `-- name: GetGuestRecommendedEvents :many
+SELECT id, name, description, capacity, latitude, longitude, address, date, owner_id, is_private, is_premium, created_at, geom
+FROM events
+WHERE
+    date > NOW() AND
+    ST_DWithin(geom, ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY, 100000)
+ORDER BY
+    ST_Distance(geom, ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY) ASC,
+    created_at DESC
+    LIMIT 6
+`
+
+type GetGuestRecommendedEventsParams struct {
+	UserLon pgtype.Numeric `json:"user_lon"`
+	UserLat pgtype.Numeric `json:"user_lat"`
+}
+
+func (q *Queries) GetGuestRecommendedEvents(ctx context.Context, arg GetGuestRecommendedEventsParams) ([]Event, error) {
+	rows, err := q.db.Query(ctx, getGuestRecommendedEvents, arg.UserLon, arg.UserLat)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Event{}
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Capacity,
+			&i.Latitude,
+			&i.Longitude,
+			&i.Address,
+			&i.Date,
+			&i.OwnerID,
+			&i.IsPrivate,
+			&i.IsPremium,
+			&i.CreatedAt,
+			&i.Geom,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLatestEvents = `-- name: GetLatestEvents :many
+SELECT id, name, description, capacity, latitude, longitude, address, date, owner_id, is_private, is_premium, created_at, geom
+FROM events
+WHERE date > NOW()
+ORDER BY created_at DESC
+    LIMIT 6
+`
+
+func (q *Queries) GetLatestEvents(ctx context.Context) ([]Event, error) {
+	rows, err := q.db.Query(ctx, getLatestEvents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Event{}
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Capacity,
+			&i.Latitude,
+			&i.Longitude,
+			&i.Address,
+			&i.Date,
+			&i.OwnerID,
+			&i.IsPrivate,
+			&i.IsPremium,
+			&i.CreatedAt,
+			&i.Geom,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPopularEvents = `-- name: GetPopularEvents :many
+SELECT
+    e.id, e.name, e.description, e.capacity, e.latitude, e.longitude, e.address, e.date, e.owner_id, e.is_private, e.is_premium, e.created_at, e.geom,
+    COUNT(eu.event_id) AS participants_count
+FROM
+    events e
+        LEFT JOIN
+    event_user eu ON e.id = eu.event_id
+WHERE
+    e.date > NOW()
+GROUP BY
+    e.id
+ORDER BY
+    participants_count DESC,
+    e.created_at DESC
+    LIMIT 6
+`
+
+type GetPopularEventsRow struct {
+	ID                int32          `json:"id"`
+	Name              string         `json:"name"`
+	Description       string         `json:"description"`
+	Capacity          int32          `json:"capacity"`
+	Latitude          pgtype.Numeric `json:"latitude"`
+	Longitude         pgtype.Numeric `json:"longitude"`
+	Address           string         `json:"address"`
+	Date              time.Time      `json:"date"`
+	OwnerID           int32          `json:"owner_id"`
+	IsPrivate         bool           `json:"is_private"`
+	IsPremium         bool           `json:"is_premium"`
+	CreatedAt         time.Time      `json:"created_at"`
+	Geom              interface{}    `json:"geom"`
+	ParticipantsCount int64          `json:"participants_count"`
+}
+
+func (q *Queries) GetPopularEvents(ctx context.Context) ([]GetPopularEventsRow, error) {
+	rows, err := q.db.Query(ctx, getPopularEvents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetPopularEventsRow{}
+	for rows.Next() {
+		var i GetPopularEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Capacity,
+			&i.Latitude,
+			&i.Longitude,
+			&i.Address,
+			&i.Date,
+			&i.OwnerID,
+			&i.IsPrivate,
+			&i.IsPremium,
+			&i.CreatedAt,
+			&i.Geom,
+			&i.ParticipantsCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPremiumEvents = `-- name: GetPremiumEvents :many
+SELECT id, name, description, capacity, latitude, longitude, address, date, owner_id, is_private, is_premium, created_at, geom
+FROM events
+WHERE is_premium = TRUE
+  AND date > NOW()
+ORDER BY created_at DESC
+    LIMIT 6
+`
+
+func (q *Queries) GetPremiumEvents(ctx context.Context) ([]Event, error) {
+	rows, err := q.db.Query(ctx, getPremiumEvents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Event{}
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Capacity,
+			&i.Latitude,
+			&i.Longitude,
+			&i.Address,
+			&i.Date,
+			&i.OwnerID,
+			&i.IsPrivate,
+			&i.IsPremium,
+			&i.CreatedAt,
+			&i.Geom,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserRecommendedEvents = `-- name: GetUserRecommendedEvents :many
+WITH user_tags AS (
+    SELECT (tag->>'id')::INT AS tag_id
+    FROM user_with_tags_view,
+         json_array_elements(tags) AS tag
+    WHERE user_with_tags_view.id = $3
+)
+SELECT
+    e.id, e.name, e.description, e.capacity, e.latitude, e.longitude, e.address, e.date, e.owner_id, e.is_private, e.is_premium, e.created_at, e.geom,
+    COUNT(et.tag_id) AS matched_tags,
+    ST_Distance(
+            e.geom,
+            ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY
+    ) AS distance
+FROM events e
+         LEFT JOIN event_tags et
+                   ON e.id = et.event_id
+                       AND et.tag_id IN (SELECT tag_id FROM user_tags)
+WHERE
+    e.date > NOW() AND
+    ST_DWithin(e.geom, ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY, 100000)
+GROUP BY e.id
+ORDER BY
+    matched_tags DESC,
+    e.created_at DESC,
+    distance ASC
+    LIMIT 6
+`
+
+type GetUserRecommendedEventsParams struct {
+	UserLon pgtype.Numeric `json:"user_lon"`
+	UserLat pgtype.Numeric `json:"user_lat"`
+	UserID  int32          `json:"user_id"`
+}
+
+type GetUserRecommendedEventsRow struct {
+	ID          int32          `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Capacity    int32          `json:"capacity"`
+	Latitude    pgtype.Numeric `json:"latitude"`
+	Longitude   pgtype.Numeric `json:"longitude"`
+	Address     string         `json:"address"`
+	Date        time.Time      `json:"date"`
+	OwnerID     int32          `json:"owner_id"`
+	IsPrivate   bool           `json:"is_private"`
+	IsPremium   bool           `json:"is_premium"`
+	CreatedAt   time.Time      `json:"created_at"`
+	Geom        interface{}    `json:"geom"`
+	MatchedTags int64          `json:"matched_tags"`
+	Distance    interface{}    `json:"distance"`
+}
+
+func (q *Queries) GetUserRecommendedEvents(ctx context.Context, arg GetUserRecommendedEventsParams) ([]GetUserRecommendedEventsRow, error) {
+	rows, err := q.db.Query(ctx, getUserRecommendedEvents, arg.UserLon, arg.UserLat, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUserRecommendedEventsRow{}
+	for rows.Next() {
+		var i GetUserRecommendedEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Capacity,
+			&i.Latitude,
+			&i.Longitude,
+			&i.Address,
+			&i.Date,
+			&i.OwnerID,
+			&i.IsPrivate,
+			&i.IsPremium,
+			&i.CreatedAt,
+			&i.Geom,
+			&i.MatchedTags,
+			&i.Distance,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listEvents = `-- name: ListEvents :many
 SELECT id, name, description, capacity, latitude, longitude, address, date, owner_id, is_private, is_premium, created_at, tags FROM event_with_tags_view
 WHERE ST_DWithin(
@@ -164,7 +475,7 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]Event
 	return items, nil
 }
 
-const updateEvent = `-- name: UpdateEvent :one
+const updateEvent = `-- name: UpdateEvent :exec
 UPDATE events
 SET
     name = $1,
@@ -176,7 +487,6 @@ SET
     date = $7,
     is_private = $8
 WHERE id = $9
-    RETURNING id, name, description, capacity, latitude, longitude, address, date, owner_id, is_private, is_premium, created_at
 `
 
 type UpdateEventParams struct {
@@ -191,8 +501,8 @@ type UpdateEventParams struct {
 	ID          int32          `json:"id"`
 }
 
-func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error) {
-	row := q.db.QueryRow(ctx, updateEvent,
+func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error {
+	_, err := q.db.Exec(ctx, updateEvent,
 		arg.Name,
 		arg.Description,
 		arg.Capacity,
@@ -203,20 +513,5 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		arg.IsPrivate,
 		arg.ID,
 	)
-	var i Event
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Capacity,
-		&i.Latitude,
-		&i.Longitude,
-		&i.Address,
-		&i.Date,
-		&i.OwnerID,
-		&i.IsPrivate,
-		&i.IsPremium,
-		&i.CreatedAt,
-	)
-	return i, err
+	return err
 }

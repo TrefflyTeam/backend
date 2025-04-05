@@ -24,6 +24,7 @@ type Event struct {
 	IsPrivate   bool           `json:"is_private"`
 	IsPremium   bool           `json:"is_premium"`
 	CreatedAt   time.Time      `json:"created_at"`
+	Geom        interface{}    `json:"geom"`
 }
 
 type EventTag struct {

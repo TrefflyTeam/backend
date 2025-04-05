@@ -13,7 +13,7 @@ import (
 type Querier interface {
 	AddEventTag(ctx context.Context, arg AddEventTagParams) (EventTag, error)
 	AddUserTag(ctx context.Context, arg AddUserTagParams) (UserTag, error)
-	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
+	CreateEvent(ctx context.Context, arg CreateEventParams) (CreateEventRow, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAllEventTags(ctx context.Context, eventID int32) error
@@ -22,16 +22,21 @@ type Querier interface {
 	DeleteUserTag(ctx context.Context, arg DeleteUserTagParams) error
 	GetAllUserTags(ctx context.Context, id int32) ([]Tag, error)
 	GetEvent(ctx context.Context, id int32) (EventWithTagsView, error)
+	GetGuestRecommendedEvents(ctx context.Context, arg GetGuestRecommendedEventsParams) ([]Event, error)
+	GetLatestEvents(ctx context.Context) ([]Event, error)
+	GetPopularEvents(ctx context.Context) ([]GetPopularEventsRow, error)
+	GetPremiumEvents(ctx context.Context) ([]Event, error)
 	GetSession(ctx context.Context, argUuid uuid.UUID) (Session, error)
 	GetTags(ctx context.Context) ([]Tag, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserRecommendedEvents(ctx context.Context, arg GetUserRecommendedEventsParams) ([]GetUserRecommendedEventsRow, error)
 	GetUserWithTags(ctx context.Context, id int32) (UserWithTagsView, error)
 	ListEvents(ctx context.Context, arg ListEventsParams) ([]EventWithTagsView, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) error
 	UnsubscribeFromEvent(ctx context.Context, arg UnsubscribeFromEventParams) error
-	UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error)
+	UpdateEvent(ctx context.Context, arg UpdateEventParams) error
 	UpdateSession(ctx context.Context, arg UpdateSessionParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
