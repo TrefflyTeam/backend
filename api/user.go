@@ -312,3 +312,31 @@ func getUserIDFromContextPayload(ctx *gin.Context) int32 {
 	userID := authPayload.UserID
 	return userID
 }
+
+func (server *Server) getCurrentUserUpcomingEvents(ctx *gin.Context) {
+	userID := getUserIDFromContextPayload(ctx)
+
+	var events []db.EventRow
+	rows, err := server.store.GetUpcomingUserEvents(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+	events = db.ConvertToEventRow(rows)
+
+	ctx.JSON(http.StatusOK, convertEvents(events))
+}
+
+func (server *Server) getCurrentUserPastEvents(ctx *gin.Context) {
+	userID := getUserIDFromContextPayload(ctx)
+
+	var events []db.EventRow
+	rows, err := server.store.GetPastUserEvents(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+	events = db.ConvertToEventRow(rows)
+
+	ctx.JSON(http.StatusOK, convertEvents(events))
+}

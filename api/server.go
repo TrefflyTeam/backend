@@ -70,6 +70,8 @@ func (server *Server) setupRouter() {
 	authRoutes.DELETE("/events/:id", server.deleteEvent)
 	authRoutes.POST("/events/:id/subscription", server.subscribeCurrentUserToEvent)
 	authRoutes.DELETE("/events/:id/subscription", server.unsubscribeCurrentUserFromEvent)
+	authRoutes.GET("/users/me/past-events", server.getCurrentUserPastEvents)
+	authRoutes.GET("/users/me/upcoming-events", server.getCurrentUserUpcomingEvents)
 
 	server.router = router
 }
