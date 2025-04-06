@@ -17,35 +17,38 @@ const (
 )
 
 type eventResponse struct {
-	ID          int32          `json:"id"`
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Capacity    int32          `json:"capacity"`
-	Latitude    pgtype.Numeric `json:"latitude"`
-	Longitude   pgtype.Numeric `json:"longitude"`
-	Address     string         `json:"address"`
-	Date        time.Time      `json:"date"`
-	IsPrivate   bool           `json:"is_private"`
-	IsPremium   bool           `json:"is_premium"`
-	CreatedAt   time.Time      `json:"created_at"`
-	OwnerID     int32          `json:"owner_id"`
-	Tags        []db.Tag       `json:"tags"`
+	ID               int32          `json:"id"`
+	Name             string         `json:"name"`
+	Description      string         `json:"description"`
+	Capacity         int32          `json:"capacity"`
+	Latitude         pgtype.Numeric `json:"latitude"`
+	Longitude        pgtype.Numeric `json:"longitude"`
+	Address          string         `json:"address"`
+	Date             time.Time      `json:"date"`
+	IsPrivate        bool           `json:"is_private"`
+	IsPremium        bool           `json:"is_premium"`
+	CreatedAt        time.Time      `json:"created_at"`
+	OwnerUsername    string         `json:"owner_username"`
+	Tags             []db.Tag       `json:"tags"`
+	ParticipantCount int32          `json:"participant_count"`
 }
 
-func newEventTxResponse(event db.EventTxResult) eventResponse {
+func newEventTxResponse(event db.EventResponse) eventResponse {
 	return eventResponse{
-		ID:          event.ID,
-		Name:        event.Name,
-		Description: event.Description,
-		Capacity:    event.Capacity,
-		Latitude:    event.Latitude,
-		Longitude:   event.Longitude,
-		Address:     event.Address,
-		Date:        event.Date,
-		IsPrivate:   event.IsPrivate,
-		IsPremium:   event.IsPremium,
-		CreatedAt:   event.CreatedAt,
-		Tags:        event.Tags,
+		ID:            event.ID,
+		Name:          event.Name,
+		Description:   event.Description,
+		Capacity:         event.Capacity,
+		Latitude:         event.Latitude,
+		Longitude:        event.Longitude,
+		Address:          event.Address,
+		Date:             event.Date,
+		IsPrivate:        event.IsPrivate,
+		IsPremium:        event.IsPremium,
+		CreatedAt:        event.CreatedAt,
+		Tags:             event.Tags,
+		OwnerUsername:    event.OwnerUsername,
+		ParticipantCount: int32(event.ParticipantsCount),
 	}
 }
 
@@ -76,7 +79,7 @@ type createEventResponse struct {
 	Tags        []db.Tag       `json:"tags"`
 }
 
-func newCreateEventResponse(event db.EventTxResult) createEventResponse {
+func newCreateEventResponse(event db.EventResponse) createEventResponse {
 	return createEventResponse{
 		ID:          event.ID,
 		Name:        event.Name,
@@ -125,12 +128,11 @@ func (server *Server) createEvent(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, newEventTxResponse(event))
 }
 
-
 type eventsListResponse struct {
 	Events []eventResponse `json:"events"`
 }
 
-func newEventsListResponse(events []db.EventWithTagsView) eventsListResponse {
+func newEventsListResponse(events []db.EventResponse) eventsListResponse {
 	response := make([]eventResponse, 0, len(events))
 	for _, event := range events {
 		response = append(response, newEventResponse(event))
@@ -150,16 +152,20 @@ func (server *Server) listEvents(ctx *gin.Context) {
 		UserLat: lat,
 	}
 
-	events, err := server.store.ListEvents(ctx, arg)
+	var events []db.EventResponse
+	rows, err := server.store.ListEvents(ctx, arg)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
+	}
+	for _, row := range rows {
+		events = append(events, db.ConvertRowToEvent(row))
 	}
 
 	ctx.JSON(http.StatusOK, newEventsListResponse(events))
 }
 
-func getUserLocation(ctx *gin.Context) (pgtype.Numeric, pgtype.Numeric, error) {
+func getUserLocation(ctx *gin.Context) (lat pgtype.Numeric, lon pgtype.Numeric, err error) {
 	latStr, err := ctx.Cookie("user_lat")
 	if err != nil {
 		latStr = defaultLat
@@ -170,34 +176,33 @@ func getUserLocation(ctx *gin.Context) (pgtype.Numeric, pgtype.Numeric, error) {
 		lonStr = defaultLon
 	}
 
-	latNum := pgtype.Numeric{}
-	if err := latNum.Scan(latStr); err != nil {
+	if err := lat.Scan(latStr); err != nil {
 		return pgtype.Numeric{}, pgtype.Numeric{}, fmt.Errorf("invalid latitude: %v", err)
 	}
 
-	lonNum := pgtype.Numeric{}
-	if err := lonNum.Scan(lonStr); err != nil {
+	if err := lon.Scan(lonStr); err != nil {
 		return pgtype.Numeric{}, pgtype.Numeric{}, fmt.Errorf("invalid longitude: %v", err)
 	}
 
-	return latNum, lonNum, nil
+	return lat, lon, nil
 }
 
-func newEventResponse(event db.EventWithTagsView) eventResponse {
+func newEventResponse(event db.EventResponse) eventResponse {
 	return eventResponse{
-		ID:          event.ID,
-		Name:        event.Name,
-		Description: event.Description,
-		Capacity:    event.Capacity,
-		Latitude:    event.Latitude,
-		Longitude:   event.Longitude,
-		Address:     event.Address,
-		Date:        event.Date,
-		IsPrivate:   event.IsPrivate,
-		IsPremium:   event.IsPremium,
-		CreatedAt:   event.CreatedAt,
-		OwnerID:     event.OwnerID,
-		Tags:        event.Tags,
+		ID:               event.ID,
+		Name:             event.Name,
+		Description:      event.Description,
+		Capacity:         event.Capacity,
+		Latitude:         event.Latitude,
+		Longitude:        event.Longitude,
+		Address:          event.Address,
+		Date:             event.Date,
+		IsPrivate:        event.IsPrivate,
+		IsPremium:        event.IsPremium,
+		CreatedAt:        event.CreatedAt,
+		Tags:             event.Tags,
+		OwnerUsername:    event.OwnerUsername,
+		ParticipantCount: int32(event.ParticipantsCount),
 	}
 }
 
@@ -208,11 +213,12 @@ func (server *Server) getEvent(ctx *gin.Context) {
 		return
 	}
 
-	event, err := server.store.GetEvent(ctx, eventID)
+	row, err := server.store.GetEvent(ctx, eventID)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
+	event := db.ConvertRowToEvent(row)
 
 	ctx.JSON(http.StatusOK, newEventResponse(event))
 }
@@ -244,7 +250,7 @@ type updateEventResponse struct {
 	Tags        []db.Tag       `json:"tags"`
 }
 
-func newUpdateEventResponse(event db.EventTxResult) updateEventResponse {
+func newUpdateEventResponse(event db.EventResponse) updateEventResponse {
 	return updateEventResponse{
 		ID:          event.ID,
 		Name:        event.Name,
@@ -395,3 +401,101 @@ func (server *Server) unsubscribeCurrentUserFromEvent(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, gin.H{})
 }
 
+type getHomeEventsResponse struct {
+	Premium     []eventResponse `json:"premium"`
+	Recommended []eventResponse `json:"recommended"`
+	Latest      []eventResponse `json:"latest"`
+	Popular     []eventResponse `json:"popular"`
+}
+
+func newGetHomeEventsResponse(
+	premium []db.EventResponse,
+	recommended []db.EventResponse,
+	latest []db.EventResponse,
+	popular []db.EventResponse,
+) getHomeEventsResponse {
+	return getHomeEventsResponse{
+		Premium:     convertEvents(premium),
+		Recommended: convertEvents(recommended),
+		Latest:      convertEvents(latest),
+		Popular:     convertEvents(popular),
+	}
+}
+
+func (server *Server) getHomeEvents(ctx *gin.Context) {
+	userID, ok := ctx.Request.Context().Value("user_id").(int32)
+
+	lat, lon, err := getUserLocation(ctx)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	var premiumEvents []db.EventResponse
+	rowsPremium, err := server.store.GetPremiumEvents(ctx)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+	for _, row := range rowsPremium {
+		premiumEvents = append(premiumEvents, db.ConvertRowToEvent(row))
+	}
+
+	var recommendedEvents []db.EventResponse
+
+	if ok {
+		arg := db.GetUserRecommendedEventsParams{
+			UserID:  userID,
+			UserLat: lat,
+			UserLon: lon,
+		}
+
+		rows, err := server.store.GetUserRecommendedEvents(ctx, arg)
+		if err != nil {
+			ctx.Error(apperror.WrapDBError(err))
+			return
+		}
+		for _, row := range rows {
+			recommendedEvents = append(recommendedEvents, db.ConvertRowToEvent(row))
+		}
+	} else {
+		arg := db.GetGuestRecommendedEventsParams{
+			UserLat: lat,
+			UserLon: lon,
+		}
+
+		rows, err := server.store.GetGuestRecommendedEvents(ctx, arg)
+		if err != nil {
+			ctx.Error(apperror.WrapDBError(err))
+			return
+		}
+
+		for _, row := range rows {
+			recommendedEvents = append(recommendedEvents, db.ConvertRowToEvent(row))
+		}
+	}
+
+	var latestEvents []db.EventResponse
+	rowsLatest, err := server.store.GetLatestEvents(ctx)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+	for _, row := range rowsLatest {
+		latestEvents = append(latestEvents, db.ConvertRowToEvent(row))
+	}
+
+	var popularEvents []db.EventResponse
+	rowsPopular, err := server.store.GetPopularEvents(ctx)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+	for _, row := range rowsPopular {
+		popularEvents = append(popularEvents, db.ConvertRowToEvent(row))
+	}
+
+	resp := newGetHomeEventsResponse(premiumEvents, recommendedEvents, latestEvents, popularEvents)
+
+	ctx.JSON(http.StatusOK, resp)
+}
