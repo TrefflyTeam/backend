@@ -20,23 +20,8 @@ type CreateEventTxParams struct {
 	Tags        []int32        `json:"tags"`
 }
 
-type EventTxResult struct {
-	ID          int32          `json:"id"`
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Capacity    int32          `json:"capacity"`
-	Latitude    pgtype.Numeric `json:"latitude"`
-	Longitude   pgtype.Numeric `json:"longitude"`
-	Address     string         `json:"address"`
-	Date        time.Time      `json:"date"`
-	CreatedAt   time.Time      `json:"created_at"`
-	IsPrivate   bool           `json:"is_private"`
-	IsPremium   bool           `json:"is_premium"`
-	Tags        []Tag          `json:"tags"`
-}
-
-func (store *SQLStore) CreateEventTx(ctx context.Context, params CreateEventTxParams) (EventTxResult, error) {
-	var result EventTxResult
+func (store *SQLStore) CreateEventTx(ctx context.Context, params CreateEventTxParams) (EventResponse, error) {
+	var result EventResponse
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		event, err := q.CreateEvent(ctx, CreateEventParams{
@@ -68,32 +53,15 @@ func (store *SQLStore) CreateEventTx(ctx context.Context, params CreateEventTxPa
 			return fmt.Errorf("get event with tags error: %w", err)
 		}
 
-		result = convertToEventTxResult(fullEvent)
+		result = ConvertRowToEvent(fullEvent)
 		return nil
 	})
 
 	if err != nil {
-		return EventTxResult{}, fmt.Errorf("transaction failed: %w", err)
+		return EventResponse{}, fmt.Errorf("transaction failed: %w", err)
 	}
 
 	return result, nil
-}
-
-func convertToEventTxResult(event EventWithTagsView) EventTxResult {
-	return EventTxResult{
-		ID:          event.ID,
-		Name:        event.Name,
-		Description: event.Description,
-		Capacity:    event.Capacity,
-		Latitude:    event.Latitude,
-		Longitude:   event.Longitude,
-		Address:     event.Address,
-		Date:        event.Date,
-		CreatedAt:   event.CreatedAt,
-		IsPrivate:   event.IsPrivate,
-		IsPremium:   event.IsPremium,
-		Tags:        event.Tags,
-	}
 }
 
 type UpdateEventTxParams struct {
@@ -110,8 +78,8 @@ type UpdateEventTxParams struct {
 }
 
 
-func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) (EventTxResult, error) {
-	var result EventTxResult
+func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) (EventResponse, error) {
+	var result EventResponse
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		err := q.UpdateEvent(ctx, UpdateEventParams{
@@ -149,7 +117,7 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 			return fmt.Errorf("get updated event error: %w", err)
 		}
 
-		result = convertToEventTxResult(fullEvent)
+		result = ConvertRowToEvent(fullEvent)
 		return nil
 	})
 

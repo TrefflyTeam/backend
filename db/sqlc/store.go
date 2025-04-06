@@ -7,8 +7,8 @@ import (
 
 type Store interface {
 	Querier
-	CreateEventTx(ctx context.Context, params CreateEventTxParams) (EventTxResult, error)
-	UpdateEventTx(ctx context.Context, params UpdateEventTxParams) (EventTxResult, error)
+	CreateEventTx(ctx context.Context, params CreateEventTxParams) (EventResponse, error)
+	UpdateEventTx(ctx context.Context, params UpdateEventTxParams) (EventResponse, error)
 }
 
 type SQLStore struct {

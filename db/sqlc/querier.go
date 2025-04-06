@@ -21,18 +21,18 @@ type Querier interface {
 	DeleteUser(ctx context.Context, id int32) error
 	DeleteUserTag(ctx context.Context, arg DeleteUserTagParams) error
 	GetAllUserTags(ctx context.Context, id int32) ([]Tag, error)
-	GetEvent(ctx context.Context, id int32) (EventWithTagsView, error)
-	GetGuestRecommendedEvents(ctx context.Context, arg GetGuestRecommendedEventsParams) ([]Event, error)
-	GetLatestEvents(ctx context.Context) ([]Event, error)
+	GetEvent(ctx context.Context, id int32) (GetEventRow, error)
+	GetGuestRecommendedEvents(ctx context.Context, arg GetGuestRecommendedEventsParams) ([]GetGuestRecommendedEventsRow, error)
+	GetLatestEvents(ctx context.Context) ([]GetLatestEventsRow, error)
 	GetPopularEvents(ctx context.Context) ([]GetPopularEventsRow, error)
-	GetPremiumEvents(ctx context.Context) ([]Event, error)
+	GetPremiumEvents(ctx context.Context) ([]GetPremiumEventsRow, error)
 	GetSession(ctx context.Context, argUuid uuid.UUID) (Session, error)
 	GetTags(ctx context.Context) ([]Tag, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserRecommendedEvents(ctx context.Context, arg GetUserRecommendedEventsParams) ([]GetUserRecommendedEventsRow, error)
 	GetUserWithTags(ctx context.Context, id int32) (UserWithTagsView, error)
-	ListEvents(ctx context.Context, arg ListEventsParams) ([]EventWithTagsView, error)
+	ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) error
 	UnsubscribeFromEvent(ctx context.Context, arg UnsubscribeFromEventParams) error
