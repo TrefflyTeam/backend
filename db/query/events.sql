@@ -240,3 +240,53 @@ WHERE date > NOW()
 ORDER BY ST_Distance(geom, ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY) ASC,
     created_at DESC
     LIMIT 6;
+
+-- name: GetPastUserEvents :many
+SELECT
+    e.id,
+    e.name,
+    e.description,
+    e.capacity,
+    e.latitude,
+    e.longitude,
+    e.address,
+    e.date,
+    e.owner_id,
+    e.owner_username,
+    e.is_private,
+    e.is_premium,
+    e.created_at,
+    e.tags,
+    e.participants_count
+FROM event_with_tags_view e
+         JOIN event_user eu ON e.id = eu.event_id
+WHERE
+    eu.user_id = @user_id
+  AND e.date < NOW()
+ORDER BY
+    e.date DESC;
+
+-- name: GetUpcomingUserEvents :many
+SELECT
+    e.id,
+    e.name,
+    e.description,
+    e.capacity,
+    e.latitude,
+    e.longitude,
+    e.address,
+    e.date,
+    e.owner_id,
+    e.owner_username,
+    e.is_private,
+    e.is_premium,
+    e.created_at,
+    e.tags,
+    e.participants_count
+FROM event_with_tags_view e
+         JOIN event_user eu ON e.id = eu.event_id
+WHERE
+    eu.user_id = @user_id
+  AND e.date > NOW()
+ORDER BY
+    e.date ASC;

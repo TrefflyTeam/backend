@@ -150,3 +150,33 @@ func (r ListEventsRow) GetCreatedAt() time.Time        { return r.CreatedAt }
 func (r ListEventsRow) GetOwnerUsername() string       { return r.OwnerUsername.String }
 func (r ListEventsRow) GetTags() []Tag                 { return r.Tags }
 func (r ListEventsRow) GetParticipantsCount() int64    { return r.ParticipantsCount }
+
+func (r GetPastUserEventsRow) GetID() int32                   { return r.ID }
+func (r GetPastUserEventsRow) GetName() string                { return r.Name }
+func (r GetPastUserEventsRow) GetDescription() string         { return r.Description }
+func (r GetPastUserEventsRow) GetCapacity() int32             { return r.Capacity }
+func (r GetPastUserEventsRow) GetLatitude() pgtype.Numeric    { return r.Latitude }
+func (r GetPastUserEventsRow) GetLongitude() pgtype.Numeric   { return r.Longitude }
+func (r GetPastUserEventsRow) GetAddress() string             { return r.Address }
+func (r GetPastUserEventsRow) GetDate() time.Time             { return r.Date }
+func (r GetPastUserEventsRow) GetIsPrivate() bool             { return r.IsPrivate }
+func (r GetPastUserEventsRow) GetIsPremium() bool             { return r.IsPremium }
+func (r GetPastUserEventsRow) GetCreatedAt() time.Time        { return r.CreatedAt }
+func (r GetPastUserEventsRow) GetOwnerUsername() string       { return r.OwnerUsername.String }
+func (r GetPastUserEventsRow) GetTags() []Tag                 { return r.Tags }
+func (r GetPastUserEventsRow) GetParticipantsCount() int64    { return r.ParticipantsCount }
+
+func (r GetUpcomingUserEventsRow) GetID() int32                   { return r.ID }
+func (r GetUpcomingUserEventsRow) GetName() string                { return r.Name }
+func (r GetUpcomingUserEventsRow) GetDescription() string         { return r.Description }
+func (r GetUpcomingUserEventsRow) GetCapacity() int32             { return r.Capacity }
+func (r GetUpcomingUserEventsRow) GetLatitude() pgtype.Numeric    { return r.Latitude }
+func (r GetUpcomingUserEventsRow) GetLongitude() pgtype.Numeric   { return r.Longitude }
+func (r GetUpcomingUserEventsRow) GetAddress() string             { return r.Address }
+func (r GetUpcomingUserEventsRow) GetDate() time.Time             { return r.Date }
+func (r GetUpcomingUserEventsRow) GetIsPrivate() bool             { return r.IsPrivate }
+func (r GetUpcomingUserEventsRow) GetIsPremium() bool             { return r.IsPremium }
+func (r GetUpcomingUserEventsRow) GetCreatedAt() time.Time        { return r.CreatedAt }
+func (r GetUpcomingUserEventsRow) GetOwnerUsername() string       { return r.OwnerUsername.String }
+func (r GetUpcomingUserEventsRow) GetTags() []Tag                 { return r.Tags }
+func (r GetUpcomingUserEventsRow) GetParticipantsCount() int64    { return r.ParticipantsCount }
