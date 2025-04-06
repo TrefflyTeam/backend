@@ -332,6 +332,84 @@ func (q *Queries) GetLatestEvents(ctx context.Context) ([]GetLatestEventsRow, er
 	return items, nil
 }
 
+const getOwnedUserEvents = `-- name: GetOwnedUserEvents :many
+SELECT
+    e.id,
+    e.name,
+    e.description,
+    e.capacity,
+    e.latitude,
+    e.longitude,
+    e.address,
+    e.date,
+    e.owner_id,
+    e.owner_username,
+    e.is_private,
+    e.is_premium,
+    e.created_at,
+    e.tags,
+    e.participants_count
+FROM event_with_tags_view e
+WHERE
+    e.owner_id = $1
+ORDER BY
+    e.date DESC
+`
+
+type GetOwnedUserEventsRow struct {
+	ID                int32          `json:"id"`
+	Name              string         `json:"name"`
+	Description       string         `json:"description"`
+	Capacity          int32          `json:"capacity"`
+	Latitude          pgtype.Numeric `json:"latitude"`
+	Longitude         pgtype.Numeric `json:"longitude"`
+	Address           string         `json:"address"`
+	Date              time.Time      `json:"date"`
+	OwnerID           int32          `json:"owner_id"`
+	OwnerUsername     pgtype.Text    `json:"owner_username"`
+	IsPrivate         bool           `json:"is_private"`
+	IsPremium         bool           `json:"is_premium"`
+	CreatedAt         time.Time      `json:"created_at"`
+	Tags              []Tag          `json:"tags"`
+	ParticipantsCount int64          `json:"participants_count"`
+}
+
+func (q *Queries) GetOwnedUserEvents(ctx context.Context, userID int32) ([]GetOwnedUserEventsRow, error) {
+	rows, err := q.db.Query(ctx, getOwnedUserEvents, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetOwnedUserEventsRow{}
+	for rows.Next() {
+		var i GetOwnedUserEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Capacity,
+			&i.Latitude,
+			&i.Longitude,
+			&i.Address,
+			&i.Date,
+			&i.OwnerID,
+			&i.OwnerUsername,
+			&i.IsPrivate,
+			&i.IsPremium,
+			&i.CreatedAt,
+			&i.Tags,
+			&i.ParticipantsCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPastUserEvents = `-- name: GetPastUserEvents :many
 SELECT
     e.id,

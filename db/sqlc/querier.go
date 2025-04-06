@@ -24,6 +24,7 @@ type Querier interface {
 	GetEvent(ctx context.Context, id int32) (GetEventRow, error)
 	GetGuestRecommendedEvents(ctx context.Context, arg GetGuestRecommendedEventsParams) ([]GetGuestRecommendedEventsRow, error)
 	GetLatestEvents(ctx context.Context) ([]GetLatestEventsRow, error)
+	GetOwnedUserEvents(ctx context.Context, userID int32) ([]GetOwnedUserEventsRow, error)
 	GetPastUserEvents(ctx context.Context, userID int32) ([]GetPastUserEventsRow, error)
 	GetPopularEvents(ctx context.Context) ([]GetPopularEventsRow, error)
 	GetPremiumEvents(ctx context.Context) ([]GetPremiumEventsRow, error)

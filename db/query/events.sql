@@ -290,3 +290,26 @@ WHERE
   AND e.date > NOW()
 ORDER BY
     e.date ASC;
+
+-- name: GetOwnedUserEvents :many
+SELECT
+    e.id,
+    e.name,
+    e.description,
+    e.capacity,
+    e.latitude,
+    e.longitude,
+    e.address,
+    e.date,
+    e.owner_id,
+    e.owner_username,
+    e.is_private,
+    e.is_premium,
+    e.created_at,
+    e.tags,
+    e.participants_count
+FROM event_with_tags_view e
+WHERE
+    e.owner_id = @user_id
+ORDER BY
+    e.date DESC;
