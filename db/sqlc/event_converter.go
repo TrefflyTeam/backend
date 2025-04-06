@@ -5,145 +5,148 @@ import (
 	"time"
 )
 
-type EventResponse struct {
-	ID                int32          `json:"id"`
-	Name              string         `json:"name"`
-	Description       string         `json:"description"`
-	Capacity          int32          `json:"capacity"`
-	Latitude          pgtype.Numeric `json:"latitude"`
-	Longitude         pgtype.Numeric `json:"longitude"`
-	Address           string         `json:"address"`
-	Date              time.Time      `json:"date"`
-	OwnerUsername     string    `json:"owner_username"`
-	IsPrivate         bool           `json:"is_private"`
-	IsPremium         bool           `json:"is_premium"`
-	CreatedAt         time.Time      `json:"created_at"`
-	Tags              []Tag          `json:"tags"`
-	ParticipantsCount int64          `json:"participants_count"`
+type EventRow interface {
+	GetID() int32
+	GetName() string
+	GetDescription() string
+	GetCapacity() int32
+	GetLatitude() pgtype.Numeric
+	GetLongitude() pgtype.Numeric
+	GetAddress() string
+	GetDate() time.Time
+	GetIsPrivate() bool
+	GetIsPremium() bool
+	GetCreatedAt() time.Time
+	GetOwnerUsername() string
+	GetTags() []Tag
+	GetParticipantsCount() int64
 }
 
-func ConvertRowToEvent(row interface{}) EventResponse {
-	switch v := row.(type) {
-	case GetUserRecommendedEventsRow:
-		return EventResponse{
-			ID:                v.ID,
-			Name:              v.Name,
-			Description:       v.Description,
-			Capacity:          v.Capacity,
-			Latitude:          v.Latitude,
-			Longitude:         v.Longitude,
-			Address:           v.Address,
-			Date:              v.Date,
-			OwnerUsername:     v.OwnerUsername.String,
-			IsPrivate:         v.IsPrivate,
-			IsPremium:         v.IsPremium,
-			CreatedAt:         v.CreatedAt,
-			Tags:              v.Tags,
-			ParticipantsCount: v.ParticipantsCount,
-		}
-	case GetGuestRecommendedEventsRow:
-		return EventResponse{
-			ID:                v.ID,
-			Name:              v.Name,
-			Description:       v.Description,
-			Capacity:          v.Capacity,
-			Latitude:          v.Latitude,
-			Longitude:         v.Longitude,
-			Address:           v.Address,
-			Date:              v.Date,
-			OwnerUsername:     v.OwnerUsername.String,
-			IsPrivate:         v.IsPrivate,
-			IsPremium:         v.IsPremium,
-			CreatedAt:         v.CreatedAt,
-			Tags:              v.Tags,
-			ParticipantsCount: v.ParticipantsCount,
-		}
-	case GetPopularEventsRow:
-		return EventResponse{
-			ID:                v.ID,
-			Name:              v.Name,
-			Description:       v.Description,
-			Capacity:          v.Capacity,
-			Latitude:          v.Latitude,
-			Longitude:         v.Longitude,
-			Address:           v.Address,
-			Date:              v.Date,
-			OwnerUsername:     v.OwnerUsername.String,
-			IsPrivate:         v.IsPrivate,
-			IsPremium:         v.IsPremium,
-			CreatedAt:         v.CreatedAt,
-			Tags:              v.Tags,
-			ParticipantsCount: v.ParticipantsCount,
-		}
-	case GetLatestEventsRow:
-		return EventResponse{
-			ID:                v.ID,
-			Name:              v.Name,
-			Description:       v.Description,
-			Capacity:          v.Capacity,
-			Latitude:          v.Latitude,
-			Longitude:         v.Longitude,
-			Address:           v.Address,
-			Date:              v.Date,
-			OwnerUsername:     v.OwnerUsername.String,
-			IsPrivate:         v.IsPrivate,
-			IsPremium:         v.IsPremium,
-			CreatedAt:         v.CreatedAt,
-			Tags:              v.Tags,
-			ParticipantsCount: v.ParticipantsCount,
-		}
-	case GetPremiumEventsRow:
-		return EventResponse{
-			ID:                v.ID,
-			Name:              v.Name,
-			Description:       v.Description,
-			Capacity:          v.Capacity,
-			Latitude:          v.Latitude,
-			Longitude:         v.Longitude,
-			Address:           v.Address,
-			Date:              v.Date,
-			OwnerUsername:     v.OwnerUsername.String,
-			IsPrivate:         v.IsPrivate,
-			IsPremium:         v.IsPremium,
-			CreatedAt:         v.CreatedAt,
-			Tags:              v.Tags,
-			ParticipantsCount: v.ParticipantsCount,
-		}
-	case GetEventRow:
-		return EventResponse{
-			ID:                v.ID,
-			Name:              v.Name,
-			Description:       v.Description,
-			Capacity:          v.Capacity,
-			Latitude:          v.Latitude,
-			Longitude:         v.Longitude,
-			Address:           v.Address,
-			Date:              v.Date,
-			OwnerUsername:     v.OwnerUsername.String,
-			IsPrivate:         v.IsPrivate,
-			IsPremium:         v.IsPremium,
-			CreatedAt:         v.CreatedAt,
-			Tags:              v.Tags,
-			ParticipantsCount: v.ParticipantsCount,
-		}
-	case ListEventsRow:
-		return EventResponse{
-			ID:                v.ID,
-			Name:              v.Name,
-			Description:       v.Description,
-			Capacity:          v.Capacity,
-			Latitude:          v.Latitude,
-			Longitude:         v.Longitude,
-			Address:           v.Address,
-			Date:              v.Date,
-			OwnerUsername:     v.OwnerUsername.String,
-			IsPrivate:         v.IsPrivate,
-			IsPremium:         v.IsPremium,
-			CreatedAt:         v.CreatedAt,
-			Tags:              v.Tags,
-			ParticipantsCount: v.ParticipantsCount,
-		}
-	default:
-		panic("unsupported type")
+func ConvertToEventRow[T EventRow](rows []T) []EventRow {
+	result := make([]EventRow, len(rows))
+	for i, row := range rows {
+		result[i] = row
 	}
+	return result
 }
+
+func (r CreateEventRow) GetID() int32                  { return r.ID }
+func (r CreateEventRow) GetName() string               { return r.Name }
+func (r CreateEventRow) GetDescription() string        { return r.Description }
+func (r CreateEventRow) GetCapacity() int32            { return r.Capacity }
+func (r CreateEventRow) GetLatitude() pgtype.Numeric   { return r.Latitude }
+func (r CreateEventRow) GetLongitude() pgtype.Numeric  { return r.Longitude }
+func (r CreateEventRow) GetAddress() string            { return r.Address }
+func (r CreateEventRow) GetDate() time.Time            { return r.Date }
+func (r CreateEventRow) GetIsPrivate() bool            { return r.IsPrivate }
+func (r CreateEventRow) GetIsPremium() bool            { return r.IsPremium }
+func (r CreateEventRow) GetCreatedAt() time.Time       { return r.CreatedAt }
+func (r CreateEventRow) GetOwnerUsername() string      { return "" }
+func (r CreateEventRow) GetTags() []Tag                { return nil }
+func (r CreateEventRow) GetParticipantsCount() int64   { return 0 }
+
+func (r GetEventRow) GetID() int32                     { return r.ID }
+func (r GetEventRow) GetName() string                  { return r.Name }
+func (r GetEventRow) GetDescription() string           { return r.Description }
+func (r GetEventRow) GetCapacity() int32               { return r.Capacity }
+func (r GetEventRow) GetLatitude() pgtype.Numeric      { return r.Latitude }
+func (r GetEventRow) GetLongitude() pgtype.Numeric     { return r.Longitude }
+func (r GetEventRow) GetAddress() string               { return r.Address }
+func (r GetEventRow) GetDate() time.Time               { return r.Date }
+func (r GetEventRow) GetIsPrivate() bool               { return r.IsPrivate }
+func (r GetEventRow) GetIsPremium() bool               { return r.IsPremium }
+func (r GetEventRow) GetCreatedAt() time.Time          { return r.CreatedAt }
+func (r GetEventRow) GetOwnerUsername() string         { return r.OwnerUsername.String }
+func (r GetEventRow) GetTags() []Tag                   { return r.Tags }
+func (r GetEventRow) GetParticipantsCount() int64      { return r.ParticipantsCount }
+
+func (r GetGuestRecommendedEventsRow) GetID() int32            { return r.ID }
+func (r GetGuestRecommendedEventsRow) GetName() string         { return r.Name }
+func (r GetGuestRecommendedEventsRow) GetDescription() string  { return r.Description }
+func (r GetGuestRecommendedEventsRow) GetCapacity() int32      { return r.Capacity }
+func (r GetGuestRecommendedEventsRow) GetLatitude() pgtype.Numeric  { return r.Latitude }
+func (r GetGuestRecommendedEventsRow) GetLongitude() pgtype.Numeric { return r.Longitude }
+func (r GetGuestRecommendedEventsRow) GetAddress() string      { return r.Address }
+func (r GetGuestRecommendedEventsRow) GetDate() time.Time      { return r.Date }
+func (r GetGuestRecommendedEventsRow) GetIsPrivate() bool      { return r.IsPrivate }
+func (r GetGuestRecommendedEventsRow) GetIsPremium() bool      { return r.IsPremium }
+func (r GetGuestRecommendedEventsRow) GetCreatedAt() time.Time { return r.CreatedAt }
+func (r GetGuestRecommendedEventsRow) GetOwnerUsername() string { return r.OwnerUsername.String }
+func (r GetGuestRecommendedEventsRow) GetTags() []Tag          { return r.Tags }
+func (r GetGuestRecommendedEventsRow) GetParticipantsCount() int64 { return r.ParticipantsCount }
+
+func (r GetLatestEventsRow) GetID() int32              { return r.ID }
+func (r GetLatestEventsRow) GetName() string           { return r.Name }
+func (r GetLatestEventsRow) GetDescription() string    { return r.Description }
+func (r GetLatestEventsRow) GetCapacity() int32        { return r.Capacity }
+func (r GetLatestEventsRow) GetLatitude() pgtype.Numeric { return r.Latitude }
+func (r GetLatestEventsRow) GetLongitude() pgtype.Numeric { return r.Longitude }
+func (r GetLatestEventsRow) GetAddress() string        { return r.Address }
+func (r GetLatestEventsRow) GetDate() time.Time        { return r.Date }
+func (r GetLatestEventsRow) GetIsPrivate() bool        { return r.IsPrivate }
+func (r GetLatestEventsRow) GetIsPremium() bool        { return r.IsPremium }
+func (r GetLatestEventsRow) GetCreatedAt() time.Time   { return r.CreatedAt }
+func (r GetLatestEventsRow) GetOwnerUsername() string  { return r.OwnerUsername.String }
+func (r GetLatestEventsRow) GetTags() []Tag            { return r.Tags }
+func (r GetLatestEventsRow) GetParticipantsCount() int64 { return r.ParticipantsCount }
+
+func (r GetPopularEventsRow) GetID() int32             { return r.ID }
+func (r GetPopularEventsRow) GetName() string          { return r.Name }
+func (r GetPopularEventsRow) GetDescription() string   { return r.Description }
+func (r GetPopularEventsRow) GetCapacity() int32       { return r.Capacity }
+func (r GetPopularEventsRow) GetLatitude() pgtype.Numeric { return r.Latitude }
+func (r GetPopularEventsRow) GetLongitude() pgtype.Numeric { return r.Longitude }
+func (r GetPopularEventsRow) GetAddress() string       { return r.Address }
+func (r GetPopularEventsRow) GetDate() time.Time       { return r.Date }
+func (r GetPopularEventsRow) GetIsPrivate() bool       { return r.IsPrivate }
+func (r GetPopularEventsRow) GetIsPremium() bool       { return r.IsPremium }
+func (r GetPopularEventsRow) GetCreatedAt() time.Time  { return r.CreatedAt }
+func (r GetPopularEventsRow) GetOwnerUsername() string { return r.OwnerUsername.String }
+func (r GetPopularEventsRow) GetTags() []Tag           { return r.Tags }
+func (r GetPopularEventsRow) GetParticipantsCount() int64 { return r.ParticipantsCount }
+
+// GetPremiumEventsRow
+func (r GetPremiumEventsRow) GetID() int32             { return r.ID }
+func (r GetPremiumEventsRow) GetName() string          { return r.Name }
+func (r GetPremiumEventsRow) GetDescription() string   { return r.Description }
+func (r GetPremiumEventsRow) GetCapacity() int32       { return r.Capacity }
+func (r GetPremiumEventsRow) GetLatitude() pgtype.Numeric { return r.Latitude }
+func (r GetPremiumEventsRow) GetLongitude() pgtype.Numeric { return r.Longitude }
+func (r GetPremiumEventsRow) GetAddress() string       { return r.Address }
+func (r GetPremiumEventsRow) GetDate() time.Time       { return r.Date }
+func (r GetPremiumEventsRow) GetIsPrivate() bool       { return r.IsPrivate }
+func (r GetPremiumEventsRow) GetIsPremium() bool       { return r.IsPremium }
+func (r GetPremiumEventsRow) GetCreatedAt() time.Time  { return r.CreatedAt }
+func (r GetPremiumEventsRow) GetOwnerUsername() string { return r.OwnerUsername.String }
+func (r GetPremiumEventsRow) GetTags() []Tag           { return r.Tags }
+func (r GetPremiumEventsRow) GetParticipantsCount() int64 { return r.ParticipantsCount }
+
+func (r GetUserRecommendedEventsRow) GetID() int32     { return r.ID }
+func (r GetUserRecommendedEventsRow) GetName() string  { return r.Name }
+func (r GetUserRecommendedEventsRow) GetDescription() string { return r.Description }
+func (r GetUserRecommendedEventsRow) GetCapacity() int32 { return r.Capacity }
+func (r GetUserRecommendedEventsRow) GetLatitude() pgtype.Numeric { return r.Latitude }
+func (r GetUserRecommendedEventsRow) GetLongitude() pgtype.Numeric { return r.Longitude }
+func (r GetUserRecommendedEventsRow) GetAddress() string { return r.Address }
+func (r GetUserRecommendedEventsRow) GetDate() time.Time { return r.Date }
+func (r GetUserRecommendedEventsRow) GetIsPrivate() bool { return r.IsPrivate }
+func (r GetUserRecommendedEventsRow) GetIsPremium() bool { return r.IsPremium }
+func (r GetUserRecommendedEventsRow) GetCreatedAt() time.Time { return r.CreatedAt }
+func (r GetUserRecommendedEventsRow) GetOwnerUsername() string { return r.OwnerUsername.String }
+func (r GetUserRecommendedEventsRow) GetTags() []Tag   { return r.Tags }
+func (r GetUserRecommendedEventsRow) GetParticipantsCount() int64 { return r.ParticipantsCount }
+
+func (r ListEventsRow) GetID() int32                   { return r.ID }
+func (r ListEventsRow) GetName() string                { return r.Name }
+func (r ListEventsRow) GetDescription() string         { return r.Description }
+func (r ListEventsRow) GetCapacity() int32             { return r.Capacity }
+func (r ListEventsRow) GetLatitude() pgtype.Numeric    { return r.Latitude }
+func (r ListEventsRow) GetLongitude() pgtype.Numeric   { return r.Longitude }
+func (r ListEventsRow) GetAddress() string             { return r.Address }
+func (r ListEventsRow) GetDate() time.Time             { return r.Date }
+func (r ListEventsRow) GetIsPrivate() bool             { return r.IsPrivate }
+func (r ListEventsRow) GetIsPremium() bool             { return r.IsPremium }
+func (r ListEventsRow) GetCreatedAt() time.Time        { return r.CreatedAt }
+func (r ListEventsRow) GetOwnerUsername() string       { return r.OwnerUsername.String }
+func (r ListEventsRow) GetTags() []Tag                 { return r.Tags }
+func (r ListEventsRow) GetParticipantsCount() int64    { return r.ParticipantsCount }

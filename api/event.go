@@ -33,24 +33,6 @@ type eventResponse struct {
 	ParticipantCount int32          `json:"participant_count"`
 }
 
-func newEventTxResponse(event db.EventResponse) eventResponse {
-	return eventResponse{
-		ID:            event.ID,
-		Name:          event.Name,
-		Description:   event.Description,
-		Capacity:         event.Capacity,
-		Latitude:         event.Latitude,
-		Longitude:        event.Longitude,
-		Address:          event.Address,
-		Date:             event.Date,
-		IsPrivate:        event.IsPrivate,
-		IsPremium:        event.IsPremium,
-		CreatedAt:        event.CreatedAt,
-		Tags:             event.Tags,
-		OwnerUsername:    event.OwnerUsername,
-		ParticipantCount: int32(event.ParticipantsCount),
-	}
-}
 
 type createEventRequest struct {
 	Name        string         `json:"name" binding:"required,event_name,min=5,max=50"`
@@ -62,38 +44,6 @@ type createEventRequest struct {
 	Date        time.Time      `json:"date" binding:"required,date"`
 	IsPrivate   bool           `json:"is_private" binding:"boolean"`
 	Tags        []int32        `json:"tags" binding:"required,min=1,max=3,dive,required,positive"`
-}
-
-type createEventResponse struct {
-	ID          int32          `json:"id"`
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Capacity    int32          `json:"capacity"`
-	Latitude    pgtype.Numeric `json:"latitude"`
-	Longitude   pgtype.Numeric `json:"longitude"`
-	Address     string         `json:"address"`
-	Date        time.Time      `json:"date"`
-	IsPrivate   bool           `json:"is_private"`
-	IsPremium   bool           `json:"is_premium"`
-	CreatedAt   time.Time      `json:"created_at"`
-	Tags        []db.Tag       `json:"tags"`
-}
-
-func newCreateEventResponse(event db.EventResponse) createEventResponse {
-	return createEventResponse{
-		ID:          event.ID,
-		Name:        event.Name,
-		Description: event.Description,
-		Capacity:    event.Capacity,
-		Latitude:    event.Latitude,
-		Longitude:   event.Longitude,
-		Address:     event.Address,
-		Date:        event.Date,
-		IsPrivate:   event.IsPrivate,
-		IsPremium:   event.IsPremium,
-		CreatedAt:   event.CreatedAt,
-		Tags:        event.Tags,
-	}
 }
 
 func (server *Server) createEvent(ctx *gin.Context) {
@@ -125,19 +75,15 @@ func (server *Server) createEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, newEventTxResponse(event))
+	ctx.JSON(http.StatusOK, convertEvent(event))
 }
 
 type eventsListResponse struct {
 	Events []eventResponse `json:"events"`
 }
 
-func newEventsListResponse(events []db.EventResponse) eventsListResponse {
-	response := make([]eventResponse, 0, len(events))
-	for _, event := range events {
-		response = append(response, newEventResponse(event))
-	}
-	return eventsListResponse{Events: response}
+func newEventsListResponse(events []db.EventRow) eventsListResponse {
+	return eventsListResponse{Events: convertEvents(events)}
 }
 
 func (server *Server) listEvents(ctx *gin.Context) {
@@ -152,15 +98,13 @@ func (server *Server) listEvents(ctx *gin.Context) {
 		UserLat: lat,
 	}
 
-	var events []db.EventResponse
+	var events []db.EventRow
 	rows, err := server.store.ListEvents(ctx, arg)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
-	for _, row := range rows {
-		events = append(events, db.ConvertRowToEvent(row))
-	}
+	events = db.ConvertToEventRow(rows)
 
 	ctx.JSON(http.StatusOK, newEventsListResponse(events))
 }
@@ -187,25 +131,6 @@ func getUserLocation(ctx *gin.Context) (lat pgtype.Numeric, lon pgtype.Numeric, 
 	return lat, lon, nil
 }
 
-func newEventResponse(event db.EventResponse) eventResponse {
-	return eventResponse{
-		ID:               event.ID,
-		Name:             event.Name,
-		Description:      event.Description,
-		Capacity:         event.Capacity,
-		Latitude:         event.Latitude,
-		Longitude:        event.Longitude,
-		Address:          event.Address,
-		Date:             event.Date,
-		IsPrivate:        event.IsPrivate,
-		IsPremium:        event.IsPremium,
-		CreatedAt:        event.CreatedAt,
-		Tags:             event.Tags,
-		OwnerUsername:    event.OwnerUsername,
-		ParticipantCount: int32(event.ParticipantsCount),
-	}
-}
-
 func (server *Server) getEvent(ctx *gin.Context) {
 	eventID, err := getEventID(ctx)
 	if err != nil {
@@ -218,9 +143,9 @@ func (server *Server) getEvent(ctx *gin.Context) {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
-	event := db.ConvertRowToEvent(row)
 
-	ctx.JSON(http.StatusOK, newEventResponse(event))
+
+	ctx.JSON(http.StatusOK, convertEvent(row))
 }
 
 type updateEventRequest struct {
@@ -248,23 +173,6 @@ type updateEventResponse struct {
 	IsPremium   bool           `json:"is_premium"`
 	CreatedAt   time.Time      `json:"created_at"`
 	Tags        []db.Tag       `json:"tags"`
-}
-
-func newUpdateEventResponse(event db.EventResponse) updateEventResponse {
-	return updateEventResponse{
-		ID:          event.ID,
-		Name:        event.Name,
-		Description: event.Description,
-		Capacity:    event.Capacity,
-		Latitude:    event.Latitude,
-		Longitude:   event.Longitude,
-		Address:     event.Address,
-		Date:        event.Date,
-		IsPrivate:   event.IsPrivate,
-		IsPremium:   event.IsPremium,
-		CreatedAt:   event.CreatedAt,
-		Tags:        event.Tags,
-	}
 }
 
 func (server *Server) updateEvent(ctx *gin.Context) {
@@ -313,7 +221,7 @@ func (server *Server) updateEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, newEventTxResponse(eventUpdated))
+	ctx.JSON(http.StatusOK, convertEvent(eventUpdated))
 }
 
 func (server *Server) deleteEvent(ctx *gin.Context) {
@@ -409,10 +317,10 @@ type getHomeEventsResponse struct {
 }
 
 func newGetHomeEventsResponse(
-	premium []db.EventResponse,
-	recommended []db.EventResponse,
-	latest []db.EventResponse,
-	popular []db.EventResponse,
+	premium []db.EventRow,
+	recommended []db.EventRow,
+	latest []db.EventRow,
+	popular []db.EventRow,
 ) getHomeEventsResponse {
 	return getHomeEventsResponse{
 		Premium:     convertEvents(premium),
@@ -431,18 +339,15 @@ func (server *Server) getHomeEvents(ctx *gin.Context) {
 		return
 	}
 
-	var premiumEvents []db.EventResponse
-	rowsPremium, err := server.store.GetPremiumEvents(ctx)
+	var premiumEvents []db.EventRow
+	premiumRows, err := server.store.GetPremiumEvents(ctx)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
-	for _, row := range rowsPremium {
-		premiumEvents = append(premiumEvents, db.ConvertRowToEvent(row))
-	}
+	premiumEvents = db.ConvertToEventRow(premiumRows)
 
-	var recommendedEvents []db.EventResponse
-
+	var recommendedEvents []db.EventRow
 	if ok {
 		arg := db.GetUserRecommendedEventsParams{
 			UserID:  userID,
@@ -455,9 +360,8 @@ func (server *Server) getHomeEvents(ctx *gin.Context) {
 			ctx.Error(apperror.WrapDBError(err))
 			return
 		}
-		for _, row := range rows {
-			recommendedEvents = append(recommendedEvents, db.ConvertRowToEvent(row))
-		}
+
+		recommendedEvents = db.ConvertToEventRow(rows)
 	} else {
 		arg := db.GetGuestRecommendedEventsParams{
 			UserLat: lat,
@@ -470,30 +374,25 @@ func (server *Server) getHomeEvents(ctx *gin.Context) {
 			return
 		}
 
-		for _, row := range rows {
-			recommendedEvents = append(recommendedEvents, db.ConvertRowToEvent(row))
-		}
+		recommendedEvents = db.ConvertToEventRow(rows)
+
 	}
 
-	var latestEvents []db.EventResponse
+	var latestEvents []db.EventRow
 	rowsLatest, err := server.store.GetLatestEvents(ctx)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
-	for _, row := range rowsLatest {
-		latestEvents = append(latestEvents, db.ConvertRowToEvent(row))
-	}
+	latestEvents = db.ConvertToEventRow(rowsLatest)
 
-	var popularEvents []db.EventResponse
+	var popularEvents []db.EventRow
 	rowsPopular, err := server.store.GetPopularEvents(ctx)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
-	for _, row := range rowsPopular {
-		popularEvents = append(popularEvents, db.ConvertRowToEvent(row))
-	}
+	popularEvents = db.ConvertToEventRow(rowsPopular)
 
 	resp := newGetHomeEventsResponse(premiumEvents, recommendedEvents, latestEvents, popularEvents)
 
