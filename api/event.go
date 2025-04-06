@@ -160,21 +160,6 @@ type updateEventRequest struct {
 	Tags        []int32        `json:"tags" binding:"required,min=1,max=3,dive,required,positive"`
 }
 
-type updateEventResponse struct {
-	ID          int32          `json:"id"`
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Capacity    int32          `json:"capacity"`
-	Latitude    pgtype.Numeric `json:"latitude"`
-	Longitude   pgtype.Numeric `json:"longitude"`
-	Address     string         `json:"address"`
-	Date        time.Time      `json:"date"`
-	IsPrivate   bool           `json:"is_private"`
-	IsPremium   bool           `json:"is_premium"`
-	CreatedAt   time.Time      `json:"created_at"`
-	Tags        []db.Tag       `json:"tags"`
-}
-
 func (server *Server) updateEvent(ctx *gin.Context) {
 	var req updateEventRequest
 	err := ctx.ShouldBindJSON(&req)
