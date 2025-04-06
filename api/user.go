@@ -340,3 +340,18 @@ func (server *Server) getCurrentUserPastEvents(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, convertEvents(events))
 }
+
+func (server *Server) getCurrentUserOwnedEvents(ctx *gin.Context) {
+	userID := getUserIDFromContextPayload(ctx)
+
+	var events []db.EventRow
+	rows, err := server.store.GetOwnedUserEvents(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	events = db.ConvertToEventRow(rows)
+
+	ctx.JSON(http.StatusOK, convertEvents(events))
+}
