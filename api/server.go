@@ -15,6 +15,7 @@ type Server struct {
 	store      db.Store
 	tokenMaker token.Maker
 	router     *gin.Engine
+	mapsClient *MapsClient
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -22,10 +23,13 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
+
+	mapsClient := NewMapsClient(config.YandexAPIKey)
 	server := &Server{
 		store:      store,
 		tokenMaker: tokenMaker,
 		config:     config,
+		mapsClient: mapsClient,
 	}
 
 	err = server.registerValidators()
@@ -52,6 +56,8 @@ func (server *Server) setupRouter() {
 	router.GET("/tags", server.getTags)
 	router.GET("/events", server.listEvents)
 	router.GET("/events/:id", server.getEvent)
+
+	router.GET("/geocode", server.geocode)
 
 	softAuthRoutes := router.Group("/").Use(softAuthMiddleware(server.tokenMaker))
 	softAuthRoutes.GET("/events/home", server.getHomeEvents)

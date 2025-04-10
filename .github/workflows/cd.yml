@@ -31,6 +31,7 @@ jobs:
           echo "TOKEN_SYMMETRIC_KEY=${{ secrets.TOKEN_SYMMETRIC_KEY }}" >> app.env
           echo "ACCESS_TOKEN_DURATION=${{ secrets.ACCESS_TOKEN_DURATION }}" >> app.env
           echo "REFRESH_TOKEN_DURATION=${{ secrets.REFRESH_TOKEN_DURATION }}" >> app.env
+          echo "Y_API=${{ secrets.Y_API }}" >> app.env
           echo "ENVIRONMENT=${{ secrets.ENVIRONMENT }}" >> app.env
 
       - name: Copy files to the server

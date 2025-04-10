@@ -191,6 +191,7 @@ WHERE date > NOW()
     ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY,
     100000
     )
+  AND evt.is_private = false
 ORDER BY ST_Distance(geom, ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY) ASC,
     created_at DESC
     LIMIT 6
@@ -273,7 +274,7 @@ SELECT
     tags,
     participants_count
 FROM event_with_tags_view
-WHERE date > NOW()
+WHERE date > NOW() AND is_private = false
 ORDER BY created_at DESC
     LIMIT 6
 `
@@ -508,7 +509,7 @@ SELECT
     tags,
     participants_count
 FROM event_with_tags_view
-WHERE date > NOW()
+WHERE date > NOW() AND is_private = false
 ORDER BY participants_count DESC, created_at DESC
     LIMIT 6
 `
@@ -586,7 +587,7 @@ SELECT
     participants_count
 FROM event_with_tags_view
 WHERE is_premium = TRUE
-  AND date > NOW()
+  AND date > NOW() AND is_private = false
 ORDER BY created_at DESC
     LIMIT 6
 `
@@ -764,6 +765,7 @@ WITH user_tags AS (
                  ST_MakePoint($2::numeric, $3::numeric)::GEOGRAPHY,
                  100000
                )
+           AND evt.is_private = false
          GROUP BY evt.id
      )
 SELECT
@@ -869,7 +871,7 @@ WHERE ST_DWithin(
     geom,
     ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY,
     100000
-    )
+    ) AND is_private = false
 ORDER BY id
 `
 
