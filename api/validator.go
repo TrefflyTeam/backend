@@ -69,10 +69,8 @@ var validLongitude validator.Func = func(fl validator.FieldLevel) bool {
 }
 
 var validDate validator.Func = func(fl validator.FieldLevel) bool {
-	dateStr := fl.Field().String()
-
-	_, err := time.Parse(time.RFC3339, dateStr)
-	return err != nil
+	date:= fl.Field().Interface().(time.Time)
+	return date.After(time.Now())
 }
 
 var validPositiveInteger validator.Func = func(fl validator.FieldLevel) bool {

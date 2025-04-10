@@ -109,7 +109,7 @@ func (server *Server) registerValidators() error {
 		}
 	}
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		err := v.RegisterValidation("date", validDate)
+		err := v.RegisterValidation("valid_date", validDate)
 		if err != nil {
 			return err
 		}

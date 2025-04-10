@@ -41,7 +41,7 @@ type createEventRequest struct {
 	Latitude    pgtype.Numeric `json:"latitude" binding:"required,latitude"`
 	Longitude   pgtype.Numeric `json:"longitude" binding:"required,longitude"`
 	Address     string         `json:"address" binding:"required"`
-	Date        time.Time      `json:"date" binding:"required,date,future"`
+	Date        time.Time      `json:"date" binding:"required,valid_date"`
 	IsPrivate   bool           `json:"is_private" binding:"boolean"`
 	Tags        []int32        `json:"tags" binding:"required,min=1,max=3,dive,required,positive"`
 }
