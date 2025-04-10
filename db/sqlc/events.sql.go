@@ -185,14 +185,16 @@ SELECT
     tags,
     participants_count
 FROM event_with_tags_view
-WHERE date > NOW()
+WHERE
+    date > NOW()
   AND ST_DWithin(
     geom,
     ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY,
     100000
     )
-  AND evt.is_private = false
-ORDER BY ST_Distance(geom, ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY) ASC,
+  AND is_private = false
+ORDER BY
+    ST_Distance(geom, ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY) ASC,
     created_at DESC
     LIMIT 6
 `
@@ -759,7 +761,8 @@ WITH user_tags AS (
                   LEFT JOIN event_tags et
                             ON evt.id = et.event_id
                                 AND et.tag_id IN (SELECT tag_id FROM user_tags)
-         WHERE evt.date > NOW()
+         WHERE
+             evt.date > NOW()
            AND ST_DWithin(
                  evt.geom,
                  ST_MakePoint($2::numeric, $3::numeric)::GEOGRAPHY,
