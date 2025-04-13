@@ -68,8 +68,7 @@ func (server *Server) setupRouter() {
 	authRoutes.GET("/users/me", server.getCurrentUser)
 	authRoutes.PUT("/users/me", server.updateCurrentUser)
 	authRoutes.DELETE("/users/me", server.deleteCurrentUser)
-	authRoutes.POST("/users/me/tags/:id", server.addCurrentUserTag)
-	authRoutes.DELETE("/users/me/tags/:id", server.deleteCurrentUserTag)
+	authRoutes.PUT("users/me/tags", server.updateCurrentUserTags)
 
 	authRoutes.POST("/events", server.createEvent)
 	authRoutes.PUT("/events/:id", server.updateEvent)

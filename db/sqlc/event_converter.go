@@ -105,7 +105,6 @@ func (r GetPopularEventsRow) GetOwnerUsername() string { return r.OwnerUsername.
 func (r GetPopularEventsRow) GetTags() []Tag           { return r.Tags }
 func (r GetPopularEventsRow) GetParticipantsCount() int64 { return r.ParticipantsCount }
 
-// GetPremiumEventsRow
 func (r GetPremiumEventsRow) GetID() int32             { return r.ID }
 func (r GetPremiumEventsRow) GetName() string          { return r.Name }
 func (r GetPremiumEventsRow) GetDescription() string   { return r.Description }

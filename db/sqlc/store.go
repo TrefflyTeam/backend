@@ -9,6 +9,7 @@ type Store interface {
 	Querier
 	CreateEventTx(ctx context.Context, params CreateEventTxParams) (GetEventRow, error)
 	UpdateEventTx(ctx context.Context, params UpdateEventTxParams) (GetEventRow, error)
+	UpdateUserTagsTx(ctx context.Context, params UpdateUserTagsTxParams) error
 }
 
 type SQLStore struct {

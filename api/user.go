@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 	"time"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
@@ -233,78 +232,31 @@ func (server *Server) deleteCurrentUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, gin.H{})
 }
 
-type addTagResponse struct {
-	UserID int32 `json:"user_id"`
-	TagID  int32 `json:"tag_id"`
+type updateCurrentUserTagsRequest struct {
+	TagIDs []int32 `json:"tag_ids" binding:"required,dive,gt=0"`
 }
 
-func newAddTagResponse(tag db.UserTag) addTagResponse {
-	return addTagResponse{
-		UserID: tag.UserID,
-		TagID:  tag.TagID,
-	}
-}
-
-func (server *Server) addCurrentUserTag(ctx *gin.Context) {
+func (server *Server) updateCurrentUserTags(ctx *gin.Context) {
 	userID := getUserIDFromContextPayload(ctx)
 
-	id := ctx.Param("id")
-
-	tagID, err := strconv.Atoi(id)
-	if err != nil {
+	var req updateCurrentUserTagsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
 
-	arg := db.AddUserTagParams{
+	arg := db.UpdateUserTagsTxParams{
 		UserID: userID,
-		TagID: int32(tagID),
+		Tags:   req.TagIDs,
 	}
 
-	_, err = server.store.AddUserTag(ctx, arg)
+	err := server.store.UpdateUserTagsTx(ctx, arg)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
-	userTags, err := server.store.GetAllUserTags(ctx, userID)
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
-	}
-
-	ctx.JSON(http.StatusOK, userTags)
-}
-
-func (server *Server) deleteCurrentUserTag(ctx *gin.Context) {
-	userID := getUserIDFromContextPayload(ctx)
-
-	id := ctx.Param("id")
-
-	tagID, err := strconv.Atoi(id)
-	if err != nil {
-		ctx.Error(apperror.BadRequest.WithCause(err))
-		return
-	}
-
-	arg := db.DeleteUserTagParams{
-		UserID: userID,
-		TagID: int32(tagID),
-	}
-
-	err = server.store.DeleteUserTag(ctx, arg)
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
-	}
-
-	userTags, err := server.store.GetAllUserTags(ctx, userID)
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
-	}
-
-	ctx.JSON(http.StatusOK, userTags)
+	ctx.JSON(http.StatusOK, gin.H{})
 }
 
 func getUserIDFromContextPayload(ctx *gin.Context) int32 {

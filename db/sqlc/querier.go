@@ -12,14 +12,14 @@ import (
 
 type Querier interface {
 	AddEventTag(ctx context.Context, arg AddEventTagParams) (EventTag, error)
-	AddUserTag(ctx context.Context, arg AddUserTagParams) (UserTag, error)
+	AddUserTags(ctx context.Context, arg AddUserTagsParams) error
 	CreateEvent(ctx context.Context, arg CreateEventParams) (CreateEventRow, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAllEventTags(ctx context.Context, eventID int32) error
 	DeleteEvent(ctx context.Context, id int32) error
 	DeleteUser(ctx context.Context, id int32) error
-	DeleteUserTag(ctx context.Context, arg DeleteUserTagParams) error
+	DeleteUserTags(ctx context.Context, userID int32) error
 	GetAllUserTags(ctx context.Context, id int32) ([]Tag, error)
 	GetEvent(ctx context.Context, id int32) (GetEventRow, error)
 	GetGuestRecommendedEvents(ctx context.Context, arg GetGuestRecommendedEventsParams) ([]GetGuestRecommendedEventsRow, error)

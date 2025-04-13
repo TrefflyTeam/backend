@@ -2,14 +2,13 @@
 SELECT * FROM tags
 ORDER BY id;
 
--- name: AddUserTag :one
+-- name: AddUserTags :exec
 INSERT INTO user_tags (user_id, tag_id)
-VALUES ($1, $2)
-RETURNING user_id, tag_id;
+SELECT @user_id, unnest(@tags::int[]);
 
--- name: DeleteUserTag :exec
+-- name: DeleteUserTags :exec
 DELETE FROM user_tags
-WHERE user_id = $1 AND tag_id = $2;
+WHERE user_id = @user_id;
 
 -- name: AddEventTag :one
 INSERT INTO event_tags (event_id, tag_id)

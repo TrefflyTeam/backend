@@ -27,22 +27,19 @@ func (q *Queries) AddEventTag(ctx context.Context, arg AddEventTagParams) (Event
 	return i, err
 }
 
-const addUserTag = `-- name: AddUserTag :one
+const addUserTags = `-- name: AddUserTags :exec
 INSERT INTO user_tags (user_id, tag_id)
-VALUES ($1, $2)
-RETURNING user_id, tag_id
+SELECT $1, unnest($2::int[])
 `
 
-type AddUserTagParams struct {
-	UserID int32 `json:"user_id"`
-	TagID  int32 `json:"tag_id"`
+type AddUserTagsParams struct {
+	UserID int32   `json:"user_id"`
+	Tags   []int32 `json:"tags"`
 }
 
-func (q *Queries) AddUserTag(ctx context.Context, arg AddUserTagParams) (UserTag, error) {
-	row := q.db.QueryRow(ctx, addUserTag, arg.UserID, arg.TagID)
-	var i UserTag
-	err := row.Scan(&i.UserID, &i.TagID)
-	return i, err
+func (q *Queries) AddUserTags(ctx context.Context, arg AddUserTagsParams) error {
+	_, err := q.db.Exec(ctx, addUserTags, arg.UserID, arg.Tags)
+	return err
 }
 
 const deleteAllEventTags = `-- name: DeleteAllEventTags :exec
@@ -55,18 +52,13 @@ func (q *Queries) DeleteAllEventTags(ctx context.Context, eventID int32) error {
 	return err
 }
 
-const deleteUserTag = `-- name: DeleteUserTag :exec
+const deleteUserTags = `-- name: DeleteUserTags :exec
 DELETE FROM user_tags
-WHERE user_id = $1 AND tag_id = $2
+WHERE user_id = $1
 `
 
-type DeleteUserTagParams struct {
-	UserID int32 `json:"user_id"`
-	TagID  int32 `json:"tag_id"`
-}
-
-func (q *Queries) DeleteUserTag(ctx context.Context, arg DeleteUserTagParams) error {
-	_, err := q.db.Exec(ctx, deleteUserTag, arg.UserID, arg.TagID)
+func (q *Queries) DeleteUserTags(ctx context.Context, userID int32) error {
+	_, err := q.db.Exec(ctx, deleteUserTags, userID)
 	return err
 }
 
