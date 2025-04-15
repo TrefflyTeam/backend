@@ -33,7 +33,7 @@ func (server *Server) geocode(ctx *gin.Context) {
 		return
 	}
 
-	body, err := server.mapsClient.GetLocation(lat, lon)
+	body, err := server.geocodeClient.Geocode(lat, lon)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
@@ -109,4 +109,30 @@ func parseGeocodeResponse(data []byte) (*LocationResult, error) {
 		Lat:     lat,
 		Lon:     lon,
 	}, nil
+}
+
+func (server *Server) reverseGeocode(ctx *gin.Context) {
+	address := ctx.Query("address")
+	if address == "" {
+		ctx.Error(apperror.BadRequest.WithCause(fmt.Errorf("address parameter is required")))
+		return
+	}
+
+	rawData, err := server.geocodeClient.ReverseGeocode(address)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	response, err := ParseReverseGeocodeResponse(rawData)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, response)
+}
+
+func ParseReverseGeocodeResponse(data []byte) (*LocationResult, error) {
+	return parseGeocodeResponse(data)
 }

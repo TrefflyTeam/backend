@@ -11,11 +11,12 @@ import (
 )
 
 type Server struct {
-	config     util.Config
-	store      db.Store
-	tokenMaker token.Maker
-	router     *gin.Engine
-	mapsClient *MapsClient
+	config         util.Config
+	store          db.Store
+	tokenMaker     token.Maker
+	router         *gin.Engine
+	geocodeClient *GeocoderClient
+	suggestClient  *SuggestClient
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -24,12 +25,14 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
 
-	mapsClient := NewMapsClient(config.YandexAPIKey)
+	geocoderClient := NewGeocoderClient(config.YandexGeocoderAPIKey)
+	suggesterClient := NewSuggestClient(config.YandexSuggesterAPIKey)
 	server := &Server{
 		store:      store,
 		tokenMaker: tokenMaker,
 		config:     config,
-		mapsClient: mapsClient,
+		geocodeClient: geocoderClient,
+		suggestClient: suggesterClient,
 	}
 
 	err = server.registerValidators()
@@ -58,6 +61,8 @@ func (server *Server) setupRouter() {
 	router.GET("/events/:id", server.getEvent)
 
 	router.GET("/geocode", server.geocode)
+	router.GET("/suggest/addresses", server.suggest)
+	router.GET("/reverse-geocode", server.reverseGeocode)
 
 	softAuthRoutes := router.Group("/").Use(softAuthMiddleware(server.tokenMaker))
 	softAuthRoutes.GET("/events/home", server.getHomeEvents)
