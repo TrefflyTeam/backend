@@ -6,14 +6,15 @@ import (
 )
 
 type Config struct {
-	Environment          string        `mapstructure:"ENVIRONMENT"`
-	DBDriver             string        `mapstructure:"DB_DRIVER"`
-	DBSource             string        `mapstructure:"DB_SOURCE"`
-	ServerAddress        string        `mapstructure:"SERVER_ADDRESS"`
-	TokenSymmetricKey    string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
-	AccessTokenDuration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
-	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
-	YandexAPIKey         string        `mapstructure:"Y_API"`
+	Environment           string        `mapstructure:"ENVIRONMENT"`
+	DBDriver              string        `mapstructure:"DB_DRIVER"`
+	DBSource              string        `mapstructure:"DB_SOURCE"`
+	ServerAddress         string        `mapstructure:"SERVER_ADDRESS"`
+	TokenSymmetricKey     string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
+	AccessTokenDuration   time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	RefreshTokenDuration  time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
+	YandexGeocoderAPIKey  string        `mapstructure:"Y_GEOCODER_API"`
+	YandexSuggesterAPIKey string        `mapstructure:"Y_SUGGESTER_API"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
