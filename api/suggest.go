@@ -40,7 +40,13 @@ func ParseSuggestResponse(data []byte) ([]SuggestItem, error) {
 	}
 
 	items := make([]SuggestItem, 0, len(response.Results))
+	addressSet := make(map[string]bool)
 	for _, res := range response.Results {
+		if addressSet[res.Address.FormattedAddress] {
+			continue
+		}
+
+		addressSet[res.Address.FormattedAddress] = true
 		kind := "Неизвестно"
 		for _, comp := range res.Address.Components {
 			if slices.Contains(comp.Kind, "LOCALITY") {
