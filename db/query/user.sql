@@ -38,3 +38,11 @@ VALUES ($1, $2);
 -- name: UnsubscribeFromEvent :exec
 DELETE FROM event_user
 WHERE user_id = $1 AND event_id = $2;
+
+-- name: IsParticipant :one
+SELECT EXISTS (
+    SELECT 1
+    FROM event_user
+    WHERE event_id = $1
+      AND user_id = $2
+) AS is_participant;

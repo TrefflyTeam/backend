@@ -101,6 +101,27 @@ func (q *Queries) GetUserWithTags(ctx context.Context, id int32) (UserWithTagsVi
 	return i, err
 }
 
+const isParticipant = `-- name: IsParticipant :one
+SELECT EXISTS (
+    SELECT 1
+    FROM event_user
+    WHERE event_id = $1
+      AND user_id = $2
+) AS is_participant
+`
+
+type IsParticipantParams struct {
+	EventID int32 `json:"event_id"`
+	UserID  int32 `json:"user_id"`
+}
+
+func (q *Queries) IsParticipant(ctx context.Context, arg IsParticipantParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isParticipant, arg.EventID, arg.UserID)
+	var is_participant bool
+	err := row.Scan(&is_participant)
+	return is_participant, err
+}
+
 const listUsers = `-- name: ListUsers :many
 SELECT id, username, email, password_hash, created_at, is_admin FROM users
 ORDER BY id
