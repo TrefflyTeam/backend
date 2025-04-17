@@ -158,61 +158,47 @@ WITH user_tags AS (
     FROM user_with_tags_view,
          json_array_elements(tags) AS tag
     WHERE user_with_tags_view.id = @user_id
-),
-     ranked_events AS (
-         SELECT
-             evt.id,
-             evt.name,
-             evt.description,
-             evt.capacity,
-             evt.latitude,
-             evt.longitude,
-             evt.address,
-             evt.date,
-             evt.owner_id,
-             evt.owner_username,
-             evt.is_private,
-             evt.is_premium,
-             evt.created_at,
-             evt.tags,
-             evt.participants_count,
-             COUNT(et.tag_id) AS matched_tags,
-             ST_Distance(
-                     evt.geom,
-                     ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY
-             ) AS distance
-         FROM event_with_tags_view evt
-                  LEFT JOIN event_tags et
-                            ON evt.id = et.event_id
-                                AND et.tag_id IN (SELECT tag_id FROM user_tags)
-         WHERE
-             evt.date > NOW()
-           AND ST_DWithin(
-                 evt.geom,
-                 ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY,
-                 100000
-               )
-           AND evt.is_private = false
-         GROUP BY evt.id
-     )
+)
 SELECT
-    id,
-    name,
-    description,
-    capacity,
-    latitude,
-    longitude,
-    address,
-    date,
-    owner_id,
-    owner_username,
-    is_private,
-    is_premium,
-    created_at,
-    tags,
-    participants_count
-FROM ranked_events
-ORDER BY matched_tags DESC, created_at DESC, distance ASC
+    evt.id,
+    evt.name,
+    evt.description,
+    evt.capacity,
+    evt.latitude,
+    evt.longitude,
+    evt.address,
+    evt.date,
+    evt.owner_id,
+    evt.owner_username,
+    evt.is_private,
+    evt.is_premium,
+    evt.created_at,
+    evt.tags,
+    evt.participants_count,
+    (
+        SELECT COUNT(*)
+        FROM event_tags et
+        WHERE
+            et.event_id = evt.id
+          AND et.tag_id IN (SELECT tag_id FROM user_tags)
+    ) AS matched_tags,
+    ST_Distance(
+            evt.geom,
+            ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY
+    ) AS distance
+FROM event_with_tags_view evt
+WHERE
+    evt.date > NOW()
+  AND ST_DWithin(
+        evt.geom,
+        ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY,
+        100000
+      )
+  AND evt.is_private = false
+ORDER BY
+    matched_tags DESC,
+    created_at DESC,
+    distance ASC
     LIMIT 6;
 
 -- name: GetGuestRecommendedEvents :many

@@ -733,69 +733,55 @@ WITH user_tags AS (
     SELECT (tag->>'id')::INT AS tag_id
     FROM user_with_tags_view,
          json_array_elements(tags) AS tag
-    WHERE user_with_tags_view.id = $1
-),
-     ranked_events AS (
-         SELECT
-             evt.id,
-             evt.name,
-             evt.description,
-             evt.capacity,
-             evt.latitude,
-             evt.longitude,
-             evt.address,
-             evt.date,
-             evt.owner_id,
-             evt.owner_username,
-             evt.is_private,
-             evt.is_premium,
-             evt.created_at,
-             evt.tags,
-             evt.participants_count,
-             COUNT(et.tag_id) AS matched_tags,
-             ST_Distance(
-                     evt.geom,
-                     ST_MakePoint($2::numeric, $3::numeric)::GEOGRAPHY
-             ) AS distance
-         FROM event_with_tags_view evt
-                  LEFT JOIN event_tags et
-                            ON evt.id = et.event_id
-                                AND et.tag_id IN (SELECT tag_id FROM user_tags)
-         WHERE
-             evt.date > NOW()
-           AND ST_DWithin(
-                 evt.geom,
-                 ST_MakePoint($2::numeric, $3::numeric)::GEOGRAPHY,
-                 100000
-               )
-           AND evt.is_private = false
-         GROUP BY evt.id
-     )
+    WHERE user_with_tags_view.id = $3
+)
 SELECT
-    id,
-    name,
-    description,
-    capacity,
-    latitude,
-    longitude,
-    address,
-    date,
-    owner_id,
-    owner_username,
-    is_private,
-    is_premium,
-    created_at,
-    tags,
-    participants_count
-FROM ranked_events
-ORDER BY matched_tags DESC, created_at DESC, distance ASC
+    evt.id,
+    evt.name,
+    evt.description,
+    evt.capacity,
+    evt.latitude,
+    evt.longitude,
+    evt.address,
+    evt.date,
+    evt.owner_id,
+    evt.owner_username,
+    evt.is_private,
+    evt.is_premium,
+    evt.created_at,
+    evt.tags,
+    evt.participants_count,
+    (
+        SELECT COUNT(*)
+        FROM event_tags et
+        WHERE
+            et.event_id = evt.id
+          AND et.tag_id IN (SELECT tag_id FROM user_tags)
+    ) AS matched_tags,
+    ST_Distance(
+            evt.geom,
+            ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY
+    ) AS distance
+FROM event_with_tags_view evt
+WHERE
+    evt.date > NOW()
+  AND ST_DWithin(
+        evt.geom,
+        ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY,
+        100000
+      )
+  AND evt.is_private = false
+ORDER BY
+    matched_tags DESC,
+    created_at DESC,
+    distance ASC
     LIMIT 6
 `
 
 type GetUserRecommendedEventsParams struct {
-	UserID  int32          `json:"user_id"`
 	UserLon pgtype.Numeric `json:"user_lon"`
 	UserLat pgtype.Numeric `json:"user_lat"`
+	UserID  int32          `json:"user_id"`
 }
 
 type GetUserRecommendedEventsRow struct {
@@ -814,10 +800,12 @@ type GetUserRecommendedEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	MatchedTags       int64          `json:"matched_tags"`
+	Distance          interface{}    `json:"distance"`
 }
 
 func (q *Queries) GetUserRecommendedEvents(ctx context.Context, arg GetUserRecommendedEventsParams) ([]GetUserRecommendedEventsRow, error) {
-	rows, err := q.db.Query(ctx, getUserRecommendedEvents, arg.UserID, arg.UserLon, arg.UserLat)
+	rows, err := q.db.Query(ctx, getUserRecommendedEvents, arg.UserLon, arg.UserLat, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -841,6 +829,8 @@ func (q *Queries) GetUserRecommendedEvents(ctx context.Context, arg GetUserRecom
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.MatchedTags,
+			&i.Distance,
 		); err != nil {
 			return nil, err
 		}
