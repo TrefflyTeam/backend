@@ -932,7 +932,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/EventResponse"
                     maxItems: 6
-                  new:
+                  latest:
                     type: array
                     items:
                       $ref: "#/components/schemas/EventResponse"
