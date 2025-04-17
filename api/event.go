@@ -146,14 +146,26 @@ func (server *Server) getEvent(ctx *gin.Context) {
 		return
 	}
 
-	type getEventResponse struct{
-		eventResponse
-		IsOwner bool `json:"is_owner"`
-	}
-
 	isOwner := row.OwnerID == userID
 
-	ctx.JSON(http.StatusOK, getEventResponse{convertEvent(row), isOwner})
+	arg := db.IsParticipantParams{
+		UserID: userID,
+		EventID: eventID,
+	}
+
+	isParticipant, err := server.store.IsParticipant(ctx, arg)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, eventByIDResponse{convertEvent(row), isOwner, isParticipant})
+}
+
+type eventByIDResponse struct{
+	eventResponse
+	IsOwner bool `json:"is_owner"`
+	IsParticipant bool `json:"is_participant"`
 }
 
 type updateEventRequest struct {
@@ -282,7 +294,20 @@ func (server *Server) subscribeCurrentUserToEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convertEvent(event))
+	argPart := db.IsParticipantParams{
+		EventID: eventID,
+		UserID:  userID,
+	}
+
+	isParticipant, err := server.store.IsParticipant(ctx, argPart)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	isOwner := event.OwnerID == userID
+
+	ctx.JSON(http.StatusOK, eventByIDResponse{convertEvent(event), isOwner, isParticipant})
 }
 
 func (server *Server) unsubscribeCurrentUserFromEvent(ctx *gin.Context) {
@@ -311,7 +336,20 @@ func (server *Server) unsubscribeCurrentUserFromEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convertEvent(event))
+	argPart := db.IsParticipantParams{
+		EventID: eventID,
+		UserID:  userID,
+	}
+
+	isParticipant, err := server.store.IsParticipant(ctx, argPart)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	isOwner := event.OwnerID == userID
+
+	ctx.JSON(http.StatusOK, eventByIDResponse{convertEvent(event), isOwner, isParticipant})
 }
 
 type getHomeEventsResponse struct {
