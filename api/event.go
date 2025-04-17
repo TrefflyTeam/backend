@@ -132,6 +132,8 @@ func getUserLocation(ctx *gin.Context) (lat pgtype.Numeric, lon pgtype.Numeric, 
 }
 
 func (server *Server) getEvent(ctx *gin.Context) {
+	userID := getUserIDFromSoftAuth(ctx)
+
 	eventID, err := getEventID(ctx)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
@@ -144,8 +146,14 @@ func (server *Server) getEvent(ctx *gin.Context) {
 		return
 	}
 
+	type getEventResponse struct{
+		eventResponse
+		IsOwner bool `json:"is_owner"`
+	}
 
-	ctx.JSON(http.StatusOK, convertEvent(row))
+	isOwner := row.OwnerID == userID
+
+	ctx.JSON(http.StatusOK, getEventResponse{convertEvent(row), isOwner})
 }
 
 type updateEventRequest struct {
@@ -316,7 +324,7 @@ func newGetHomeEventsResponse(
 }
 
 func (server *Server) getHomeEvents(ctx *gin.Context) {
-	userID, ok := ctx.Request.Context().Value("user_id").(int32)
+	userID := getUserIDFromSoftAuth(ctx)
 
 	lat, lon, err := getUserLocation(ctx)
 	if err != nil {
@@ -333,7 +341,7 @@ func (server *Server) getHomeEvents(ctx *gin.Context) {
 	premiumEvents = db.ConvertToEventRow(premiumRows)
 
 	var recommendedEvents []db.EventRow
-	if ok {
+	if userID > 0 {
 		arg := db.GetUserRecommendedEventsParams{
 			UserID:  userID,
 			UserLat: lat,
@@ -382,4 +390,18 @@ func (server *Server) getHomeEvents(ctx *gin.Context) {
 	resp := newGetHomeEventsResponse(premiumEvents, recommendedEvents, latestEvents, popularEvents)
 
 	ctx.JSON(http.StatusOK, resp)
+}
+
+func getUserIDFromSoftAuth(ctx *gin.Context) int32 {
+	userIDStr, exists := ctx.Get("user_id")
+	if !exists {
+		userIDStr = -1
+	}
+
+	userID, ok := userIDStr.(int32)
+	if !ok {
+		userID = -1
+	}
+
+	return userID
 }

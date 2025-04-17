@@ -58,7 +58,6 @@ func (server *Server) setupRouter() {
 	router.GET("/auth", server.auth)
 	router.GET("/tags", server.getTags)
 	router.GET("/events", server.listEvents)
-	router.GET("/events/:id", server.getEvent)
 
 	router.GET("/geocode", server.geocode)
 	router.GET("/suggest/addresses", server.suggest)
@@ -66,6 +65,7 @@ func (server *Server) setupRouter() {
 
 	softAuthRoutes := router.Group("/").Use(softAuthMiddleware(server.tokenMaker))
 	softAuthRoutes.GET("/events/home", server.getHomeEvents)
+	softAuthRoutes.GET("/events/:id", server.getEvent)
 
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRoutes.POST("/logout", server.logoutUser)
