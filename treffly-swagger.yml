@@ -549,31 +549,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/EventResponse"
-                  meta:
-                    $ref: "#/components/schemas/PaginationMeta"
-                example:
-                  data:
-                    - id: 1
-                      name: "Концерт"
-                      description: "Грандиозный концерт"
-                      capacity: 50
-                      latitude: 55.755825
-                      longitude: 37.617298
-                      address: "Москва, Красная площадь"
-                      date: "2024-06-20T14:48:00Z"
-                      owner_id: 1
-                      is_private: false
-                      is_premium: true
-                      tags:
-                        - id: 5
-                          name: "музыка"
-                      created_at: "2024-05-20T14:48:00Z"
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventResponse"
         400:
           $ref: "#/components/responses/BadRequest"
         401:
@@ -594,38 +572,13 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/CreateEventRequest"
-            example:
-              name: "Вечеринка в стиле 90-х"
-              description: "Ночная вечеринка с хитами 90-х"
-              latitude: 55.752023
-              longitude: 37.617499
-              address: "Москва, ул. Тверская, 15"
-              date: "2024-07-15T20:00:00Z"
-              is_private: false
-              is_premium: true
-              tags: [ 5, 7 ]
       responses:
         200:
           description: мероприятие успешно создано
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EventResponse"
-              example:
-                id: 123
-                name: "Вечеринка в стиле 90-х"
-                description: "Ночная вечеринка с хитами 90-х"
-                latitude: 55.752023
-                longitude: 37.617499
-                address: "Москва, ул. Тверская, 15"
-                date: "2024-07-15T20:00:00Z"
-                owner_id: 1
-                is_private: false
-                is_premium: true
-                tags:
-                  - id: 5
-                    name: "музыка"
-                created_at: "2024-05-20T15:30:00Z"
+                $ref: "#/components/schemas/CreateEventResponse"
         400:
           $ref: "#/components/responses/BadRequest"
         401:
@@ -646,28 +599,30 @@ paths:
           schema:
             type: integer
           description: ID мероприятия
+        - in: cookie
+          name: latitude
+          schema:
+            type: number
+            format: double
+            example: 55.755825
+          description: Широта координаты пользователя
+          required: false
+        - in: cookie
+          name: longitude
+          schema:
+            type: number
+            format: double
+            example: 37.617298
+          description: Долгота координаты пользователя
+          required: false
       responses:
         200:
           description: Успешный ответ
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EventResponse"
-              example:
-                id: 123
-                name: "Вечеринка в стиле 90-х"
-                description: "Ночная вечеринка с хитами 90-х"
-                latitude: 55.752023
-                longitude: 37.617499
-                address: "Москва, ул. Тверская, 15"
-                date: "2024-07-15T20:00:00Z"
-                owner_id: 1
-                is_private: false
-                is_premium: true
-                tags:
-                  - id: 5
-                    name: "музыка"
-                created_at: "2024-05-20T15:30:00Z"
+                $ref: "#/components/schemas/EventByIDResponse"
+
         400:
           $ref: "#/components/responses/BadRequest"
         401:
@@ -691,16 +646,29 @@ paths:
           schema:
             type: integer
           description: ID мероприятия
+        - in: cookie
+          name: latitude
+          schema:
+            type: number
+            format: double
+            example: 55.755825
+          description: Широта координаты пользователя
+          required: false
+        - in: cookie
+          name: longitude
+          schema:
+            type: number
+            format: double
+            example: 37.617298
+          description: Долгота координаты пользователя
+          required: false
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateEventRequest"
-            example:
-              name: "Обновленная вечеринка 90-х"
-              description: "Ночная вечеринка с расширенной программой"
-              is_premium: true
+              $ref: "#/components/schemas/EventByIDResponse"
+
       responses:
         200:
           description: мероприятие обновлено
@@ -733,7 +701,7 @@ paths:
             type: integer
           description: ID мероприятия
       responses:
-        200:
+        204:
           description: мероприятие успешно удалено
         400:
           $ref: "#/components/responses/BadRequest"
@@ -936,7 +904,7 @@ paths:
             format: double
             example: 55.755825
           description: Широта координаты пользователя
-          required: true
+          required: false
         - in: cookie
           name: longitude
           schema:
@@ -944,7 +912,7 @@ paths:
             format: double
             example: 37.617298
           description: Долгота координаты пользователя
-          required: true
+          required: false
 
       responses:
         200:
@@ -1251,12 +1219,6 @@ components:
     UpdateUserResponse:
       $ref: "#/components/schemas/UpdateUserRequest"
 
-    Event:
-      type: object
-      properties:
-        id:
-          type: integer
-
     EventResponse:
       type: object
       properties:
@@ -1303,35 +1265,45 @@ components:
           type: string
           format: date-time
           example: "2024-05-20T14:48:00Z"
+        participant_count:
+          type: integer
+          example: 10
       example:
-        data:
-          - id: 1
-            name: "Концерт"
-            description: "Грандиозный концерт"
-            capacity: 50
-            latitude: 55.755825
-            longitude: 37.617298
-            address: "Москва, Красная площадь"
-            date: "2024-06-20T14:48:00Z"
-            owner_id: 1
-            is_private: false
-            is_premium: true
-            tags:
-              - id: 5
-                name: "музыка"
-            created_at: "2024-05-20T14:48:00Z"
+          id: 1
+          name: "Концерт"
+          description: "Грандиозный концерт"
+          capacity: 50
+          latitude: 55.755825
+          longitude: 37.617298
+          address: "Москва, Красная площадь"
+          date: "2024-06-20T14:48:00Z"
+          owner_username: "Dante"
+          is_private: false
+          is_premium: true
+          tags:
+            - id: 5
+              name: "музыка"
+          created_at: "2024-05-20T14:48:00Z"
+          participant_count: 10
+
     CreateEventRequest:
       type: object
       properties:
         name:
           type: string
-          minLength: 3
+          minLength: 5
           maxLength: 100
           example: "Вечеринка в стиле 90-х"
         description:
           type: string
+          minLength: 50
           maxLength: 1000
           example: "Ночная вечеринка с хитами 90-х"
+        capacity:
+          type: integer
+          minimum: 1
+          maximum: 500
+          example: 100
         latitude:
           type: number
           format: double
@@ -1346,30 +1318,164 @@ components:
           example: 37.617499
         address:
           type: string
-          maxLength: 200
           example: "Москва, ул. Тверская, 15"
         date:
           type: string
           format: date-time
-          example: "2024-07-15T20:00:00Z"
+          example: "2025-07-15T20:00:00Z"
         is_private:
           type: boolean
-          default: false
-        is_premium:
-          type: boolean
-          default: false
         tags:
           type: array
           items:
             type: integer
             minimum: 1
+            maximum: 3
           example: [ 5, 7 ]
       required:
         - name
+        - description
+        - capacity
         - latitude
         - longitude
         - address
         - date
+        - tags
+
+    CreateEventResponse:
+        type: object
+        properties:
+          id:
+            type: integer
+            example: 1
+          name:
+            type: string
+            example: "Концерт"
+          description:
+            type: string
+            example: "Грандиозный концерт"
+          capacity:
+            type: integer
+            example: 50
+          latitude:
+            type: number
+            format: double
+            example: 55.755825
+          longitude:
+            type: number
+            format: double
+            example: 37.617298
+          address:
+            type: string
+            example: "Москва, Красная площадь"
+          date:
+            type: string
+            format: date-time
+          owner_id:
+            type: integer
+            example: 1
+          is_private:
+            type: boolean
+            example: false
+          is_premium:
+            type: boolean
+            example: true
+          tags:
+            type: array
+            items:
+              $ref: "#/components/schemas/Tag"
+          created_at:
+            type: string
+            format: date-time
+            example: "2024-05-20T14:48:00Z"
+        example:
+            id: 1
+            name: "Концерт"
+            description: "Грандиозный концерт"
+            capacity: 50
+            latitude: 55.755825
+            longitude: 37.617298
+            address: "Москва, Красная площадь"
+            date: "2024-06-20T14:48:00Z"
+            owner_username: "Dante"
+            is_private: false
+            is_premium: true
+            tags:
+              - id: 5
+                name: "музыка"
+            created_at: "2024-05-20T14:48:00Z"
+
+    EventByIDResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Концерт"
+        description:
+          type: string
+          example: "Грандиозный концерт"
+        capacity:
+          type: integer
+          example: 50
+        latitude:
+          type: number
+          format: double
+          example: 55.755825
+        longitude:
+          type: number
+          format: double
+          example: 37.617298
+        address:
+          type: string
+          example: "Москва, Красная площадь"
+        date:
+          type: string
+          format: date-time
+        owner_id:
+          type: integer
+          example: 1
+        is_private:
+          type: boolean
+          example: false
+        is_premium:
+          type: boolean
+          example: true
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-05-20T14:48:00Z"
+        participant_count:
+          type: integer
+          example: 10
+        is_owner:
+          type: boolean
+          example: false
+      example:
+        id: 1
+        name: "Концерт"
+        description: "Грандиозный концерт"
+        capacity: 50
+        latitude: 55.755825
+        longitude: 37.617298
+        address: "Москва, Красная площадь"
+        date: "2024-06-20T14:48:00Z"
+        owner_username: "Dante"
+        is_private: false
+        is_premium: true
+        tags:
+          - id: 5
+            name: "музыка"
+        created_at: "2024-05-20T14:48:00Z"
+        participant_count: 10
+        is_owner: false
+
     PaginationMeta:
       type: object
       properties:
