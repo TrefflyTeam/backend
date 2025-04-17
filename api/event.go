@@ -276,7 +276,13 @@ func (server *Server) subscribeCurrentUserToEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusNoContent, gin.H{})
+	event, err := server.store.GetEvent(ctx, eventID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convertEvent(event))
 }
 
 func (server *Server) unsubscribeCurrentUserFromEvent(ctx *gin.Context) {
@@ -299,7 +305,13 @@ func (server *Server) unsubscribeCurrentUserFromEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusNoContent, gin.H{})
+	event, err := server.store.GetEvent(ctx, eventID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convertEvent(event))
 }
 
 type getHomeEventsResponse struct {
