@@ -104,6 +104,16 @@ func parseGeocodeResponse(data []byte) (*LocationResult, error) {
 		address = firstResult.MetaDataProperty.GeocoderMetaData.Text
 	}
 
+	parts := strings.SplitN(address, ",", 2)
+	if len(parts) < 2 {
+		return &LocationResult{
+			Address: address,
+			Lat:     lat,
+			Lon:     lon,
+		}, nil
+	}
+
+	address = strings.TrimSpace(parts[1])
 	return &LocationResult{
 		Address: address,
 		Lat:     lat,
