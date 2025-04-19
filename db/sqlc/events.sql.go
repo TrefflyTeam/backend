@@ -844,33 +844,82 @@ func (q *Queries) GetUserRecommendedEvents(ctx context.Context, arg GetUserRecom
 
 const listEvents = `-- name: ListEvents :many
 SELECT
-    id,
-    name,
-    description,
-    capacity,
-    latitude,
-    longitude,
-    address,
-    date,
-    owner_id,
-    owner_username,
-    is_private,
-    is_premium,
-    created_at,
-    tags,
-    participants_count
-FROM event_with_tags_view
-WHERE ST_DWithin(
-    geom,
-    ST_MakePoint($1::numeric, $2::numeric)::GEOGRAPHY,
-    100000
-    ) AND is_private = false
-ORDER BY id
+    evt.id,
+    evt.name,
+    evt.description,
+    evt.capacity,
+    evt.latitude,
+    evt.longitude,
+    evt.address,
+    evt.date,
+    evt.owner_id,
+    evt.owner_username,
+    evt.is_private,
+    evt.is_premium,
+    evt.created_at,
+    evt.tags,
+    evt.participants_count,
+    (
+        SELECT COUNT(*)
+        FROM event_tags et
+        WHERE
+            et.event_id = evt.id
+          AND et.tag_id = ANY($1::int[])
+    ) AS matched_tags,
+    ST_Distance(
+            evt.geom,
+            ST_MakePoint($2::numeric, $3::numeric)::GEOGRAPHY
+    ) AS distance
+FROM event_with_tags_view evt
+WHERE
+    ST_DWithin(
+            evt.geom,
+            ST_MakePoint($2::numeric, $3::numeric)::GEOGRAPHY,
+            100000
+    )
+  AND evt.is_private = false
+  AND evt.date > NOW()
+  AND (
+    $4::text = ''
+        OR (
+            evt.name ILIKE '%' || $4 || '%'
+            OR evt.description ILIKE '%' || $4 || '%'
+        )
+    )
+  AND (
+    cardinality($1::int[]) = 0
+        OR EXISTS (
+        SELECT 1
+        FROM event_tags et
+        WHERE
+            et.event_id = evt.id
+          AND et.tag_id = ANY($1::int[])
+    )
+    )
+  AND (
+    $5::text IS NULL
+        OR CASE
+            WHEN $5 = 'day' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 day'
+            WHEN $5 = 'week' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '7 days'
+            WHEN $5 = 'month' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 month'
+          END
+    )
+ORDER BY
+    CASE WHEN $4::text <> '' THEN
+             SIMILARITY(evt.name, $4) +
+             SIMILARITY(evt.description, $4)
+         ELSE 0 END DESC,
+    matched_tags DESC,
+    evt.created_at DESC,
+    distance ASC
 `
 
 type ListEventsParams struct {
-	UserLon pgtype.Numeric `json:"user_lon"`
-	UserLat pgtype.Numeric `json:"user_lat"`
+	TagIds     []int32        `json:"tag_ids"`
+	UserLon    pgtype.Numeric `json:"user_lon"`
+	UserLat    pgtype.Numeric `json:"user_lat"`
+	SearchTerm string         `json:"search_term"`
+	DateRange  string         `json:"date_range"`
 }
 
 type ListEventsRow struct {
@@ -889,10 +938,18 @@ type ListEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	MatchedTags       int64          `json:"matched_tags"`
+	Distance          interface{}    `json:"distance"`
 }
 
 func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error) {
-	rows, err := q.db.Query(ctx, listEvents, arg.UserLon, arg.UserLat)
+	rows, err := q.db.Query(ctx, listEvents,
+		arg.TagIds,
+		arg.UserLon,
+		arg.UserLat,
+		arg.SearchTerm,
+		arg.DateRange,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -916,6 +973,8 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.MatchedTags,
+			&i.Distance,
 		); err != nil {
 			return nil, err
 		}

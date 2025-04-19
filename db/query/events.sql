@@ -45,28 +45,74 @@ WHERE id = $1;
 
 -- name: ListEvents :many
 SELECT
-    id,
-    name,
-    description,
-    capacity,
-    latitude,
-    longitude,
-    address,
-    date,
-    owner_id,
-    owner_username,
-    is_private,
-    is_premium,
-    created_at,
-    tags,
-    participants_count
-FROM event_with_tags_view
-WHERE ST_DWithin(
-    geom,
-    ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY,
-    100000
-    ) AND is_private = false
-ORDER BY id;
+    evt.id,
+    evt.name,
+    evt.description,
+    evt.capacity,
+    evt.latitude,
+    evt.longitude,
+    evt.address,
+    evt.date,
+    evt.owner_id,
+    evt.owner_username,
+    evt.is_private,
+    evt.is_premium,
+    evt.created_at,
+    evt.tags,
+    evt.participants_count,
+    (
+        SELECT COUNT(*)
+        FROM event_tags et
+        WHERE
+            et.event_id = evt.id
+          AND et.tag_id = ANY(@tag_ids::int[])
+    ) AS matched_tags,
+    ST_Distance(
+            evt.geom,
+            ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY
+    ) AS distance
+FROM event_with_tags_view evt
+WHERE
+    ST_DWithin(
+            evt.geom,
+            ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY,
+            100000
+    )
+  AND evt.is_private = false
+  AND evt.date > NOW()
+  AND (
+    @search_term::text = ''
+        OR (
+            evt.name ILIKE '%' || @search_term || '%'
+            OR evt.description ILIKE '%' || @search_term || '%'
+        )
+    )
+  AND (
+    cardinality(@tag_ids::int[]) = 0
+        OR EXISTS (
+        SELECT 1
+        FROM event_tags et
+        WHERE
+            et.event_id = evt.id
+          AND et.tag_id = ANY(@tag_ids::int[])
+    )
+    )
+  AND (
+    @date_range::text IS NULL
+        OR CASE
+            WHEN @date_range = 'day' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 day'
+            WHEN @date_range = 'week' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '7 days'
+            WHEN @date_range = 'month' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 month'
+          END
+    )
+ORDER BY
+    CASE WHEN @search_term::text <> '' THEN
+             SIMILARITY(evt.name, @search_term) +
+             SIMILARITY(evt.description, @search_term)
+         ELSE 0 END DESC,
+    matched_tags DESC,
+    evt.created_at DESC,
+    distance ASC;
 
 -- name: UpdateEvent :exec
 UPDATE events
