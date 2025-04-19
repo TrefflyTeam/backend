@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
@@ -93,9 +94,21 @@ func (server *Server) listEvents(ctx *gin.Context) {
 		return
 	}
 
+	searchTerm := ctx.Query("keywords")
+	tags := ctx.Query("tags")
+	date := ctx.Query("dateWithin")
+	tagIDs, err := parseTagIDs(tags)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
 	arg := db.ListEventsParams{
 		UserLon: lon,
 		UserLat: lat,
+		SearchTerm: searchTerm,
+		TagIds: tagIDs,
+		DateRange: date,
 	}
 
 	var events []db.EventRow
@@ -107,6 +120,31 @@ func (server *Server) listEvents(ctx *gin.Context) {
 	events = db.ConvertToEventRow(rows)
 
 	ctx.JSON(http.StatusOK, newEventsListResponse(events))
+}
+
+func parseTagIDs(tagsStr string) ([]int32, error) {
+	if tagsStr == "" {
+		return []int32{}, nil
+	}
+
+	strIDs := strings.Split(tagsStr, ",")
+	result := make([]int32, 0, len(strIDs))
+
+	for _, strID := range strIDs {
+		cleaned := strings.TrimSpace(strID)
+		if cleaned == "" {
+			continue
+		}
+
+		id, err := strconv.ParseInt(cleaned, 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tag ID: %s", strID)
+		}
+
+		result = append(result, int32(id))
+	}
+
+	return result, nil
 }
 
 func getUserLocation(ctx *gin.Context) (lat pgtype.Numeric, lon pgtype.Numeric, err error) {
