@@ -898,11 +898,13 @@ WHERE
     )
   AND (
     $5::text IS NULL
+        OR $5::text = ''
         OR CASE
             WHEN $5 = 'day' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 day'
             WHEN $5 = 'week' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '7 days'
             WHEN $5 = 'month' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 month'
-          END
+            ELSE TRUE
+        END
     )
 ORDER BY
     CASE WHEN $4::text <> '' THEN

@@ -99,11 +99,13 @@ WHERE
     )
   AND (
     @date_range::text IS NULL
+        OR @date_range::text = ''
         OR CASE
             WHEN @date_range = 'day' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 day'
             WHEN @date_range = 'week' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '7 days'
             WHEN @date_range = 'month' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 month'
-          END
+            ELSE TRUE
+        END
     )
 ORDER BY
     CASE WHEN @search_term::text <> '' THEN
