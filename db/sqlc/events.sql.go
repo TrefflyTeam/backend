@@ -431,9 +431,11 @@ SELECT
     e.tags,
     e.participants_count
 FROM event_with_tags_view e
-         JOIN event_user eu ON e.id = eu.event_id
+         LEFT JOIN event_user eu
+                   ON e.id = eu.event_id
+                       AND eu.user_id = $1
 WHERE
-    eu.user_id = $1
+    (e.owner_id = $1 OR eu.event_id IS NOT NULL)
   AND e.date < NOW()
 ORDER BY
     e.date DESC
@@ -666,9 +668,11 @@ SELECT
     e.tags,
     e.participants_count
 FROM event_with_tags_view e
-         JOIN event_user eu ON e.id = eu.event_id
+         LEFT JOIN event_user eu
+             ON e.id = eu.event_id
+                 AND eu.user_id = $1
 WHERE
-    eu.user_id = $1
+    (e.owner_id = $1 OR eu.event_id IS NOT NULL)
   AND e.date > NOW()
 ORDER BY
     e.date ASC
