@@ -508,7 +508,7 @@ paths:
   /events:
     get:
       summary: Получить список мероприятий
-      description: Возвращает список мероприятий в пределах 100 км с пагинацией.
+      description: Возвращает список мероприятий в пределах 100 км.
       tags:
         - Events
       parameters:
@@ -520,12 +520,16 @@ paths:
         - in: query
           name: tags
           schema:
-            type: array
-            items:
-              type: integer
-          style: form
-          explode: false
+            type: string
+          example: "1,5,7"
           description: Теги мероприятия
+        - in: query
+          name: dateWithin
+          description: Отрезок времени до начала мероприятия
+          schema:
+            type: string
+            enum: [ day, week, month ]
+          example: "week"
         - in: cookie
           name: latitude
           schema:
@@ -533,7 +537,6 @@ paths:
             format: double
             example: 55.755825
           description: Широта координаты пользователя
-          required: true
         - in: cookie
           name: longitude
           schema:
@@ -541,7 +544,6 @@ paths:
             format: double
             example: 37.617298
           description: Долгота координаты пользователя
-          required: true
 
       responses:
         200:
