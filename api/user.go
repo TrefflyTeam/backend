@@ -5,53 +5,15 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"time"
+	userdto "treffly/api/dto/user"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
 	"treffly/token"
 	"treffly/util"
 )
 
-type CreateUserRequest struct {
-	Username string `json:"username" binding:"required,username,min=2,max=20"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-}
-
-type userResponse struct {
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-func newUserResponse(user db.User) userResponse {
-	return userResponse{
-		Username:  user.Username,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt,
-	}
-}
-
-type userWithTagsResponse struct {
-	ID        int32     `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Tags      []db.Tag  `json:"tags"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-func newUserWithTagsResponse(user db.UserWithTagsView) userWithTagsResponse {
-	return userWithTagsResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Tags:      user.Tags,
-		CreatedAt: user.CreatedAt,
-	}
-}
-
 func (server *Server) createUser(ctx *gin.Context) {
-	var req CreateUserRequest
+	var req userdto.CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
@@ -80,17 +42,8 @@ func (server *Server) createUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, loginResp)
 }
 
-type loginUserRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-}
-
-type loginUserResponse struct {
-	userResponse
-}
-
 func (server *Server) loginUser(ctx *gin.Context) {
-	var req loginUserRequest
+	var req userdto.LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
@@ -117,7 +70,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func (server *Server) createAuthSession(ctx *gin.Context, user db.User) (resp loginUserResponse) {
+func (server *Server) createAuthSession(ctx *gin.Context, user db.User) (resp userdto.LoginResponse) {
 	accessToken, _, err := server.tokenMaker.CreateToken(
 		user.ID,
 		server.config.AccessTokenDuration,
@@ -148,9 +101,7 @@ func (server *Server) createAuthSession(ctx *gin.Context, user db.User) (resp lo
 		return
 	}
 
-	resp = loginUserResponse{
-		newUserResponse(user),
-	}
+	resp = userdto.NewLoginResponse(user)
 
 	server.setTokenCookie(ctx, "access_token", accessToken, accessTokenCookiePath, server.config.AccessTokenDuration)
 	server.setTokenCookie(ctx, "refresh_token", refreshToken, refreshTokenCookiePath, server.config.RefreshTokenDuration)
@@ -190,17 +141,13 @@ func (server *Server) getCurrentUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, newUserWithTagsResponse(user))
-}
-
-type updateUserRequest struct {
-	Username string `json:"username" binding:"required,username,min=2,max=20"`
+	ctx.JSON(http.StatusOK, userdto.NewUserWithTagsResponse(user))
 }
 
 func (server *Server) updateCurrentUser(ctx *gin.Context) {
 	userID := getUserIDFromContextPayload(ctx)
 
-	var req updateUserRequest
+	var req userdto.UpdateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
@@ -217,7 +164,7 @@ func (server *Server) updateCurrentUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, newUserResponse(user))
+	ctx.JSON(http.StatusOK, userdto.NewUserResponse(user))
 }
 
 func (server *Server) deleteCurrentUser(ctx *gin.Context) {
@@ -232,14 +179,10 @@ func (server *Server) deleteCurrentUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, gin.H{})
 }
 
-type updateCurrentUserTagsRequest struct {
-	TagIDs []int32 `json:"tag_ids" binding:"required,dive,gt=0"`
-}
-
 func (server *Server) updateCurrentUserTags(ctx *gin.Context) {
 	userID := getUserIDFromContextPayload(ctx)
 
-	var req updateCurrentUserTagsRequest
+	var req userdto.UpdateCurrentUserTagsRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
@@ -263,47 +206,4 @@ func getUserIDFromContextPayload(ctx *gin.Context) int32 {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	userID := authPayload.UserID
 	return userID
-}
-
-func (server *Server) getCurrentUserUpcomingEvents(ctx *gin.Context) {
-	userID := getUserIDFromContextPayload(ctx)
-
-	var events []db.EventRow
-	rows, err := server.store.GetUpcomingUserEvents(ctx, userID)
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
-	}
-	events = db.ConvertToEventRow(rows)
-
-	ctx.JSON(http.StatusOK, convertEvents(events))
-}
-
-func (server *Server) getCurrentUserPastEvents(ctx *gin.Context) {
-	userID := getUserIDFromContextPayload(ctx)
-
-	var events []db.EventRow
-	rows, err := server.store.GetPastUserEvents(ctx, userID)
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
-	}
-	events = db.ConvertToEventRow(rows)
-
-	ctx.JSON(http.StatusOK, convertEvents(events))
-}
-
-func (server *Server) getCurrentUserOwnedEvents(ctx *gin.Context) {
-	userID := getUserIDFromContextPayload(ctx)
-
-	var events []db.EventRow
-	rows, err := server.store.GetOwnedUserEvents(ctx, userID)
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
-	}
-
-	events = db.ConvertToEventRow(rows)
-
-	ctx.JSON(http.StatusOK, convertEvents(events))
 }

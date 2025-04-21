@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
+	"treffly/api/dto/event"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
 )
@@ -17,40 +17,10 @@ const (
 	defaultLon = "39.200296"
 )
 
-type eventResponse struct {
-	ID               int32          `json:"id"`
-	Name             string         `json:"name"`
-	Description      string         `json:"description"`
-	Capacity         int32          `json:"capacity"`
-	Latitude         pgtype.Numeric `json:"latitude"`
-	Longitude        pgtype.Numeric `json:"longitude"`
-	Address          string         `json:"address"`
-	Date             time.Time      `json:"date"`
-	IsPrivate        bool           `json:"is_private"`
-	IsPremium        bool           `json:"is_premium"`
-	CreatedAt        time.Time      `json:"created_at"`
-	OwnerUsername    string         `json:"owner_username"`
-	Tags             []db.Tag       `json:"tags"`
-	ParticipantCount int32          `json:"participant_count"`
-}
-
-
-type createEventRequest struct {
-	Name        string         `json:"name" binding:"required,event_name,min=5,max=50"`
-	Description string         `json:"description" binding:"required,min=50,max=1000"`
-	Capacity    int32          `json:"capacity" binding:"required,min=1,max=500"`
-	Latitude    pgtype.Numeric `json:"latitude" binding:"required,latitude"`
-	Longitude   pgtype.Numeric `json:"longitude" binding:"required,longitude"`
-	Address     string         `json:"address" binding:"required"`
-	Date        time.Time      `json:"date" binding:"required,valid_date"`
-	IsPrivate   bool           `json:"is_private" binding:"boolean"`
-	Tags        []int32        `json:"tags" binding:"required,min=1,max=3,dive,required,positive"`
-}
-
 func (server *Server) createEvent(ctx *gin.Context) {
 	userID := getUserIDFromContextPayload(ctx)
 
-	var req createEventRequest
+	var req eventdto.CreateEvent
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
@@ -76,15 +46,7 @@ func (server *Server) createEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convertEvent(event))
-}
-
-type eventsListResponse struct {
-	Events []eventResponse `json:"events"`
-}
-
-func newEventsListResponse(events []db.EventRow) eventsListResponse {
-	return eventsListResponse{Events: convertEvents(events)}
+	ctx.JSON(http.StatusOK, eventdto.ConvertEvent(event))
 }
 
 func (server *Server) listEvents(ctx *gin.Context) {
@@ -119,7 +81,7 @@ func (server *Server) listEvents(ctx *gin.Context) {
 	}
 	events = db.ConvertToEventRow(rows)
 
-	ctx.JSON(http.StatusOK, newEventsListResponse(events))
+	ctx.JSON(http.StatusOK, eventdto.NewEventsList(events))
 }
 
 func parseTagIDs(tagsStr string) ([]int32, error) {
@@ -197,29 +159,13 @@ func (server *Server) getEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, eventByIDResponse{convertEvent(row), isOwner, isParticipant})
-}
+	resp := eventdto.NewEventByID(eventdto.ConvertEvent(row), isOwner, isParticipant)
 
-type eventByIDResponse struct{
-	eventResponse
-	IsOwner bool `json:"is_owner"`
-	IsParticipant bool `json:"is_participant"`
-}
-
-type updateEventRequest struct {
-	Name        string         `json:"name" binding:"required,event_name,min=5,max=50"`
-	Description string         `json:"description" binding:"required,min=50,max=1000"`
-	Capacity    int32          `json:"capacity" binding:"required,min=1,max=500"`
-	Latitude    pgtype.Numeric `json:"latitude" binding:"required,latitude"`
-	Longitude   pgtype.Numeric `json:"longitude" binding:"required,longitude"`
-	Address     string         `json:"address" binding:"required"`
-	Date        time.Time      `json:"date" binding:"required,date"`
-	IsPrivate   bool           `json:"is_private" binding:"boolean"`
-	Tags        []int32        `json:"tags" binding:"required,min=1,max=3,dive,required,positive"`
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (server *Server) updateEvent(ctx *gin.Context) {
-	var req updateEventRequest
+	var req eventdto.UpdateEvent
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
@@ -264,7 +210,7 @@ func (server *Server) updateEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convertEvent(eventUpdated))
+	ctx.JSON(http.StatusOK, eventdto.ConvertEvent(eventUpdated))
 }
 
 func (server *Server) deleteEvent(ctx *gin.Context) {
@@ -345,7 +291,9 @@ func (server *Server) subscribeCurrentUserToEvent(ctx *gin.Context) {
 
 	isOwner := event.OwnerID == userID
 
-	ctx.JSON(http.StatusOK, eventByIDResponse{convertEvent(event), isOwner, isParticipant})
+	resp := eventdto.NewEventByID(eventdto.ConvertEvent(event), isOwner, isParticipant)
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (server *Server) unsubscribeCurrentUserFromEvent(ctx *gin.Context) {
@@ -387,28 +335,9 @@ func (server *Server) unsubscribeCurrentUserFromEvent(ctx *gin.Context) {
 
 	isOwner := event.OwnerID == userID
 
-	ctx.JSON(http.StatusOK, eventByIDResponse{convertEvent(event), isOwner, isParticipant})
-}
+	resp := eventdto.NewEventByID(eventdto.ConvertEvent(event), isOwner, isParticipant)
 
-type getHomeEventsResponse struct {
-	Premium     []eventResponse `json:"premium"`
-	Recommended []eventResponse `json:"recommended"`
-	Latest      []eventResponse `json:"latest"`
-	Popular     []eventResponse `json:"popular"`
-}
-
-func newGetHomeEventsResponse(
-	premium []db.EventRow,
-	recommended []db.EventRow,
-	latest []db.EventRow,
-	popular []db.EventRow,
-) getHomeEventsResponse {
-	return getHomeEventsResponse{
-		Premium:     convertEvents(premium),
-		Recommended: convertEvents(recommended),
-		Latest:      convertEvents(latest),
-		Popular:     convertEvents(popular),
-	}
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (server *Server) getHomeEvents(ctx *gin.Context) {
@@ -475,7 +404,7 @@ func (server *Server) getHomeEvents(ctx *gin.Context) {
 	}
 	popularEvents = db.ConvertToEventRow(rowsPopular)
 
-	resp := newGetHomeEventsResponse(premiumEvents, recommendedEvents, latestEvents, popularEvents)
+	resp := eventdto.NewGetHomeEvents(premiumEvents, recommendedEvents, latestEvents, popularEvents)
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -492,4 +421,47 @@ func getUserIDFromSoftAuth(ctx *gin.Context) int32 {
 	}
 
 	return userID
+}
+
+func (server *Server) getCurrentUserUpcomingEvents(ctx *gin.Context) {
+	userID := getUserIDFromContextPayload(ctx)
+
+	var events []db.EventRow
+	rows, err := server.store.GetUpcomingUserEvents(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+	events = db.ConvertToEventRow(rows)
+
+	ctx.JSON(http.StatusOK, eventdto.ConvertEvents(events))
+}
+
+func (server *Server) getCurrentUserPastEvents(ctx *gin.Context) {
+	userID := getUserIDFromContextPayload(ctx)
+
+	var events []db.EventRow
+	rows, err := server.store.GetPastUserEvents(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+	events = db.ConvertToEventRow(rows)
+
+	ctx.JSON(http.StatusOK, eventdto.ConvertEvents(events))
+}
+
+func (server *Server) getCurrentUserOwnedEvents(ctx *gin.Context) {
+	userID := getUserIDFromContextPayload(ctx)
+
+	var events []db.EventRow
+	rows, err := server.store.GetOwnedUserEvents(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	events = db.ConvertToEventRow(rows)
+
+	ctx.JSON(http.StatusOK, eventdto.ConvertEvents(events))
 }
