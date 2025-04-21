@@ -6,7 +6,7 @@ import (
 	db "treffly/db/sqlc"
 )
 
-type Event struct {
+type EventResponse struct {
 	ID               int32          `json:"id"`
 	Name             string         `json:"name"`
 	Description      string         `json:"description"`
@@ -23,42 +23,42 @@ type Event struct {
 	ParticipantCount int32          `json:"participant_count"`
 }
 
-type EventsList struct {
-	Events []Event `json:"Events"`
+type EventsListResponse struct {
+	Events []EventResponse `json:"Events"`
 }
 
-func NewEventsList(Events []db.EventRow) EventsList {
-	return EventsList{Events: ConvertEvents(Events)}
+func NewEventsListResponse(Events []db.EventRow) EventsListResponse {
+	return EventsListResponse{Events: ConvertEvents(Events)}
 }
 
-type EventByID struct{
-	Event
+type EventByIDResponse struct{
+	EventResponse
 	IsOwner bool `json:"is_owner"`
 	IsParticipant bool `json:"is_participant"`
 }
 
-func NewEventByID(event Event, isOwner, isParticipant bool) EventByID {
-	return EventByID{
-		Event: event,
-		IsOwner: isOwner,
+func NewEventByIDResponse(event EventResponse, isOwner, isParticipant bool) EventByIDResponse {
+	return EventByIDResponse{
+		EventResponse: event,
+		IsOwner:       isOwner,
 		IsParticipant: isParticipant,
 	}
 }
 
-type GetHomeEvents struct {
-	Premium     []Event `json:"premium"`
-	Recommended []Event `json:"recommended"`
-	Latest      []Event `json:"latest"`
-	Popular     []Event `json:"popular"`
+type GetHomeEventsResponse struct {
+	Premium     []EventResponse `json:"premium"`
+	Recommended []EventResponse `json:"recommended"`
+	Latest      []EventResponse `json:"latest"`
+	Popular     []EventResponse `json:"popular"`
 }
 
-func NewGetHomeEvents(
+func NewGetHomeEventsResponse(
 	premium []db.EventRow,
 	recommended []db.EventRow,
 	latest []db.EventRow,
 	popular []db.EventRow,
-) GetHomeEvents {
-	return GetHomeEvents{
+) GetHomeEventsResponse {
+	return GetHomeEventsResponse{
 		Premium:     ConvertEvents(premium),
 		Recommended: ConvertEvents(recommended),
 		Latest:      ConvertEvents(latest),

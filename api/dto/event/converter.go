@@ -4,8 +4,8 @@ import (
 	db "treffly/db/sqlc"
 )
 
-func ConvertEvent(event db.EventRow) Event {
-	result := Event{
+func ConvertEvent(event db.EventRow) EventResponse {
+	result := EventResponse{
 		ID:               event.GetID(),
 		Name:             event.GetName(),
 		Description:      event.GetDescription(),
@@ -25,8 +25,8 @@ func ConvertEvent(event db.EventRow) Event {
 	return result
 }
 
-func ConvertEvents(events []db.EventRow) []Event {
-	result := make([]Event, 0, len(events))
+func ConvertEvents(events []db.EventRow) []EventResponse {
+	result := make([]EventResponse, 0, len(events))
 	for _, e := range events {
 		result = append(result, ConvertEvent(e))
 	}
