@@ -5,6 +5,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"treffly/api/handler"
+	eventservice "treffly/api/service/event"
+	"treffly/api/service/geo"
+	tagservice "treffly/api/service/tag"
+	tokenservice "treffly/api/service/token"
+	userservice "treffly/api/service/user"
+
 	db "treffly/db/sqlc"
 	"treffly/token"
 	"treffly/util"
@@ -15,8 +22,8 @@ type Server struct {
 	store          db.Store
 	tokenMaker     token.Maker
 	router         *gin.Engine
-	geocodeClient *GeocoderClient
-	suggestClient  *SuggestClient
+	geocodeClient *geoservice.GeocoderClient
+	suggestClient  *geoservice.SuggestClient
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -25,8 +32,8 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
 
-	geocoderClient := NewGeocoderClient(config.YandexGeocoderAPIKey)
-	suggesterClient := NewSuggestClient(config.YandexSuggesterAPIKey)
+	geocoderClient := geoservice.NewGeocoderClient(config.YandexGeocoderAPIKey)
+	suggesterClient := geoservice.NewSuggestClient(config.YandexSuggesterAPIKey)
 	server := &Server{
 		store:      store,
 		tokenMaker: tokenMaker,
@@ -52,37 +59,53 @@ func (server *Server) setupRouter() {
 
 	router.Use(ErrorHandler())
 
-	router.POST("/users", server.createUser)
-	router.POST("/login", server.loginUser)
-	router.POST("/auth/refresh", server.refreshTokens)
-	router.GET("/auth", server.auth)
-	router.GET("/tags", server.getTags)
-	router.GET("/events", server.listEvents)
+	eventService := eventservice.New(server.store)
+	eventHandler := handler.NewEventHandler(eventService)
 
-	router.GET("/geocode", server.geocode)
-	router.GET("/suggest/addresses", server.suggest)
-	router.GET("/reverse-geocode", server.reverseGeocode)
+	userService := userservice.New(server.store, server.tokenMaker, server.config)
+	userHandler := handler.NewUserHandler(userService, server.config)
+
+	tagService := tagservice.New(server.store)
+	tagHandler := handler.NewTagHandler(tagService)
+
+	tokenService := tokenservice.New(server.store, server.tokenMaker, server.config)
+	tokenHandler := handler.NewTokenHandler(tokenService, server.config)
+
+	geoService := geoservice.New(server.store, server.geocodeClient, server.suggestClient)
+	geoHandler := handler.NewGeoHandler(geoService)
+
+
+	router.POST("/users", userHandler.Create)
+	router.POST("/login", userHandler.Login)
+	router.POST("/auth/refresh", tokenHandler.RefreshTokens)
+	router.GET("/auth", userHandler.Auth)
+	router.GET("/tags", tagHandler.GetTags)
+	router.GET("/events", eventHandler.List)
+
+	router.GET("/geocode", geoHandler.Geocode)
+	router.GET("/suggest/addresses", geoHandler.Suggest)
+	router.GET("/reverse-geocode", geoHandler.ReverseGeocode)
 
 	softAuthRoutes := router.Group("/").Use(softAuthMiddleware(server.tokenMaker))
-	softAuthRoutes.GET("/events/home", server.getHomeEvents)
-	softAuthRoutes.GET("/events/:id", server.getEvent)
+	softAuthRoutes.GET("/events/home", eventHandler.GetHome)
+	softAuthRoutes.GET("/events/:id", eventHandler.GetByID)
 
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
-	authRoutes.POST("/logout", server.logoutUser)
+	authRoutes.POST("/logout", userHandler.Logout)
 
-	authRoutes.GET("/users/me", server.getCurrentUser)
-	authRoutes.PUT("/users/me", server.updateCurrentUser)
-	authRoutes.DELETE("/users/me", server.deleteCurrentUser)
-	authRoutes.PUT("users/me/tags", server.updateCurrentUserTags)
+	authRoutes.GET("/users/me", userHandler.GetCurrent)
+	authRoutes.PUT("/users/me", userHandler.UpdateCurrent)
+	authRoutes.DELETE("/users/me", userHandler.DeleteCurrent)
+	authRoutes.PUT("users/me/tags", userHandler.UpdateCurrentTags)
 
-	authRoutes.POST("/events", server.createEvent)
-	authRoutes.PUT("/events/:id", server.updateEvent)
-	authRoutes.DELETE("/events/:id", server.deleteEvent)
-	authRoutes.POST("/events/:id/subscription", server.subscribeCurrentUserToEvent)
-	authRoutes.DELETE("/events/:id/subscription", server.unsubscribeCurrentUserFromEvent)
-	authRoutes.GET("/users/me/past-events", server.getCurrentUserPastEvents)
-	authRoutes.GET("/users/me/upcoming-events", server.getCurrentUserUpcomingEvents)
-	authRoutes.GET("/users/me/owned-events", server.getCurrentUserOwnedEvents)
+	authRoutes.POST("/events", eventHandler.Create)
+	authRoutes.PUT("/events/:id", eventHandler.Update)
+	authRoutes.DELETE("/events/:id", eventHandler.Delete)
+	authRoutes.POST("/events/:id/subscription", eventHandler.Subscribe)
+	authRoutes.DELETE("/events/:id/subscription", eventHandler.Unsubscribe)
+	authRoutes.GET("/users/me/past-events", eventHandler.GetPast)
+	authRoutes.GET("/users/me/upcoming-events", eventHandler.GetUpcoming)
+	authRoutes.GET("/users/me/owned-events", eventHandler.GetOwned)
 
 	server.router = router
 }

@@ -4,12 +4,9 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"treffly/api/common"
 	"treffly/apperror"
 	"treffly/token"
-)
-
-const (
-	authorizationPayloadKey = "authorization_payload"
 )
 
 func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
@@ -33,7 +30,7 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set(authorizationPayloadKey, payload)
+		ctx.Set(common.AuthorizationPayloadKey, payload)
 		ctx.Next()
 	}
 }
