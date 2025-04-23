@@ -1,11 +1,11 @@
-package api
+package eventdto
 
 import (
 	db "treffly/db/sqlc"
 )
 
-func convertEvent(event db.EventRow) eventResponse {
-	result := eventResponse{
+func ConvertEvent(event db.EventRow) EventResponse {
+	result := EventResponse{
 		ID:               event.GetID(),
 		Name:             event.GetName(),
 		Description:      event.GetDescription(),
@@ -25,10 +25,10 @@ func convertEvent(event db.EventRow) eventResponse {
 	return result
 }
 
-func convertEvents(events []db.EventRow) []eventResponse {
-	result := make([]eventResponse, 0, len(events))
+func ConvertEvents(events []db.EventRow) []EventResponse {
+	result := make([]EventResponse, 0, len(events))
 	for _, e := range events {
-		result = append(result, convertEvent(e))
+		result = append(result, ConvertEvent(e))
 	}
 
 	return result
