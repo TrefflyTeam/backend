@@ -71,7 +71,7 @@ func (h *UserHandler) setAuthCookies(ctx *gin.Context, accessToken, refreshToken
 	common.SetTokenCookie(ctx, "access_token", accessToken,
 		common.AccessTokenCookiePath, h.config.AccessTokenDuration, h.config.Environment)
 	common.SetTokenCookie(ctx, "refresh_token", refreshToken,
-		common.RefreshTokenCookiePath, h.config.AccessTokenDuration, h.config.Environment)
+		common.RefreshTokenCookiePath, h.config.RefreshTokenDuration, h.config.Environment)
 }
 
 func (h *UserHandler) Logout(ctx *gin.Context) {
