@@ -6,17 +6,19 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	db "treffly/db/sqlc"
+	"treffly/image"
 	"treffly/token"
 	"treffly/util"
 )
 
 type Server struct {
-	config         util.Config
-	store          db.Store
-	tokenMaker     token.Maker
-	router         *gin.Engine
+	config        util.Config
+	store         db.Store
+	tokenMaker    token.Maker
+	router        *gin.Engine
 	geocodeClient *GeocoderClient
-	suggestClient  *SuggestClient
+	suggestClient *SuggestClient
+	imageStore    image.Store
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -27,12 +29,19 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 
 	geocoderClient := NewGeocoderClient(config.YandexGeocoderAPIKey)
 	suggesterClient := NewSuggestClient(config.YandexSuggesterAPIKey)
+
+	imageStore, err := image.NewLocalStorage("images")
+	if err != nil {
+		return nil, fmt.Errorf("cannot create image store: %w", err)
+	}
+
 	server := &Server{
-		store:      store,
-		tokenMaker: tokenMaker,
-		config:     config,
+		store:         store,
+		tokenMaker:    tokenMaker,
+		config:        config,
 		geocodeClient: geocoderClient,
 		suggestClient: suggesterClient,
+		imageStore:    imageStore,
 	}
 
 	err = server.registerValidators()

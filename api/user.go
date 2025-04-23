@@ -3,8 +3,12 @@ package api
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"mime/multipart"
 	"net/http"
+	"path/filepath"
 	"time"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
@@ -29,6 +33,19 @@ func newUserResponse(user db.User) userResponse {
 		Username:  user.Username,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
+	}
+}
+
+type updateUserResponse struct {
+	userWithTagsResponse
+	ImageURL string `json:"image_url"`
+}
+
+func newUpdateUserResponse(user db.UserWithTagsView, imageURL string) updateUserResponse {
+	userWithTags := newUserWithTagsResponse(user)
+	return updateUserResponse{
+		userWithTagsResponse: userWithTags,
+		ImageURL: imageURL,
 	}
 }
 
@@ -201,23 +218,83 @@ func (server *Server) updateCurrentUser(ctx *gin.Context) {
 	userID := getUserIDFromContextPayload(ctx)
 
 	var req updateUserRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBind(&req); err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
 
+	file, header, err := ctx.Request.FormFile("image")
+	if err != nil {
+		if !errors.Is(err, http.ErrMissingFile) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file upload"})
+			return
+		}
+		file = nil
+	} else {
+		defer file.Close()
+
+		if header.Size > 5<<20 {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "File too large"})
+			return
+		}
+
+		if !isValidImageType(header) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image type"})
+			return
+		}
+	}
+
+	url := ""
+
+	if file != nil {
+		filename := uuid.New().String() + filepath.Ext(header.Filename)
+
+		filename, err = server.imageStore.Upload(file, filename)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "File save error"})
+			return
+		}
+
+		url = fmt.Sprintf("http://localhost:8080/images/%s", filename)
+	}
+
 	arg := db.UpdateUserParams{
-		ID: userID,
+		ID:       userID,
 		Username: req.Username,
 	}
 
-	user, err := server.store.UpdateUser(ctx, arg)
+	_, err = server.store.UpdateUser(ctx, arg)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, newUserResponse(user))
+	user, err := server.store.GetUserWithTags(ctx, userID)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newUpdateUserResponse(user, url))
+}
+
+func isValidImageType(header *multipart.FileHeader) bool {
+	allowedTypes := map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+		"image/jpg":  true,
+	}
+
+	file, _ := header.Open()
+	defer file.Close()
+
+	buffer := make([]byte, 512)
+	if _, err := file.Read(buffer); err != nil {
+		return false
+	}
+
+	mimeType := http.DetectContentType(buffer)
+	return allowedTypes[mimeType]
 }
 
 func (server *Server) deleteCurrentUser(ctx *gin.Context) {
