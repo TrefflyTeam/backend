@@ -39,7 +39,9 @@ SELECT
     is_premium,
     created_at,
     tags,
-    participants_count
+    participants_count,
+    event_image_path,
+    user_image_path
 FROM event_with_tags_view
 WHERE id = $1;
 
@@ -60,6 +62,7 @@ SELECT
     evt.created_at,
     evt.tags,
     evt.participants_count,
+    evt.event_image_path,
     (
         SELECT COUNT(*)
         FROM event_tags et
@@ -126,7 +129,8 @@ SET
     longitude = @longitude,
     address = @address,
     date = @date,
-    is_private = @is_private
+    is_private = @is_private,
+    image_id = @image_id
 WHERE id = @id;
 
 -- name: DeleteEvent :exec
@@ -149,7 +153,8 @@ SELECT
     is_premium,
     created_at,
     tags,
-    participants_count
+    participants_count,
+    event_image_path
 FROM event_with_tags_view
 WHERE is_premium = TRUE
   AND date > NOW() AND is_private = false
@@ -172,7 +177,8 @@ SELECT
     is_premium,
     created_at,
     tags,
-    participants_count
+    participants_count,
+    event_image_path
 FROM event_with_tags_view
 WHERE date > NOW() AND is_private = false
 ORDER BY created_at DESC
@@ -194,7 +200,8 @@ SELECT
     is_premium,
     created_at,
     tags,
-    participants_count
+    participants_count,
+    event_image_path
 FROM event_with_tags_view
 WHERE date > NOW() AND is_private = false
 ORDER BY participants_count DESC, created_at DESC
@@ -223,6 +230,7 @@ SELECT
     evt.created_at,
     evt.tags,
     evt.participants_count,
+    event_image_path,
     (
         SELECT COUNT(*)
         FROM event_tags et
@@ -265,7 +273,8 @@ SELECT
     is_premium,
     created_at,
     tags,
-    participants_count
+    participants_count,
+    event_image_path
 FROM event_with_tags_view
 WHERE
     date > NOW()
@@ -296,7 +305,8 @@ SELECT
     e.is_premium,
     e.created_at,
     e.tags,
-    e.participants_count
+    e.participants_count,
+    e.event_image_path
 FROM event_with_tags_view e
          LEFT JOIN event_user eu
                    ON e.id = eu.event_id
@@ -323,7 +333,8 @@ SELECT
     e.is_premium,
     e.created_at,
     e.tags,
-    e.participants_count
+    e.participants_count,
+    e.event_image_path
 FROM event_with_tags_view e
          LEFT JOIN event_user eu
              ON e.id = eu.event_id
@@ -350,7 +361,8 @@ SELECT
     e.is_premium,
     e.created_at,
     e.tags,
-    e.participants_count
+    e.participants_count,
+    e.event_image_path
 FROM event_with_tags_view e
 WHERE
     e.owner_id = @user_id

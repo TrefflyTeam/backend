@@ -21,6 +21,8 @@ type EventResponse struct {
 	OwnerUsername    string         `json:"owner_username"`
 	Tags             []db.Tag       `json:"tags"`
 	ParticipantCount int32          `json:"participant_count"`
+	ImageEventPath   string         `json:"image_event_path"`
+	ImageUserPath    string         `json:"image_user_path"`
 }
 
 type EventsListResponse struct {
@@ -31,9 +33,9 @@ func NewEventsListResponse(Events []db.EventRow) EventsListResponse {
 	return EventsListResponse{Events: ConvertEvents(Events)}
 }
 
-type EventByIDResponse struct{
+type EventByIDResponse struct {
 	EventResponse
-	IsOwner bool `json:"is_owner"`
+	IsOwner       bool `json:"is_owner"`
 	IsParticipant bool `json:"is_participant"`
 }
 

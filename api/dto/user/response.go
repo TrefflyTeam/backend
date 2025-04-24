@@ -46,3 +46,16 @@ func NewLoginResponse(user db.User) LoginResponse {
 		UserResponse: NewUserResponse(user),
 	}
 }
+
+type UpdateUserResponse struct {
+	UserWithTagsResponse
+	ImageURL string `json:"image_url"`
+}
+
+func NewUpdateUserResponse(user db.UserWithTagsView, imageURL string) UpdateUserResponse {
+	userWithTags := NewUserWithTagsResponse(user)
+	return UpdateUserResponse{
+		UserWithTagsResponse: userWithTags,
+		ImageURL: imageURL,
+	}
+}

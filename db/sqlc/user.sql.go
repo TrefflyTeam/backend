@@ -13,7 +13,7 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO users (username,
                    email,
                    password_hash)
-VALUES ($1, $2, $3) RETURNING id, username, email, password_hash, created_at, is_admin
+VALUES ($1, $2, $3) RETURNING id, username, email, password_hash, created_at, is_admin, image_id
 `
 
 type CreateUserParams struct {
@@ -32,6 +32,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.IsAdmin,
+		&i.ImageID,
 	)
 	return i, err
 }
@@ -47,7 +48,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, email, password_hash, created_at, is_admin FROM users
+SELECT id, username, email, password_hash, created_at, is_admin, image_id FROM users
 WHERE id = $1 LIMIT 1
 `
 
@@ -61,12 +62,13 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.IsAdmin,
+		&i.ImageID,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, created_at, is_admin FROM users
+SELECT id, username, email, password_hash, created_at, is_admin, image_id FROM users
 WHERE email = $1 LIMIT 1
 `
 
@@ -80,12 +82,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.IsAdmin,
+		&i.ImageID,
 	)
 	return i, err
 }
 
 const getUserWithTags = `-- name: GetUserWithTags :one
-SELECT id, username, email, created_at, tags FROM user_with_tags_view WHERE id = $1
+SELECT id, username, email, created_at, tags, image_path FROM user_with_tags_view WHERE id = $1
 `
 
 func (q *Queries) GetUserWithTags(ctx context.Context, id int32) (UserWithTagsView, error) {
@@ -97,6 +100,7 @@ func (q *Queries) GetUserWithTags(ctx context.Context, id int32) (UserWithTagsVi
 		&i.Email,
 		&i.CreatedAt,
 		&i.Tags,
+		&i.ImagePath,
 	)
 	return i, err
 }
@@ -123,7 +127,7 @@ func (q *Queries) IsParticipant(ctx context.Context, arg IsParticipantParams) (b
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, username, email, password_hash, created_at, is_admin FROM users
+SELECT id, username, email, password_hash, created_at, is_admin, image_id FROM users
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -150,6 +154,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.PasswordHash,
 			&i.CreatedAt,
 			&i.IsAdmin,
+			&i.ImageID,
 		); err != nil {
 			return nil, err
 		}
@@ -195,7 +200,7 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET username = $2
 WHERE id = $1
-RETURNING id, username, email, password_hash, created_at, is_admin
+RETURNING id, username, email, password_hash, created_at, is_admin, image_id
 `
 
 type UpdateUserParams struct {
@@ -213,6 +218,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.IsAdmin,
+		&i.ImageID,
 	)
 	return i, err
 }

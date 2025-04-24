@@ -121,7 +121,9 @@ SELECT
     is_premium,
     created_at,
     tags,
-    participants_count
+    participants_count,
+    event_image_path,
+    user_image_path
 FROM event_with_tags_view
 WHERE id = $1
 `
@@ -142,6 +144,8 @@ type GetEventRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
+	UserImagePath     pgtype.Text    `json:"user_image_path"`
 }
 
 func (q *Queries) GetEvent(ctx context.Context, id int32) (GetEventRow, error) {
@@ -163,6 +167,8 @@ func (q *Queries) GetEvent(ctx context.Context, id int32) (GetEventRow, error) {
 		&i.CreatedAt,
 		&i.Tags,
 		&i.ParticipantsCount,
+		&i.EventImagePath,
+		&i.UserImagePath,
 	)
 	return i, err
 }
@@ -183,7 +189,8 @@ SELECT
     is_premium,
     created_at,
     tags,
-    participants_count
+    participants_count,
+    event_image_path
 FROM event_with_tags_view
 WHERE
     date > NOW()
@@ -220,6 +227,7 @@ type GetGuestRecommendedEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
 }
 
 func (q *Queries) GetGuestRecommendedEvents(ctx context.Context, arg GetGuestRecommendedEventsParams) ([]GetGuestRecommendedEventsRow, error) {
@@ -247,6 +255,7 @@ func (q *Queries) GetGuestRecommendedEvents(ctx context.Context, arg GetGuestRec
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.EventImagePath,
 		); err != nil {
 			return nil, err
 		}
@@ -274,7 +283,8 @@ SELECT
     is_premium,
     created_at,
     tags,
-    participants_count
+    participants_count,
+    event_image_path
 FROM event_with_tags_view
 WHERE date > NOW() AND is_private = false
 ORDER BY created_at DESC
@@ -297,6 +307,7 @@ type GetLatestEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
 }
 
 func (q *Queries) GetLatestEvents(ctx context.Context) ([]GetLatestEventsRow, error) {
@@ -324,6 +335,7 @@ func (q *Queries) GetLatestEvents(ctx context.Context) ([]GetLatestEventsRow, er
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.EventImagePath,
 		); err != nil {
 			return nil, err
 		}
@@ -351,7 +363,8 @@ SELECT
     e.is_premium,
     e.created_at,
     e.tags,
-    e.participants_count
+    e.participants_count,
+    e.event_image_path
 FROM event_with_tags_view e
 WHERE
     e.owner_id = $1
@@ -375,6 +388,7 @@ type GetOwnedUserEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
 }
 
 func (q *Queries) GetOwnedUserEvents(ctx context.Context, userID int32) ([]GetOwnedUserEventsRow, error) {
@@ -402,6 +416,7 @@ func (q *Queries) GetOwnedUserEvents(ctx context.Context, userID int32) ([]GetOw
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.EventImagePath,
 		); err != nil {
 			return nil, err
 		}
@@ -429,7 +444,8 @@ SELECT
     e.is_premium,
     e.created_at,
     e.tags,
-    e.participants_count
+    e.participants_count,
+    e.event_image_path
 FROM event_with_tags_view e
          LEFT JOIN event_user eu
                    ON e.id = eu.event_id
@@ -457,6 +473,7 @@ type GetPastUserEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
 }
 
 func (q *Queries) GetPastUserEvents(ctx context.Context, userID int32) ([]GetPastUserEventsRow, error) {
@@ -484,6 +501,7 @@ func (q *Queries) GetPastUserEvents(ctx context.Context, userID int32) ([]GetPas
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.EventImagePath,
 		); err != nil {
 			return nil, err
 		}
@@ -511,7 +529,8 @@ SELECT
     is_premium,
     created_at,
     tags,
-    participants_count
+    participants_count,
+    event_image_path
 FROM event_with_tags_view
 WHERE date > NOW() AND is_private = false
 ORDER BY participants_count DESC, created_at DESC
@@ -534,6 +553,7 @@ type GetPopularEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
 }
 
 func (q *Queries) GetPopularEvents(ctx context.Context) ([]GetPopularEventsRow, error) {
@@ -561,6 +581,7 @@ func (q *Queries) GetPopularEvents(ctx context.Context) ([]GetPopularEventsRow, 
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.EventImagePath,
 		); err != nil {
 			return nil, err
 		}
@@ -588,7 +609,8 @@ SELECT
     is_premium,
     created_at,
     tags,
-    participants_count
+    participants_count,
+    event_image_path
 FROM event_with_tags_view
 WHERE is_premium = TRUE
   AND date > NOW() AND is_private = false
@@ -612,6 +634,7 @@ type GetPremiumEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
 }
 
 func (q *Queries) GetPremiumEvents(ctx context.Context) ([]GetPremiumEventsRow, error) {
@@ -639,6 +662,7 @@ func (q *Queries) GetPremiumEvents(ctx context.Context) ([]GetPremiumEventsRow, 
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.EventImagePath,
 		); err != nil {
 			return nil, err
 		}
@@ -666,7 +690,8 @@ SELECT
     e.is_premium,
     e.created_at,
     e.tags,
-    e.participants_count
+    e.participants_count,
+    e.event_image_path
 FROM event_with_tags_view e
          LEFT JOIN event_user eu
              ON e.id = eu.event_id
@@ -694,6 +719,7 @@ type GetUpcomingUserEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
 }
 
 func (q *Queries) GetUpcomingUserEvents(ctx context.Context, userID int32) ([]GetUpcomingUserEventsRow, error) {
@@ -721,6 +747,7 @@ func (q *Queries) GetUpcomingUserEvents(ctx context.Context, userID int32) ([]Ge
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.EventImagePath,
 		); err != nil {
 			return nil, err
 		}
@@ -755,6 +782,7 @@ SELECT
     evt.created_at,
     evt.tags,
     evt.participants_count,
+    event_image_path,
     (
         SELECT COUNT(*)
         FROM event_tags et
@@ -804,6 +832,7 @@ type GetUserRecommendedEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
 	MatchedTags       int64          `json:"matched_tags"`
 	Distance          interface{}    `json:"distance"`
 }
@@ -833,6 +862,7 @@ func (q *Queries) GetUserRecommendedEvents(ctx context.Context, arg GetUserRecom
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.EventImagePath,
 			&i.MatchedTags,
 			&i.Distance,
 		); err != nil {
@@ -863,6 +893,7 @@ SELECT
     evt.created_at,
     evt.tags,
     evt.participants_count,
+    evt.event_image_path,
     (
         SELECT COUNT(*)
         FROM event_tags et
@@ -944,6 +975,7 @@ type ListEventsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
 	MatchedTags       int64          `json:"matched_tags"`
 	Distance          interface{}    `json:"distance"`
 }
@@ -979,6 +1011,7 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 			&i.CreatedAt,
 			&i.Tags,
 			&i.ParticipantsCount,
+			&i.EventImagePath,
 			&i.MatchedTags,
 			&i.Distance,
 		); err != nil {
@@ -1002,8 +1035,9 @@ SET
     longitude = $5,
     address = $6,
     date = $7,
-    is_private = $8
-WHERE id = $9
+    is_private = $8,
+    image_id = $9
+WHERE id = $10
 `
 
 type UpdateEventParams struct {
@@ -1015,6 +1049,7 @@ type UpdateEventParams struct {
 	Address     string         `json:"address"`
 	Date        time.Time      `json:"date"`
 	IsPrivate   bool           `json:"is_private"`
+	ImageID     pgtype.UUID    `json:"image_id"`
 	ID          int32          `json:"id"`
 }
 
@@ -1028,6 +1063,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error 
 		arg.Address,
 		arg.Date,
 		arg.IsPrivate,
+		arg.ImageID,
 		arg.ID,
 	)
 	return err
