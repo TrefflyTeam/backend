@@ -21,12 +21,24 @@ type EventResponse struct {
 	OwnerUsername    string         `json:"owner_username"`
 	Tags             []db.Tag       `json:"tags"`
 	ParticipantCount int32          `json:"participant_count"`
-	ImageEventPath   string         `json:"image_event_path"`
-	ImageUserPath    string         `json:"image_user_path"`
 }
 
 type EventsListResponse struct {
 	Events []EventResponse `json:"Events"`
+}
+
+type CreateEventResponse struct {
+	EventResponse
+	ImageEventURL string        `json:"image_event_url"`
+	ImageUserURL  string        `json:"image_user_url"`
+}
+
+func NewCreateEventResponse(event EventResponse, imageEventURL, imageUserURL string) CreateEventResponse {
+	return CreateEventResponse{
+		EventResponse: event,
+		ImageEventURL: imageEventURL,
+		ImageUserURL:  imageUserURL,
+	}
 }
 
 func NewEventsListResponse(Events []db.EventRow) EventsListResponse {

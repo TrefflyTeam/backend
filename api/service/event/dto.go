@@ -1,13 +1,14 @@
 package eventservice
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"time"
 	db "treffly/db/sqlc"
 )
 
 type EventWithStatus struct {
-	Event db.EventRow
+	Event         db.EventRow
 	IsParticipant bool
 	IsOwner       bool
 }
@@ -23,6 +24,8 @@ type CreateParams struct {
 	IsPrivate   bool
 	Tags        []int32
 	OwnerID     int32
+	ImageID     uuid.UUID
+	Path 		string
 }
 
 type ListParams struct {
@@ -45,6 +48,7 @@ type UpdateParams struct {
 	IsPrivate   bool
 	Tags        []int32
 	UserID      int32
+	ImageID     uuid.UUID
 }
 
 type DeleteParams struct {

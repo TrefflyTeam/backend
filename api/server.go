@@ -8,6 +8,7 @@ import (
 	"treffly/api/handler"
 	eventservice "treffly/api/service/event"
 	geoservice "treffly/api/service/geo"
+	imageservice "treffly/api/service/image"
 	tagservice "treffly/api/service/tag"
 	tokenservice "treffly/api/service/token"
 	userservice "treffly/api/service/user"
@@ -67,11 +68,13 @@ func (server *Server) setupRouter() {
 
 	router.Use(ErrorHandler())
 
+	imageService := imageservice.New(server.imageStore, server.config)
+
 	eventService := eventservice.New(server.store)
-	eventHandler := handler.NewEventHandler(eventService)
+	eventHandler := handler.NewEventHandler(eventService, imageService, server.config)
 
 	userService := userservice.New(server.store, server.tokenMaker, server.config)
-	userHandler := handler.NewUserHandler(userService, server.config)
+	userHandler := handler.NewUserHandler(userService, imageService, server.config)
 
 	tagService := tagservice.New(server.store)
 	tagHandler := handler.NewTagHandler(tagService)
@@ -82,12 +85,16 @@ func (server *Server) setupRouter() {
 	tokenService := tokenservice.New(server.store, server.tokenMaker, server.config)
 	tokenHandler := handler.NewTokenHandler(tokenService, server.config)
 
+	imageHandler := handler.NewImageHandler(imageService)
+
 	router.POST("/users", userHandler.Create)
 	router.POST("/login", userHandler.Login)
 	router.POST("/auth/refresh", tokenHandler.RefreshTokens)
 	router.GET("/auth", userHandler.Auth)
 	router.GET("/tags", tagHandler.GetTags)
 	router.GET("/events", eventHandler.List)
+
+	router.GET("/images/*path", imageHandler.Get)
 
 	router.GET("/geocode", geoHandler.Geocode)
 	router.GET("/suggest/addresses", geoHandler.Suggest)

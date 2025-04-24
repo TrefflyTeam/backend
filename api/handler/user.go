@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"treffly/api/common"
 	userdto "treffly/api/dto/user"
+	imageservice "treffly/api/service/image"
 	userservice "treffly/api/service/user"
 	"treffly/apperror"
 	"treffly/util"
@@ -12,14 +13,16 @@ import (
 )
 
 type UserHandler struct {
-	service *userservice.Service
-	config  util.Config
+	service      *userservice.Service
+	imageService *imageservice.Service
+	config       util.Config
 }
 
-func NewUserHandler(service *userservice.Service, config util.Config) *UserHandler {
+func NewUserHandler(service *userservice.Service, imageService *imageservice.Service, config util.Config) *UserHandler {
 	return &UserHandler{
-		service: service,
-		config:  config,
+		service:      service,
+		imageService: imageService,
+		config:       config,
 	}
 }
 
@@ -106,7 +109,7 @@ func (h *UserHandler) UpdateCurrent(ctx *gin.Context) {
 	userID := common.GetUserIDFromContextPayload(ctx)
 
 	var req userdto.UpdateUserRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBind(&req); err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
@@ -121,7 +124,14 @@ func (h *UserHandler) UpdateCurrent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, userdto.NewUserWithTagsResponse(user))
+	//id := uuid.New()
+	//url, err := h.imageService.Upload(ctx, "users", id.String())
+	//if err != nil {
+	//	ctx.Error(apperror.WrapDBError(err))
+	//	return
+	//}
+
+	ctx.JSON(http.StatusOK, userdto.NewUpdateUserResponse(user, ""))
 }
 
 func (h *UserHandler) DeleteCurrent(ctx *gin.Context) {
@@ -154,7 +164,7 @@ func (h *UserHandler) UpdateCurrentTags(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusOK, gin.H{})
 }
 
 func (h *UserHandler) Auth(ctx *gin.Context) {

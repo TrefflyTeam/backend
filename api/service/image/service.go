@@ -3,33 +3,28 @@ package imageservice
 import (
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"treffly/image"
 	"treffly/util"
 )
 
 type Service struct {
 	imageStore image.Store
-	config util.Config
+	config     util.Config
 }
 
 func New(imageStore image.Store, config util.Config) *Service {
 	return &Service{
 		imageStore: imageStore,
-		config: config,
+		config:     config,
 	}
 }
 
-func (s *Service) Upload(ctx *gin.Context, objType string, objID int32) (string, error) {
-	file, header, err := ctx.Request.FormFile("image")
-	if err != nil {
-		return "", err
-	}
-
+func (s *Service) Upload(file multipart.File, header *multipart.FileHeader, objType string, id string) (string, error) {
 	defer file.Close()
 
 	if header.Size > 5<<20 {
@@ -40,15 +35,13 @@ func (s *Service) Upload(ctx *gin.Context, objType string, objID int32) (string,
 		return "", errors.New("invalid image type")
 	}
 
-	filename := filepath.Join(objType, fmt.Sprintf("%d%s", objID, filepath.Ext(header.Filename)))
-	filename, err = s.imageStore.Upload(file, filename)
+	filename := filepath.Join(objType, fmt.Sprintf("%s%s", id, filepath.Ext(header.Filename)))
+	_, err := s.imageStore.Upload(file, filename)
 	if err != nil {
 		return "", err
 	}
 
-	url := imageURL(s.config.Environment, s.config.Domain, filename)
-
-	return url, nil
+	return filename, nil
 }
 
 func (s *Service) Get(path string) (io.ReadCloser, string, error) {
@@ -65,12 +58,18 @@ func (s *Service) Delete(path string) error {
 	return s.imageStore.Delete(path)
 }
 
-func imageURL(env, domain, path string) string {
+func ImageURL(env, domain, path string) string {
+	if path == "" {
+		return ""
+	}
+
 	protocol := "http"
 	if env == "production" {
 		protocol = "https"
 	}
-	url := fmt.Sprintf("%s://%s/%s", protocol, domain, path)
+	normalizedPath := strings.ReplaceAll(path, "\\", "/")
+
+	url := fmt.Sprintf("%s://%s/images/%s", protocol, domain, normalizedPath)
 
 	return url
 }

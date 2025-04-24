@@ -16,7 +16,7 @@ func New(store db.Store) *Service {
 }
 
 func (s *Service) Create(ctx context.Context, params CreateParams) (db.EventRow, error) {
-	arg := db.CreateEventTxParams{
+	eventArg := db.CreateEventTxParams{
 		Name:        params.Name,
 		Description: params.Description,
 		Capacity:    params.Capacity,
@@ -27,9 +27,15 @@ func (s *Service) Create(ctx context.Context, params CreateParams) (db.EventRow,
 		IsPrivate:   params.IsPrivate,
 		OwnerID:     params.OwnerID,
 		Tags:        params.Tags,
+		ImageID:     params.ImageID,
 	}
 
-	event, err := s.store.CreateEventTx(ctx, arg)
+	imageArg := db.CreateImageParams{
+		ID: params.ImageID,
+		Path: params.Path,
+	}
+
+	event, err := s.store.CreateEventTx(ctx, eventArg, imageArg)
 	if err != nil {
 		return nil, err
 	}

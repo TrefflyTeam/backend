@@ -20,8 +20,6 @@ func ConvertEvent(event db.EventRow) EventResponse {
 		CreatedAt:        event.GetCreatedAt(),
 		Tags:             event.GetTags(),
 		ParticipantCount: int32(event.GetParticipantsCount()),
-		ImageEventPath: event.GetEventImagePath(),
-		ImageUserPath: event.GetUserImagePath(),
 	}
 
 	return result
