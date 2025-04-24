@@ -2,11 +2,8 @@
 -- +goose StatementBegin
 CREATE TABLE images (
                         id UUID PRIMARY KEY,
-                        path TEXT NOT NULL,
-                        mime_type TEXT NOT NULL
+                        path TEXT NOT NULL
 );
-
-CREATE INDEX ON images (mime_type);
 
 ALTER TABLE events
     ADD COLUMN image_id UUID;
@@ -56,7 +53,7 @@ FROM events e
          LEFT JOIN tags t ON et.tag_id = t.id
          LEFT JOIN users u ON e.owner_id = u.id
          LEFT JOIN images i_event ON e.image_id = i_event.id
-         LEFT JOIN images i_user ON e.image_id = i_user.id
+         LEFT JOIN images i_user ON u.image_id = i_user.id
 GROUP BY
     e.id,
     u.username,
@@ -86,6 +83,14 @@ GROUP BY u.id, i.path;
 
 -- +goose Down
 -- +goose StatementBegin
+DROP VIEW IF EXISTS event_with_tags_view CASCADE;
+DROP VIEW IF EXISTS user_with_tags_view CASCADE;
+
+DROP TABLE images;
+
+ALTER TABLE events DROP COLUMN image_id;
+ALTER TABLE users DROP COLUMN image_id;
+
 CREATE OR REPLACE VIEW event_with_tags_view AS
 SELECT
     e.id,
@@ -116,9 +121,7 @@ FROM events e
          LEFT JOIN event_tags et ON e.id = et.event_id
          LEFT JOIN tags t ON et.tag_id = t.id
          LEFT JOIN users u ON e.owner_id = u.id
-GROUP BY
-    e.id,
-    u.username;
+GROUP BY e.id, u.username;
 
 CREATE VIEW user_with_tags_view AS
 SELECT
@@ -137,7 +140,4 @@ FROM users u
          LEFT JOIN user_tags ut ON u.id = ut.user_id
          LEFT JOIN tags t ON ut.tag_id = t.id
 GROUP BY u.id;
-
-ALTER TABLE events DROP COLUMN image_id;
-ALTER TABLE users DROP COLUMN image_id;
 -- +goose StatementEnd
