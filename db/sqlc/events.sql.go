@@ -9,6 +9,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -22,7 +23,8 @@ INSERT INTO events (
     address,
     date,
     owner_id,
-    is_private
+    is_private,
+    image_id
 ) VALUES (
              $1,
              $2,
@@ -32,10 +34,11 @@ INSERT INTO events (
              $6,
              $7,
              $8,
-             $9
+             $9,
+             $10
          )
     RETURNING id, name, description, capacity, latitude, longitude,
-    address, date, owner_id, is_private, is_premium, created_at
+    address, date, owner_id, is_private, is_premium, created_at, image_id
 `
 
 type CreateEventParams struct {
@@ -48,6 +51,7 @@ type CreateEventParams struct {
 	Date        time.Time      `json:"date"`
 	OwnerID     int32          `json:"owner_id"`
 	IsPrivate   bool           `json:"is_private"`
+	ImageID     uuid.UUID      `json:"image_id"`
 }
 
 type CreateEventRow struct {
@@ -63,6 +67,7 @@ type CreateEventRow struct {
 	IsPrivate   bool           `json:"is_private"`
 	IsPremium   bool           `json:"is_premium"`
 	CreatedAt   time.Time      `json:"created_at"`
+	ImageID     uuid.UUID      `json:"image_id"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (CreateEventRow, error) {
@@ -76,6 +81,7 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Creat
 		arg.Date,
 		arg.OwnerID,
 		arg.IsPrivate,
+		arg.ImageID,
 	)
 	var i CreateEventRow
 	err := row.Scan(
@@ -91,6 +97,7 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Creat
 		&i.IsPrivate,
 		&i.IsPremium,
 		&i.CreatedAt,
+		&i.ImageID,
 	)
 	return i, err
 }
@@ -1049,7 +1056,7 @@ type UpdateEventParams struct {
 	Address     string         `json:"address"`
 	Date        time.Time      `json:"date"`
 	IsPrivate   bool           `json:"is_private"`
-	ImageID     pgtype.UUID    `json:"image_id"`
+	ImageID     uuid.UUID      `json:"image_id"`
 	ID          int32          `json:"id"`
 }
 

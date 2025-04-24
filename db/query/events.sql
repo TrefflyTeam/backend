@@ -8,7 +8,8 @@ INSERT INTO events (
     address,
     date,
     owner_id,
-    is_private
+    is_private,
+    image_id
 ) VALUES (
              @name,
              @description,
@@ -18,10 +19,11 @@ INSERT INTO events (
              @address,
              @date,
              @owner_id,
-             @is_private
+             @is_private,
+             @image_id
          )
     RETURNING id, name, description, capacity, latitude, longitude,
-    address, date, owner_id, is_private, is_premium, created_at;
+    address, date, owner_id, is_private, is_premium, created_at, image_id;
 
 -- name: GetEvent :one
 SELECT

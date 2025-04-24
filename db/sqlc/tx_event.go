@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"time"
 )
@@ -18,28 +19,35 @@ type CreateEventTxParams struct {
 	OwnerID     int32          `json:"owner_id"`
 	IsPrivate   bool           `json:"is_private"`
 	Tags        []int32        `json:"tags"`
+	ImageID     uuid.UUID      `json:"image_id"`
 }
 
-func (store *SQLStore) CreateEventTx(ctx context.Context, params CreateEventTxParams) (GetEventRow, error) {
+func (store *SQLStore) CreateEventTx(ctx context.Context, eventParams CreateEventTxParams, imageParams CreateImageParams) (GetEventRow, error) {
 	var result GetEventRow
 
 	err := store.execTx(ctx, func(q *Queries) error {
+		_, err := q.CreateImage(ctx, imageParams)
+		if err != nil {
+			return fmt.Errorf("create image error: %w", err)
+		}
+
 		event, err := q.CreateEvent(ctx, CreateEventParams{
-			Name:        params.Name,
-			Description: params.Description,
-			Capacity:    params.Capacity,
-			Latitude:    params.Latitude,
-			Longitude:   params.Longitude,
-			Address:     params.Address,
-			Date:        params.Date,
-			OwnerID:     params.OwnerID,
-			IsPrivate:   params.IsPrivate,
+			Name:        eventParams.Name,
+			Description: eventParams.Description,
+			Capacity:    eventParams.Capacity,
+			Latitude:    eventParams.Latitude,
+			Longitude:   eventParams.Longitude,
+			Address:     eventParams.Address,
+			Date:        eventParams.Date,
+			OwnerID:     eventParams.OwnerID,
+			IsPrivate:   eventParams.IsPrivate,
+			ImageID:     eventParams.ImageID,
 		})
 		if err != nil {
 			return fmt.Errorf("create event error: %w", err)
 		}
 
-		for _, tagID := range params.Tags {
+		for _, tagID := range eventParams.Tags {
 			if _, err = q.AddEventTag(ctx, AddEventTagParams{
 				EventID: event.ID,
 				TagID:   tagID,
@@ -74,11 +82,11 @@ type UpdateEventTxParams struct {
 	Date        time.Time
 	IsPrivate   bool
 	Tags        []int32
+	ImageID     uuid.UUID
 }
 
-
-func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) ( GetEventRow, error) {
-	var result  GetEventRow
+func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) (GetEventRow, error) {
+	var result GetEventRow
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		err := q.UpdateEvent(ctx, UpdateEventParams{
@@ -91,6 +99,7 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 			Address:     arg.Address,
 			Date:        arg.Date,
 			IsPrivate:   arg.IsPrivate,
+			ImageID:     arg.ImageID,
 		})
 		if err != nil {
 			return fmt.Errorf("update event error: %w", err)
