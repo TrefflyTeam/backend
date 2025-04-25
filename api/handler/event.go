@@ -77,6 +77,9 @@ func (h *EventHandler) Create(ctx *gin.Context) {
 
 	createdEvent, err := h.eventService.Create(ctx, params)
 	if err != nil {
+		if path != "" {
+			_ = h.imageService.Delete(path)
+		}
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
