@@ -9,7 +9,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -51,7 +50,7 @@ type CreateEventParams struct {
 	Date        time.Time      `json:"date"`
 	OwnerID     int32          `json:"owner_id"`
 	IsPrivate   bool           `json:"is_private"`
-	ImageID     uuid.UUID      `json:"image_id"`
+	ImageID     pgtype.UUID    `json:"image_id"`
 }
 
 type CreateEventRow struct {
@@ -67,7 +66,7 @@ type CreateEventRow struct {
 	IsPrivate   bool           `json:"is_private"`
 	IsPremium   bool           `json:"is_premium"`
 	CreatedAt   time.Time      `json:"created_at"`
-	ImageID     uuid.UUID      `json:"image_id"`
+	ImageID     pgtype.UUID    `json:"image_id"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (CreateEventRow, error) {
@@ -1056,7 +1055,7 @@ type UpdateEventParams struct {
 	Address     string         `json:"address"`
 	Date        time.Time      `json:"date"`
 	IsPrivate   bool           `json:"is_private"`
-	ImageID     uuid.UUID      `json:"image_id"`
+	ImageID     pgtype.UUID    `json:"image_id"`
 	ID          int32          `json:"id"`
 }
 

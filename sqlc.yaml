@@ -17,10 +17,6 @@ sql:
             go_type:
               type: "Tag"
               slice: true
-          - column: "events.image_id"
-            go_type:
-              import: "github.com/google/uuid"
-              type: "UUID"
           - db_type: "uuid"
             go_type:
               import: "github.com/google/uuid"

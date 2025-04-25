@@ -25,7 +25,7 @@ type Event struct {
 	IsPremium   bool           `json:"is_premium"`
 	CreatedAt   time.Time      `json:"created_at"`
 	Geom        interface{}    `json:"geom"`
-	ImageID     uuid.UUID      `json:"image_id"`
+	ImageID     pgtype.UUID    `json:"image_id"`
 }
 
 type EventTag struct {

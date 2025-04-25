@@ -26,10 +26,17 @@ func (store *SQLStore) CreateEventTx(ctx context.Context, eventParams CreateEven
 	var result GetEventRow
 
 	err := store.execTx(ctx, func(q *Queries) error {
-		_, err := q.CreateImage(ctx, imageParams)
-		if err != nil {
-			return fmt.Errorf("create image error: %w", err)
+		if imageParams.ID != uuid.Nil || imageParams.Path != ""{
+			_, err := q.CreateImage(ctx, imageParams)
+			if err != nil {
+				return fmt.Errorf("create image error: %w", err)
+			}
 		}
+		imageUUID := pgtype.UUID{
+			Bytes: imageParams.ID,
+			Valid: imageParams.ID != uuid.Nil,
+		}
+
 
 		event, err := q.CreateEvent(ctx, CreateEventParams{
 			Name:        eventParams.Name,
@@ -41,7 +48,7 @@ func (store *SQLStore) CreateEventTx(ctx context.Context, eventParams CreateEven
 			Date:        eventParams.Date,
 			OwnerID:     eventParams.OwnerID,
 			IsPrivate:   eventParams.IsPrivate,
-			ImageID:     eventParams.ImageID,
+			ImageID:     imageUUID,
 		})
 		if err != nil {
 			return fmt.Errorf("create event error: %w", err)
@@ -99,7 +106,7 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 			Address:     arg.Address,
 			Date:        arg.Date,
 			IsPrivate:   arg.IsPrivate,
-			ImageID:     arg.ImageID,
+			//ImageID:     arg.ImageID,
 		})
 		if err != nil {
 			return fmt.Errorf("update event error: %w", err)
