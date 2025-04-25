@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	eventdto "treffly/api/dto/event"
 	"treffly/api/handler"
 	eventservice "treffly/api/service/event"
 	geoservice "treffly/api/service/geo"
@@ -68,10 +69,12 @@ func (server *Server) setupRouter() {
 
 	router.Use(ErrorHandler())
 
+	eventConverter := eventdto.NewEventConverter(server.config.Environment, server.config.Domain)
+
 	imageService := imageservice.New(server.imageStore, server.config)
 
-	eventService := eventservice.New(server.store)
-	eventHandler := handler.NewEventHandler(eventService, imageService, server.config)
+	eventService := eventservice.New(server.store, server.config)
+	eventHandler := handler.NewEventHandler(eventService, imageService, server.config, eventConverter)
 
 	userService := userservice.New(server.store, server.tokenMaker, server.config)
 	userHandler := handler.NewUserHandler(userService, imageService, server.config)

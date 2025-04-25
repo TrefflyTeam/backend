@@ -20,13 +20,15 @@ type EventHandler struct {
 	eventService *eventservice.Service
 	imageService *imageservice.Service
 	config       util.Config
+	converter    *eventdto.EventConverter
 }
 
-func NewEventHandler(eventService *eventservice.Service, imageService *imageservice.Service, config util.Config) *EventHandler {
+func NewEventHandler(eventService *eventservice.Service, imageService *imageservice.Service, config util.Config, converter *eventdto.EventConverter) *EventHandler {
 	return &EventHandler{
 		eventService: eventService,
 		imageService: imageService,
 		config:       config,
+		converter:    converter,
 	}
 }
 
@@ -40,19 +42,23 @@ func (h *EventHandler) Create(ctx *gin.Context) {
 	}
 
 	var (
-		imageID uuid.UUID
+		imageID = uuid.Nil
 		path    string
 	)
 
 	file, header, err := ctx.Request.FormFile("image")
-	if err != nil && !errors.Is(err, http.ErrMissingFile) {
+	if err != nil && !errors.Is(err, http.ErrMissingFile){
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
 
-	if err == nil {
+	if err == nil && file != nil {
 		imageID = uuid.New()
 		path, err = h.imageService.Upload(file, header, "event", imageID.String())
+		if err != nil {
+			ctx.Error(apperror.BadRequest.WithCause(err))
+			return
+		}
 	}
 	params := eventservice.CreateParams{
 		Name:        req.Name,
@@ -75,12 +81,9 @@ func (h *EventHandler) Create(ctx *gin.Context) {
 		return
 	}
 
-	imageEventURL := imageservice.ImageURL(h.config.Environment, h.config.Domain, path)
-	imageUserURL := imageservice.ImageURL(h.config.Environment, h.config.Domain, createdEvent.GetUserImagePath())
+	response := h.converter.ToEventWithMetaResponse(createdEvent)
 
-	resp := eventdto.NewCreateEventResponse(eventdto.ConvertEvent(createdEvent), imageEventURL, imageUserURL)
-
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (h *EventHandler) List(ctx *gin.Context) {
@@ -110,7 +113,9 @@ func (h *EventHandler) List(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, eventdto.ConvertEvents(events))
+	resp := h.converter.ToEventsWithImages(events)
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *EventHandler) GetByID(ctx *gin.Context) {
@@ -122,14 +127,13 @@ func (h *EventHandler) GetByID(ctx *gin.Context) {
 
 	userID := common.GetUserIDFromSoftAuth(ctx)
 
-	eventWithStatus, err := h.eventService.GetEventWithStatus(ctx, int32(eventID), userID)
+	eventWithMeta, err := h.eventService.GetEventWithMeta(ctx, int32(eventID), userID)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
-	resp := eventdto.NewEventByIDResponse(eventdto.ConvertEvent(eventWithStatus.Event),
-		eventWithStatus.IsOwner, eventWithStatus.IsParticipant)
+	resp := h.converter.ToEventWithMetaResponse(eventWithMeta)
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -168,7 +172,9 @@ func (h *EventHandler) Update(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, eventdto.ConvertEvent(updatedEvent))
+	resp := h.converter.ToEventWithMetaResponse(updatedEvent)
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *EventHandler) Delete(ctx *gin.Context) {
@@ -212,11 +218,11 @@ func (h *EventHandler) handleSubscription(ctx *gin.Context, subscribe bool) {
 		UserID:  userID,
 	}
 
-	var result eventservice.EventWithStatus
+	var eventWithMeta *eventservice.EventWithMeta
 	if subscribe {
-		result, err = h.eventService.Subscribe(ctx, params)
+		eventWithMeta, err = h.eventService.Subscribe(ctx, params)
 	} else {
-		result, err = h.eventService.Unsubscribe(ctx, params)
+		eventWithMeta, err = h.eventService.Unsubscribe(ctx, params)
 	}
 
 	if err != nil {
@@ -224,7 +230,7 @@ func (h *EventHandler) handleSubscription(ctx *gin.Context, subscribe bool) {
 		return
 	}
 
-	resp := eventdto.NewEventByIDResponse(eventdto.ConvertEvent(result.Event), result.IsOwner, result.IsParticipant)
+	resp := h.converter.ToEventWithMetaResponse(eventWithMeta)
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -237,17 +243,30 @@ func (h *EventHandler) GetHome(ctx *gin.Context) {
 		return
 	}
 
-	homeData, err := h.eventService.GetHome(ctx, eventservice.GetHomeParams{
-		UserID: userID,
-		Lat:    lat,
-		Lon:    lon,
-	})
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
+	var homeEvents *eventservice.HomeEvents
+	if userID > 0 {
+		homeEvents, err = h.eventService.GetHomeForUser(ctx, eventservice.GetHomeParams{
+			UserID: userID,
+			Lat:    lat,
+			Lon:    lon,
+		})
+		if err != nil {
+			ctx.Error(apperror.WrapDBError(err))
+			return
+		}
+	} else {
+		homeEvents, err = h.eventService.GetHomeForGuest(ctx, eventservice.GetHomeParams{
+			UserID: userID,
+			Lat:    lat,
+			Lon:    lon,
+		})
+		if err != nil {
+			ctx.Error(apperror.WrapDBError(err))
+			return
+		}
 	}
 
-	resp := eventdto.NewGetHomeEventsResponse(homeData.Premium, homeData.Recommended, homeData.Latest, homeData.Popular)
+	resp := h.converter.ToHomeEventsResponse(homeEvents)
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -261,7 +280,9 @@ func (h *EventHandler) GetUpcoming(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, eventdto.ConvertEvents(events))
+	resp := h.converter.ToEventsWithImages(events)
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *EventHandler) GetPast(ctx *gin.Context) {
@@ -273,7 +294,9 @@ func (h *EventHandler) GetPast(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, eventdto.ConvertEvents(events))
+	resp := h.converter.ToEventsWithImages(events)
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *EventHandler) GetOwned(ctx *gin.Context) {
@@ -285,7 +308,9 @@ func (h *EventHandler) GetOwned(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, eventdto.ConvertEvents(events))
+	resp := h.converter.ToEventsWithImages(events)
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func parseTagIDs(tagsStr string) ([]int32, error) {

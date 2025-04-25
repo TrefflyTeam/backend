@@ -7,7 +7,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
-	"strings"
 	"treffly/image"
 	"treffly/util"
 )
@@ -56,22 +55,6 @@ func (s *Service) Get(path string) (io.ReadCloser, string, error) {
 
 func (s *Service) Delete(path string) error {
 	return s.imageStore.Delete(path)
-}
-
-func ImageURL(env, domain, path string) string {
-	if path == "" {
-		return ""
-	}
-
-	protocol := "http"
-	if env == "production" {
-		protocol = "https"
-	}
-	normalizedPath := strings.ReplaceAll(path, "\\", "/")
-
-	url := fmt.Sprintf("%s://%s/images/%s", protocol, domain, normalizedPath)
-
-	return url
 }
 
 func isValidImageType(header *multipart.FileHeader) bool {
