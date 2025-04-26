@@ -15,7 +15,8 @@ type Config struct {
 	RefreshTokenDuration  time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
 	YandexGeocoderAPIKey  string        `mapstructure:"Y_GEOCODER_API"`
 	YandexSuggesterAPIKey string        `mapstructure:"Y_SUGGESTER_API"`
-	Domain               string        `mapstructure:"DOMAIN"`
+	Domain                string        `mapstructure:"DOMAIN"`
+	ImageBasePath         string        `mapstructure:"IMAGE_BASE_PATH"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

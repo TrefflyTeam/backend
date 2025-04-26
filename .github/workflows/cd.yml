@@ -34,6 +34,8 @@ jobs:
           echo "Y_SUGGESTER_API=${{ secrets.Y_SUGGESTER_API }}" >> app.env
           echo "Y_GEOCODER_API=${{ secrets.Y_GEOCODER_API }}" >> app.env
           echo "ENVIRONMENT=${{ secrets.ENVIRONMENT }}" >> app.env
+          echo "DOMAIN=${{ secrets.DOMAIN }}" >> app.env
+          echo "IMAGE_BASE_PATH=${{ secrets.IMAGE_BASE_PATH }}" >> app.env
 
       - name: Copy files to the server
         run: |

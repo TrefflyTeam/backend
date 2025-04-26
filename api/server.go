@@ -39,7 +39,7 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 	geocoderClient := geoservice.NewGeocoderClient(config.YandexGeocoderAPIKey)
 	suggesterClient := geoservice.NewSuggestClient(config.YandexSuggesterAPIKey)
 
-	imageStore, err := image.NewLocalStorage("images")
+	imageStore, err := image.NewLocalStorage(config.ImageBasePath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create image store: %w", err)
 	}

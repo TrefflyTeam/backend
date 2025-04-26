@@ -35,7 +35,8 @@ services:
     restart: always
     networks:
       - app-network
-
+    volumes:
+      - /treffly/images:/app/images
   caddy:
     image: caddy:latest
     ports:
