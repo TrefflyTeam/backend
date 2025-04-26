@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"database/sql"
+	"errors"
+	"github.com/google/uuid"
 	"net/http"
 	"treffly/api/common"
 	userdto "treffly/api/dto/user"
@@ -16,13 +19,15 @@ type UserHandler struct {
 	service      *userservice.Service
 	imageService *imageservice.Service
 	config       util.Config
+	converter 	*userdto.UserConverter
 }
 
-func NewUserHandler(service *userservice.Service, imageService *imageservice.Service, config util.Config) *UserHandler {
+func NewUserHandler(service *userservice.Service, imageService *imageservice.Service, config util.Config, converter *userdto.UserConverter) *UserHandler {
 	return &UserHandler{
 		service:      service,
 		imageService: imageService,
 		config:       config,
+		converter:    converter,
 	}
 }
 
@@ -50,7 +55,10 @@ func (h *UserHandler) Create(ctx *gin.Context) {
 	}
 
 	h.setAuthCookies(ctx, accessToken, refreshToken)
-	ctx.JSON(http.StatusOK, userdto.NewLoginResponse(user))
+
+	resp := h.converter.ToUserResponse(user)
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *UserHandler) Login(ctx *gin.Context) {
@@ -67,7 +75,10 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 	}
 
 	h.setAuthCookies(ctx, accessToken, refreshToken)
-	ctx.JSON(http.StatusOK, userdto.NewLoginResponse(user))
+
+	resp := h.converter.ToUserResponse(user)
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *UserHandler) setAuthCookies(ctx *gin.Context, accessToken, refreshToken string) {
@@ -102,7 +113,9 @@ func (h *UserHandler) GetCurrent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, userdto.NewUserWithTagsResponse(user))
+	resp := h.converter.ToUserWithTagsResponse(user)
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *UserHandler) UpdateCurrent(ctx *gin.Context) {
@@ -114,30 +127,94 @@ func (h *UserHandler) UpdateCurrent(ctx *gin.Context) {
 		return
 	}
 
+	var (
+		oldImageID uuid.UUID
+		oldPath    string
+		err error
+	)
+
+	oldImageID, oldPath, err = h.imageService.GetDBImageByUserID(ctx, userID)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			ctx.Error(apperror.WrapDBError(err))
+			return
+		}
+	}
+
+	var (
+		imageID = uuid.Nil
+		path    string
+	)
+
+	file, header, err := ctx.Request.FormFile("image")
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	if err == nil && file != nil && !req.DeleteImage {
+		imageID = uuid.New()
+		path, err = h.imageService.Upload(file, header, "user", imageID.String())
+		if err != nil {
+			ctx.Error(apperror.BadRequest.WithCause(err))
+			return
+		}
+	}
+
 	user, err := h.service.UpdateUser(ctx, userservice.UpdateUserParams{
 		ID:       userID,
 		Username: req.Username,
+		NewImageID: imageID,
+		Path:       path,
+		OldImageID: oldImageID,
+		DeleteImage: req.DeleteImage,
 	})
-
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
-	//id := uuid.New()
-	//url, err := h.imageService.Upload(ctx, "users", id.String())
-	//if err != nil {
-	//	ctx.Error(apperror.WrapDBError(err))
-	//	return
-	//}
+	if req.DeleteImage && oldPath != "" {
+		err = h.imageService.Delete(oldPath) //TODO: make deletes transactional
+		if err != nil {
+			ctx.Error(apperror.WrapDBError(err))
+			return
+		}
+	}
 
-	ctx.JSON(http.StatusOK, userdto.NewUpdateUserResponse(user, ""))
+	if oldPath != "" && file != nil {
+		_ = h.imageService.Delete(oldPath)
+	}
+
+	resp := h.converter.ToUserWithTagsResponse(user)
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *UserHandler) DeleteCurrent(ctx *gin.Context) {
 	userID := common.GetUserIDFromContextPayload(ctx)
 
-	if err := h.service.DeleteUser(ctx, userID); err != nil {
+	_, path, err := h.imageService.GetDBImageByUserID(ctx, userID) //TODO: make deletes transactional
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	if path != "" {
+		err = h.imageService.Delete(path)
+		if err != nil {
+			ctx.Error(apperror.WrapDBError(err))
+			return
+		}
+	}
+
+	if err = h.service.DeleteUser(ctx, userID); err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	err = h.service.DeleteUser(ctx, userID)
+	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}

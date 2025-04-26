@@ -244,10 +244,12 @@ func (h *EventHandler) Delete(ctx *gin.Context) {
 		return
 	}
 
-	err = h.imageService.Delete(path)
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
+	if path != "" {
+		err = h.imageService.Delete(path)
+		if err != nil {
+			ctx.Error(apperror.WrapDBError(err))
+			return
+		}
 	}
 
 	err = h.eventService.Delete(ctx, eventservice.DeleteParams{

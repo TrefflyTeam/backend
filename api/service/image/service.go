@@ -89,3 +89,12 @@ func (s *Service) GetDBImageByEventID(ctx context.Context, eventID int32) (uuid.
 
 	return img.ID, img.Path, err
 }
+
+func (s *Service) GetDBImageByUserID(ctx context.Context, userID int32) (uuid.UUID, string, error) {
+	img, err := s.store.GetImageByUserID(ctx, userID)
+	if err != nil {
+		return uuid.Nil, "", err
+	}
+
+	return img.ID, img.Path, err
+}
