@@ -288,6 +288,9 @@ func (h *EventHandler) handleSubscription(ctx *gin.Context, subscribe bool) {
 	var eventWithMeta *eventservice.EventWithMeta
 	if subscribe {
 		eventWithMeta, err = h.eventService.Subscribe(ctx, params)
+		if err != nil {
+			ctx.Error(apperror.BadRequest.WithCause(err))
+		}
 	} else {
 		eventWithMeta, err = h.eventService.Unsubscribe(ctx, params)
 	}

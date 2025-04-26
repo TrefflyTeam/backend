@@ -251,6 +251,15 @@ func (s *Service) Subscribe(ctx context.Context, params SubscriptionParams) (*Ev
 		UserID:  params.UserID,
 	}
 
+	event, err := s.store.GetEvent(ctx, params.EventID)
+	if err != nil {
+		return nil, err
+	}
+
+	if event.OwnerID == params.UserID {
+		return nil, fmt.Errorf("user is owner")
+	}
+
 	if err := s.store.SubscribeToEvent(ctx, arg); err != nil {
 		return nil, err
 	}
