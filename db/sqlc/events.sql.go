@@ -456,11 +456,9 @@ SELECT
     e.participants_count,
     e.event_image_path
 FROM event_with_tags_view e
-         LEFT JOIN event_user eu
-                   ON e.id = eu.event_id
-                       AND eu.user_id = $1
+         JOIN event_user eu ON e.id = eu.event_id
 WHERE
-    (e.owner_id = $1 OR eu.event_id IS NOT NULL)
+    eu.user_id = $1
   AND e.date < NOW()
 ORDER BY
     e.date DESC
@@ -702,11 +700,9 @@ SELECT
     e.participants_count,
     e.event_image_path
 FROM event_with_tags_view e
-         LEFT JOIN event_user eu
-             ON e.id = eu.event_id
-                 AND eu.user_id = $1
+         JOIN event_user eu ON e.id = eu.event_id
 WHERE
-    (e.owner_id = $1 OR eu.event_id IS NOT NULL)
+    eu.user_id = $1
   AND e.date > NOW()
 ORDER BY
     e.date ASC
