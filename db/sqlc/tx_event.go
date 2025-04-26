@@ -26,7 +26,7 @@ func (store *SQLStore) CreateEventTx(ctx context.Context, eventParams CreateEven
 	var result GetEventRow
 
 	err := store.execTx(ctx, func(q *Queries) error {
-		if imageParams.ID != uuid.Nil || imageParams.Path != ""{
+		if imageParams.ID != uuid.Nil || imageParams.Path != "" {
 			_, err := q.CreateImage(ctx, imageParams)
 			if err != nil {
 				return fmt.Errorf("create image error: %w", err)
@@ -36,7 +36,6 @@ func (store *SQLStore) CreateEventTx(ctx context.Context, eventParams CreateEven
 			Bytes: imageParams.ID,
 			Valid: imageParams.ID != uuid.Nil,
 		}
-
 
 		event, err := q.CreateEvent(ctx, CreateEventParams{
 			Name:        eventParams.Name,
@@ -89,13 +88,35 @@ type UpdateEventTxParams struct {
 	Date        time.Time
 	IsPrivate   bool
 	Tags        []int32
-	ImageID     uuid.UUID
+	NewImageID  uuid.UUID
+	NewPath     string
+	OldImageID  uuid.UUID
 }
 
 func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) (GetEventRow, error) {
 	var result GetEventRow
 
 	err := store.execTx(ctx, func(q *Queries) error {
+		newImageID := arg.NewImageID
+		if arg.NewImageID == arg.OldImageID {
+			newImageID = arg.OldImageID
+		}
+		newImageUUID := pgtype.UUID{
+			Bytes: newImageID,
+			Valid: newImageID != uuid.Nil,
+		}
+
+		if newImageUUID.Valid && arg.NewPath != "" && arg.OldImageID != arg.NewImageID{
+			imageArg := CreateImageParams{
+				arg.NewImageID,
+				arg.NewPath,
+			}
+			_, err := q.CreateImage(ctx, imageArg)
+			if err != nil {
+				return fmt.Errorf("create image error: %w", err)
+			}
+		}
+
 		err := q.UpdateEvent(ctx, UpdateEventParams{
 			ID:          arg.EventID,
 			Name:        arg.Name,
@@ -106,7 +127,7 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 			Address:     arg.Address,
 			Date:        arg.Date,
 			IsPrivate:   arg.IsPrivate,
-			//ImageID:     arg.ImageID,
+			ImageID:     newImageUUID,
 		})
 		if err != nil {
 			return fmt.Errorf("update event error: %w", err)
@@ -124,6 +145,18 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 			})
 			if err != nil {
 				return fmt.Errorf("add new tag %d error: %w", tagID, err)
+			}
+		}
+
+		oldImageUUID := pgtype.UUID{
+			Bytes: arg.OldImageID,
+			Valid: arg.OldImageID != uuid.Nil,
+		}
+
+		if oldImageUUID.Valid && arg.OldImageID != arg.NewImageID {
+			err = q.DeleteImage(ctx, oldImageUUID.Bytes)
+			if err != nil {
+				return fmt.Errorf("delete old image error: %w", err)
 			}
 		}
 

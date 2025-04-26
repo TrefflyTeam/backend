@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -47,7 +48,7 @@ func (h *EventHandler) Create(ctx *gin.Context) {
 	)
 
 	file, header, err := ctx.Request.FormFile("image")
-	if err != nil && !errors.Is(err, http.ErrMissingFile){
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
@@ -150,9 +151,42 @@ func (h *EventHandler) Update(ctx *gin.Context) {
 	}
 
 	var req eventdto.UpdateEventRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBind(&req); err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
+	}
+
+	var (
+		oldImageID uuid.UUID
+		oldPath    string
+	)
+
+	oldImageID, oldPath, err = h.imageService.GetDBImageByEventID(ctx, int32(eventID))
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			ctx.Error(apperror.WrapDBError(err))
+			return
+		}
+	}
+
+	var (
+		imageID = uuid.Nil
+		path    string
+	)
+
+	file, header, err := ctx.Request.FormFile("image")
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	if err == nil && file != nil && !req.DeleteImage {
+		imageID = uuid.New()
+		path, err = h.imageService.Upload(file, header, "event", imageID.String())
+		if err != nil {
+			ctx.Error(apperror.BadRequest.WithCause(err))
+			return
+		}
 	}
 
 	params := eventservice.UpdateParams{
@@ -167,12 +201,28 @@ func (h *EventHandler) Update(ctx *gin.Context) {
 		IsPrivate:   req.IsPrivate,
 		Tags:        req.Tags,
 		UserID:      userID,
+		Path:        path,
+		NewImageID:  imageID,
+		DeleteImage: req.DeleteImage,
+		OldImageID:  oldImageID,
 	}
 
 	updatedEvent, err := h.eventService.Update(ctx, params)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
+	}
+
+	if req.DeleteImage && oldPath != "" {
+		err = h.imageService.Delete(oldPath)
+		if err != nil {
+			ctx.Error(apperror.WrapDBError(err))
+			return
+		}
+	}
+
+	if oldPath != "" && file != nil {
+		_ = h.imageService.Delete(oldPath)
 	}
 
 	resp := h.converter.ToEventWithMetaResponse(updatedEvent)

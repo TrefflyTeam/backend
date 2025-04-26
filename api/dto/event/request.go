@@ -27,4 +27,5 @@ type UpdateEventRequest struct {
 	Date        time.Time      `json:"date" binding:"required,valid_date"`
 	IsPrivate   bool           `json:"is_private" binding:"boolean"`
 	Tags        []int32        `json:"tags" binding:"required,min=1,max=3,dive,required,positive"`
+	DeleteImage bool           `json:"delete_image" binding:"boolean"`
 }

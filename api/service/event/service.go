@@ -3,6 +3,7 @@ package eventservice
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
 	"treffly/util"
@@ -77,6 +78,17 @@ func (s *Service) Update(ctx context.Context, params UpdateParams) (*EventWithMe
 		return nil, apperror.Forbidden.WithCause(err)
 	}
 
+	imageID := params.NewImageID
+	path := params.Path
+	if params.DeleteImage {
+		imageID = uuid.Nil
+		path = ""
+	}
+	if !params.DeleteImage && params.NewImageID == uuid.Nil {
+		imageID = event.ImageID.Bytes
+		path = event.EventImagePath.String
+	}
+
 	arg := db.UpdateEventTxParams{
 		EventID:     params.EventID,
 		Name:        params.Name,
@@ -88,6 +100,9 @@ func (s *Service) Update(ctx context.Context, params UpdateParams) (*EventWithMe
 		Date:        params.Date,
 		IsPrivate:   params.IsPrivate,
 		Tags:        params.Tags,
+		NewImageID:  imageID,
+		NewPath:     path,
+		OldImageID:  params.OldImageID,
 	}
 
 	event, err = s.store.UpdateEventTx(ctx, arg)
@@ -121,7 +136,7 @@ func (s *Service) GetHomeForUser(ctx context.Context, params GetHomeParams) (*Ho
 	}
 
 	arg := db.GetUserRecommendedEventsParams{
-		UserID: params.UserID,
+		UserID:  params.UserID,
 		UserLon: params.Lon,
 		UserLat: params.Lat,
 	}

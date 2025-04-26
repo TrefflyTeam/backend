@@ -71,7 +71,7 @@ func (server *Server) setupRouter() {
 
 	eventConverter := eventdto.NewEventConverter(server.config.Environment, server.config.Domain)
 
-	imageService := imageservice.New(server.imageStore, server.config)
+	imageService := imageservice.New(server.imageStore, server.config, server.store)
 
 	eventService := eventservice.New(server.store, server.config)
 	eventHandler := handler.NewEventHandler(eventService, imageService, server.config, eventConverter)

@@ -1,25 +1,30 @@
 package imageservice
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
+	db "treffly/db/sqlc"
 	"treffly/image"
 	"treffly/util"
 )
 
 type Service struct {
 	imageStore image.Store
+	store      db.Store
 	config     util.Config
 }
 
-func New(imageStore image.Store, config util.Config) *Service {
+func New(imageStore image.Store, config util.Config, store db.Store) *Service {
 	return &Service{
 		imageStore: imageStore,
 		config:     config,
+		store:      store,
 	}
 }
 
@@ -46,7 +51,6 @@ func (s *Service) Upload(file multipart.File, header *multipart.FileHeader, objT
 func (s *Service) Get(path string) (io.ReadCloser, string, error) {
 	reader, mimeType, err := s.imageStore.Get(path)
 	if err != nil {
-
 		return nil, "", err
 	}
 
@@ -74,4 +78,14 @@ func isValidImageType(header *multipart.FileHeader) bool {
 
 	mimeType := http.DetectContentType(buffer)
 	return allowedTypes[mimeType]
+}
+
+
+func (s *Service) GetDBImageByEventID(ctx context.Context, eventID int32) (uuid.UUID, string, error) {
+	img, err := s.store.GetImageByEventID(ctx, eventID)
+	if err != nil {
+		return uuid.Nil, "", err
+	}
+
+	return img.ID, img.Path, err
 }

@@ -127,6 +127,7 @@ SELECT
     is_premium,
     created_at,
     tags,
+    image_id,
     participants_count,
     event_image_path,
     user_image_path
@@ -149,6 +150,7 @@ type GetEventRow struct {
 	IsPremium         bool           `json:"is_premium"`
 	CreatedAt         time.Time      `json:"created_at"`
 	Tags              []Tag          `json:"tags"`
+	ImageID           pgtype.UUID    `json:"image_id"`
 	ParticipantsCount int64          `json:"participants_count"`
 	EventImagePath    pgtype.Text    `json:"event_image_path"`
 	UserImagePath     pgtype.Text    `json:"user_image_path"`
@@ -172,6 +174,7 @@ func (q *Queries) GetEvent(ctx context.Context, id int32) (GetEventRow, error) {
 		&i.IsPremium,
 		&i.CreatedAt,
 		&i.Tags,
+		&i.ImageID,
 		&i.ParticipantsCount,
 		&i.EventImagePath,
 		&i.UserImagePath,

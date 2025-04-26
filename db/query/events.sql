@@ -41,6 +41,7 @@ SELECT
     is_premium,
     created_at,
     tags,
+    image_id,
     participants_count,
     event_image_path,
     user_image_path

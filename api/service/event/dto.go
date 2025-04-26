@@ -94,7 +94,10 @@ type UpdateParams struct {
 	IsPrivate   bool
 	Tags        []int32
 	UserID      int32
-	ImageID     uuid.UUID
+	NewImageID  uuid.UUID
+	Path        string
+	DeleteImage bool
+	OldImageID  uuid.UUID
 }
 
 type DeleteParams struct {

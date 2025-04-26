@@ -27,7 +27,7 @@ func NewLocalStorage(basePath string) (LocalStorage, error) {
 	return LocalStorage{BasePath: basePath}, nil
 }
 
-func (s LocalStorage) 	Upload(file io.Reader, filename string) (string, error) {
+func (s LocalStorage) Upload(file io.Reader, filename string) (string, error) {
 	path := filepath.Join(s.BasePath, filename)
 	out, err := os.Create(path)
 	if err != nil {
