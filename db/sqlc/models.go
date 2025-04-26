@@ -51,13 +51,13 @@ type EventWithTagsView struct {
 	IsPrivate         bool           `json:"is_private"`
 	IsPremium         bool           `json:"is_premium"`
 	CreatedAt         time.Time      `json:"created_at"`
-	ImageID           pgtype.UUID    `json:"image_id"`
 	Tags              []Tag          `json:"tags"`
 	Geom              interface{}    `json:"geom"`
 	OwnerUsername     pgtype.Text    `json:"owner_username"`
 	ParticipantsCount int64          `json:"participants_count"`
 	EventImagePath    pgtype.Text    `json:"event_image_path"`
 	UserImagePath     pgtype.Text    `json:"user_image_path"`
+	ImageID           pgtype.UUID    `json:"image_id"`
 }
 
 type Image struct {

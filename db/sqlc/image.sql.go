@@ -56,3 +56,16 @@ func (q *Queries) GetImageByEventID(ctx context.Context, id int32) (Image, error
 	err := row.Scan(&i.ID, &i.Path)
 	return i, err
 }
+
+const getImageByUserID = `-- name: GetImageByUserID :one
+SELECT i.id, i.path
+FROM images i LEFT JOIN users u ON u.image_id = i.id
+WHERE u.id = $1
+`
+
+func (q *Queries) GetImageByUserID(ctx context.Context, id int32) (Image, error) {
+	row := q.db.QueryRow(ctx, getImageByUserID, id)
+	var i Image
+	err := row.Scan(&i.ID, &i.Path)
+	return i, err
+}

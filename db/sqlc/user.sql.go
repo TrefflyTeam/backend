@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -198,18 +200,20 @@ func (q *Queries) UnsubscribeFromEvent(ctx context.Context, arg UnsubscribeFromE
 
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
-SET username = $2
+SET username = $2,
+    image_id = $3
 WHERE id = $1
 RETURNING id, username, email, password_hash, created_at, is_admin, image_id
 `
 
 type UpdateUserParams struct {
-	ID       int32  `json:"id"`
-	Username string `json:"username"`
+	ID       int32       `json:"id"`
+	Username string      `json:"username"`
+	ImageID  pgtype.UUID `json:"image_id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Username)
+	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Username, arg.ImageID)
 	var i User
 	err := row.Scan(
 		&i.ID,

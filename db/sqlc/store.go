@@ -10,6 +10,7 @@ type Store interface {
 	CreateEventTx(ctx context.Context, eventParams CreateEventTxParams, imageParams CreateImageParams) (GetEventRow, error)
 	UpdateEventTx(ctx context.Context, params UpdateEventTxParams) (GetEventRow, error)
 	UpdateUserTagsTx(ctx context.Context, params UpdateUserTagsTxParams) error
+	UpdateUserTx(ctx context.Context, params UpdateUserTxParams) (UserWithTagsView, error)
 }
 
 type SQLStore struct {
