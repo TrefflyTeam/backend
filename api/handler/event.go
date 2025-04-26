@@ -214,7 +214,7 @@ func (h *EventHandler) Update(ctx *gin.Context) {
 	}
 
 	if req.DeleteImage && oldPath != "" {
-		err = h.imageService.Delete(oldPath)
+		err = h.imageService.Delete(oldPath) //TODO: make deletes transactional
 		if err != nil {
 			ctx.Error(apperror.WrapDBError(err))
 			return
@@ -235,6 +235,18 @@ func (h *EventHandler) Delete(ctx *gin.Context) {
 	eventID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	_, path, err := h.imageService.GetDBImageByEventID(ctx, int32(eventID)) //TODO: make deletes transactional
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
+		return
+	}
+
+	err = h.imageService.Delete(path)
+	if err != nil {
+		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
