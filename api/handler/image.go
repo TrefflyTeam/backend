@@ -2,9 +2,9 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
-	"net/http"
 	"os"
 	"strings"
 	imageservice "treffly/api/service/image"
@@ -25,7 +25,8 @@ func (h *ImageHandler) Get(ctx *gin.Context) {
 	path := ctx.Param("path")
 
 	if strings.Contains(path, "..") || strings.Contains(path, "//") {
-		ctx.AbortWithStatusJSON(400, gin.H{"error": "invalid path"})
+		err := fmt.Errorf("invalid path: %s", path)
+		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
 
@@ -44,6 +45,7 @@ func (h *ImageHandler) Get(ctx *gin.Context) {
 
 	_, err = io.Copy(ctx.Writer, reader)
 	if err != nil {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
 	}
 }
