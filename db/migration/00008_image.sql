@@ -4,21 +4,35 @@ CREATE TABLE images (
                         id UUID PRIMARY KEY,
                         path TEXT NOT NULL
 );
+ALTER TABLE events ADD COLUMN IF NOT EXISTS image_id UUID;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS image_id UUID;
 
 ALTER TABLE events
-    ADD COLUMN image_id UUID;
+    ALTER COLUMN image_id DROP NOT NULL;
 
 ALTER TABLE events
-    ADD FOREIGN KEY (image_id) REFERENCES images (id) ON DELETE CASCADE;
+DROP CONSTRAINT IF EXISTS events_image_id_fkey;
+
+ALTER TABLE events
+    ADD CONSTRAINT events_image_id_fkey
+        FOREIGN KEY (image_id)
+            REFERENCES images(id)
+            ON DELETE SET NULL;
 
 ALTER TABLE users
-    ADD COLUMN image_id UUID;
+    ALTER COLUMN image_id DROP NOT NULL;
 
 ALTER TABLE users
-    ADD FOREIGN KEY (image_id) REFERENCES images (id) ON DELETE CASCADE;
+DROP CONSTRAINT IF EXISTS users_image_id_fkey;
 
-CREATE INDEX idx_events_image_id ON events(image_id);
-CREATE INDEX idx_users_image_id ON users(image_id);
+ALTER TABLE users
+    ADD CONSTRAINT users_image_id_fkey
+        FOREIGN KEY (image_id)
+            REFERENCES images(id)
+            ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_events_image_id ON events(image_id);
+CREATE INDEX IF NOT EXISTS idx_users_image_id ON users(image_id);
 
 CREATE OR REPLACE VIEW event_with_tags_view AS
 SELECT
@@ -47,7 +61,8 @@ SELECT
      FROM event_user eu
      WHERE eu.event_id = e.id) AS participants_count,
      i_event.path AS event_image_path,
-     i_user.path AS user_image_path
+     i_user.path AS user_image_path,
+     e.image_id
 FROM events e
          LEFT JOIN event_tags et ON e.id = et.event_id
          LEFT JOIN tags t ON et.tag_id = t.id
@@ -86,10 +101,11 @@ GROUP BY u.id, i.path;
 DROP VIEW IF EXISTS event_with_tags_view CASCADE;
 DROP VIEW IF EXISTS user_with_tags_view CASCADE;
 
-DROP TABLE images;
-
 ALTER TABLE events DROP COLUMN image_id;
 ALTER TABLE users DROP COLUMN image_id;
+
+DROP TABLE images;
+
 
 CREATE OR REPLACE VIEW event_with_tags_view AS
 SELECT
@@ -140,4 +156,6 @@ FROM users u
          LEFT JOIN user_tags ut ON u.id = ut.user_id
          LEFT JOIN tags t ON ut.tag_id = t.id
 GROUP BY u.id;
+
+
 -- +goose StatementEnd
