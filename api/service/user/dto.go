@@ -5,6 +5,24 @@ import (
 	"time"
 )
 
+type User struct {
+	ID           int32
+	Username     string
+	Email        string
+	CreatedAt    time.Time
+}
+
+type UserWithTags struct {
+	User
+	Tags      []Tag
+	ImagePath string
+}
+
+type Tag struct {
+	ID   int32
+	Name string
+}
+
 type CreateParams struct {
 	Username string
 	Email    string
@@ -24,8 +42,12 @@ type RefreshSessionParams struct {
 }
 
 type UpdateUserParams struct {
-	ID       int32
-	Username string
+	ID          int32
+	Username    string
+	NewImageID  uuid.UUID
+	Path        string
+	OldImageID  uuid.UUID
+	DeleteImage bool
 }
 
 type UpdateUserTagsParams struct {
