@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/google/uuid"
 	"treffly/apperror"
 	"treffly/db/sqlc"
 	"treffly/token"
@@ -24,10 +25,10 @@ func New(store db.Store, tokenMaker token.Maker, config util.Config) *Service {
 	}
 }
 
-func (s *Service) CreateUser(ctx context.Context, params CreateParams) (db.User, error) {
+func (s *Service) CreateUser(ctx context.Context, params CreateParams) (*User, error) {
 	hashedPassword, err := util.HashPassword(params.Password)
 	if err != nil {
-		return db.User{}, apperror.InternalServer.WithCause(err)
+		return nil, apperror.InternalServer.WithCause(err)
 	}
 
 	user, err := s.store.CreateUser(ctx, db.CreateUserParams{
@@ -36,30 +37,32 @@ func (s *Service) CreateUser(ctx context.Context, params CreateParams) (db.User,
 		PasswordHash: hashedPassword,
 	})
 
-	return user, err
+	resp := ConvertUser(user)
+
+	return &resp, err
 }
 
-func (s *Service) LoginUser(ctx context.Context, email, password string) (db.User, string, string, error) {
+func (s *Service) LoginUser(ctx context.Context, email, password string) (*User, string, string, error) {
 	user, err := s.store.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return db.User{}, "", "", apperror.InvalidCredentials.WithCause(err)
+			return nil, "", "", apperror.InvalidCredentials.WithCause(err)
 		}
-		return db.User{}, "", "", err
+		return nil, "", "", err
 	}
 
 	if err := util.CheckPassword(password, user.PasswordHash); err != nil {
-		return db.User{}, "", "", apperror.InvalidCredentials.WithCause(err)
+		return nil, "", "", apperror.InvalidCredentials.WithCause(err)
 	}
 
 	accessToken, _, err := s.tokenMaker.CreateToken(user.ID, s.config.AccessTokenDuration)
 	if err != nil {
-		return db.User{}, "", "", apperror.InternalServer.WithCause(err)
+		return nil, "", "", apperror.InternalServer.WithCause(err)
 	}
 
 	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(user.ID, s.config.RefreshTokenDuration)
 	if err != nil {
-		return db.User{}, "", "", apperror.InternalServer.WithCause(err)
+		return nil, "", "", apperror.InternalServer.WithCause(err)
 	}
 
 	err = s.store.CreateSession(ctx, db.CreateSessionParams{
@@ -70,10 +73,12 @@ func (s *Service) LoginUser(ctx context.Context, email, password string) (db.Use
 		IsBlocked:    false,
 	})
 	if err != nil {
-		return db.User{}, "", "", err
+		return nil, "", "", err
 	}
 
-	return user, accessToken, refreshToken, nil
+	resp := ConvertUser(user)
+
+	return &resp, accessToken, refreshToken, nil
 }
 
 func (s *Service) CreateAuthSession(ctx context.Context, userID int32) (string, string, error) {
@@ -98,25 +103,46 @@ func (s *Service) CreateAuthSession(ctx context.Context, userID int32) (string, 
 	return accessToken, refreshToken, err
 }
 
-func (s *Service) GetUserWithTags(ctx context.Context, userID int32) (db.UserWithTagsView, error) {
+func (s *Service) GetUserWithTags(ctx context.Context, userID int32) (*UserWithTags, error) {
 	user, err := s.store.GetUserWithTags(ctx, userID)
-	return user, err
+
+	resp := ConvertUserWithTags(user)
+
+	return &resp, err
 }
 
-func (s *Service) UpdateUser(ctx context.Context, params UpdateUserParams) (db.UserWithTagsView, error) {
-	_, err := s.store.UpdateUser(ctx, db.UpdateUserParams{
-		ID:       params.ID,
-		Username: params.Username,
-	})
+func (s *Service) UpdateUser(ctx context.Context, params UpdateUserParams) (*UserWithTags, error) {
+	user, err := s.store.GetUser(ctx, params.ID)
 	if err != nil {
-		return db.UserWithTagsView{}, err
+		return nil, err
 	}
 
-	user, err := s.store.GetUserWithTags(ctx, params.ID)
-	if err != nil {
-		return db.UserWithTagsView{}, err
+	imageID := params.NewImageID
+	path := params.Path
+	if params.DeleteImage {
+		imageID = uuid.Nil
+		path = ""
 	}
-	return user, nil
+	if !params.DeleteImage && params.NewImageID == uuid.Nil {
+		imageID = user.ImageID.Bytes
+	}
+
+	arg := db.UpdateUserTxParams{
+		UserID:       params.ID,
+		Username:     params.Username,
+		NewImageID:   imageID,
+		NewPath:      path,
+		OldImageID:   user.ImageID.Bytes,
+	}
+
+	updatedUser, err := s.store.UpdateUserTx(ctx, arg)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := ConvertUserWithTags(updatedUser)
+
+	return &resp, err
 }
 
 func (s *Service) UpdateUserTags(ctx context.Context, params UpdateUserTagsParams) error {

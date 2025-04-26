@@ -20,7 +20,7 @@ var (
 	GeneralBadRequest = ErrorTemplate{
 		HTTPCode: http.StatusBadRequest,
 		Title:    "Ошибка запроса",
-		Subtitle: "Перезагрузите страницу",
+		Subtitle: "Перезагрузи страницу",
 	}
 
 	NotFound = ErrorTemplate{
@@ -32,43 +32,43 @@ var (
 	InvalidCredentials = ErrorTemplate{
 		HTTPCode: http.StatusUnauthorized,
 		Title:    "Неверный логин или пароль",
-		Subtitle: "Попробуйте ещё раз",
+		Subtitle: "Попробуй ещё раз",
 	}
 
 	TokenExpired = ErrorTemplate{
 		HTTPCode: http.StatusUnauthorized,
 		Title:    "Сессия завершена",
-		Subtitle: "Войдите снова, чтобы продолжить",
+		Subtitle: "Войди снова, чтобы продолжить",
 	}
 
 	EmailTaken = ErrorTemplate{
 		HTTPCode: http.StatusBadRequest,
 		Title:    "Почта уже занята",
-		Subtitle: "Укажите другую почту или войдите в аккаунт",
+		Subtitle: "Укажи другую почту или войдите в аккаунт",
 	}
 
 	BadRequest = ErrorTemplate{
 		HTTPCode: http.StatusBadRequest,
 		Title:    "Некорректные данные",
-		Subtitle: "Проверьте введённую информацию и попробуйте снова",
+		Subtitle: "Проверь введённую информацию и попробуй снова",
 	}
 
 	Forbidden = ErrorTemplate{
 		HTTPCode: http.StatusForbidden,
 		Title:    "Недостаточно прав",
-		Subtitle: "У вас нет доступа к этому разделу",
+		Subtitle: "У тебя нет доступа к этому разделу",
 	}
 
 	InternalServer = ErrorTemplate{
 		HTTPCode: http.StatusInternalServerError,
 		Title:    "Ошибка сервера",
-		Subtitle: "Что-то пошло не так. Попробуйте позже",
+		Subtitle: "Что-то пошло не так. Попробуй позже",
 	}
 
 	BadGateway = ErrorTemplate{
 		HTTPCode: http.StatusBadGateway,
 		Title:    "Сервер не отвечает",
-		Subtitle: "Запрос занял слишком много времени. Попробуйте позже",
+		Subtitle: "Запрос занял слишком много времени. Попробуй позже",
 	}
 )
 

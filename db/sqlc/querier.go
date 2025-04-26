@@ -14,15 +14,19 @@ type Querier interface {
 	AddEventTag(ctx context.Context, arg AddEventTagParams) (EventTag, error)
 	AddUserTags(ctx context.Context, arg AddUserTagsParams) error
 	CreateEvent(ctx context.Context, arg CreateEventParams) (CreateEventRow, error)
+	CreateImage(ctx context.Context, arg CreateImageParams) (Image, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAllEventTags(ctx context.Context, eventID int32) error
 	DeleteEvent(ctx context.Context, id int32) error
+	DeleteImage(ctx context.Context, id uuid.UUID) error
 	DeleteUser(ctx context.Context, id int32) error
 	DeleteUserTags(ctx context.Context, userID int32) error
 	GetAllUserTags(ctx context.Context, id int32) ([]Tag, error)
 	GetEvent(ctx context.Context, id int32) (GetEventRow, error)
 	GetGuestRecommendedEvents(ctx context.Context, arg GetGuestRecommendedEventsParams) ([]GetGuestRecommendedEventsRow, error)
+	GetImageByEventID(ctx context.Context, id int32) (Image, error)
+	GetImageByUserID(ctx context.Context, id int32) (Image, error)
 	GetLatestEvents(ctx context.Context) ([]GetLatestEventsRow, error)
 	GetOwnedUserEvents(ctx context.Context, userID int32) ([]GetOwnedUserEventsRow, error)
 	GetPastUserEvents(ctx context.Context, userID int32) ([]GetPastUserEventsRow, error)

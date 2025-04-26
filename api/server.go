@@ -5,24 +5,29 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	eventdto "treffly/api/dto/event"
+	userdto "treffly/api/dto/user"
 	"treffly/api/handler"
 	eventservice "treffly/api/service/event"
 	geoservice "treffly/api/service/geo"
+	imageservice "treffly/api/service/image"
 	tagservice "treffly/api/service/tag"
 	tokenservice "treffly/api/service/token"
 	userservice "treffly/api/service/user"
 	db "treffly/db/sqlc"
+	"treffly/image"
 	"treffly/token"
 	"treffly/util"
 )
 
 type Server struct {
-	config         util.Config
-	store          db.Store
-	tokenMaker     token.Maker
-	router         *gin.Engine
+	config        util.Config
+	store         db.Store
+	tokenMaker    token.Maker
+	router        *gin.Engine
 	geocodeClient *geoservice.GeocoderClient
 	suggestClient  *geoservice.SuggestClient
+	imageStore    image.Store
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -33,12 +38,19 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 
 	geocoderClient := geoservice.NewGeocoderClient(config.YandexGeocoderAPIKey)
 	suggesterClient := geoservice.NewSuggestClient(config.YandexSuggesterAPIKey)
+
+	imageStore, err := image.NewLocalStorage(config.ImageBasePath)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create image store: %w", err)
+	}
+
 	server := &Server{
 		store:      store,
 		tokenMaker: tokenMaker,
 		config:     config,
 		geocodeClient: geocoderClient,
 		suggestClient: suggesterClient,
+		imageStore:    imageStore,
 	}
 
 	err = server.registerValidators()
@@ -58,11 +70,16 @@ func (server *Server) setupRouter() {
 
 	router.Use(ErrorHandler())
 
-	eventService := eventservice.New(server.store)
-	eventHandler := handler.NewEventHandler(eventService)
+	eventConverter := eventdto.NewEventConverter(server.config.Environment, server.config.Domain)
+	userConverter := userdto.NewUserConverter(server.config.Environment, server.config.Domain)
+
+	imageService := imageservice.New(server.imageStore, server.config, server.store)
+
+	eventService := eventservice.New(server.store, server.config)
+	eventHandler := handler.NewEventHandler(eventService, imageService, server.config, eventConverter)
 
 	userService := userservice.New(server.store, server.tokenMaker, server.config)
-	userHandler := handler.NewUserHandler(userService, server.config)
+	userHandler := handler.NewUserHandler(userService, imageService, server.config, userConverter)
 
 	tagService := tagservice.New(server.store)
 	tagHandler := handler.NewTagHandler(tagService)
@@ -73,12 +90,16 @@ func (server *Server) setupRouter() {
 	tokenService := tokenservice.New(server.store, server.tokenMaker, server.config)
 	tokenHandler := handler.NewTokenHandler(tokenService, server.config)
 
+	imageHandler := handler.NewImageHandler(imageService)
+
 	router.POST("/users", userHandler.Create)
 	router.POST("/login", userHandler.Login)
 	router.POST("/auth/refresh", tokenHandler.RefreshTokens)
 	router.GET("/auth", userHandler.Auth)
 	router.GET("/tags", tagHandler.GetTags)
 	router.GET("/events", eventHandler.List)
+
+	router.GET("/images/*path", imageHandler.Get)
 
 	router.GET("/geocode", geoHandler.Geocode)
 	router.GET("/suggest/addresses", geoHandler.Suggest)

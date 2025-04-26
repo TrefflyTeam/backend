@@ -25,6 +25,7 @@ type Event struct {
 	IsPremium   bool           `json:"is_premium"`
 	CreatedAt   time.Time      `json:"created_at"`
 	Geom        interface{}    `json:"geom"`
+	ImageID     pgtype.UUID    `json:"image_id"`
 }
 
 type EventTag struct {
@@ -54,6 +55,14 @@ type EventWithTagsView struct {
 	Geom              interface{}    `json:"geom"`
 	OwnerUsername     pgtype.Text    `json:"owner_username"`
 	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
+	UserImagePath     pgtype.Text    `json:"user_image_path"`
+	ImageID           pgtype.UUID    `json:"image_id"`
+}
+
+type Image struct {
+	ID   uuid.UUID `json:"id"`
+	Path string    `json:"path"`
 }
 
 type Session struct {
@@ -71,12 +80,13 @@ type Tag struct {
 }
 
 type User struct {
-	ID           int32     `json:"id"`
-	Username     string    `json:"username"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"password_hash"`
-	CreatedAt    time.Time `json:"created_at"`
-	IsAdmin      bool      `json:"is_admin"`
+	ID           int32       `json:"id"`
+	Username     string      `json:"username"`
+	Email        string      `json:"email"`
+	PasswordHash string      `json:"password_hash"`
+	CreatedAt    time.Time   `json:"created_at"`
+	IsAdmin      bool        `json:"is_admin"`
+	ImageID      pgtype.UUID `json:"image_id"`
 }
 
 type UserTag struct {
@@ -85,9 +95,10 @@ type UserTag struct {
 }
 
 type UserWithTagsView struct {
-	ID        int32     `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	Tags      []Tag     `json:"tags"`
+	ID        int32       `json:"id"`
+	Username  string      `json:"username"`
+	Email     string      `json:"email"`
+	CreatedAt time.Time   `json:"created_at"`
+	Tags      []Tag       `json:"tags"`
+	ImagePath pgtype.Text `json:"image_path"`
 }

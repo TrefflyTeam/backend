@@ -12,7 +12,8 @@ type LoginRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Username string `json:"username" binding:"required,username,min=2,max=20"`
+	Username string `form:"username" binding:"required,username,min=2,max=20"`
+	DeleteImage bool `form:"delete_image" binding:"boolean"`
 }
 
 type UpdateCurrentUserTagsRequest struct {

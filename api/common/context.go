@@ -33,13 +33,13 @@ func GetUserIDFromContextPayload(ctx *gin.Context) int32 {
 }
 
 func GetUserLocation(ctx *gin.Context) (lat pgtype.Numeric, lon pgtype.Numeric, err error) {
-	latStr, err := ctx.Cookie("user_lat")
-	if err != nil {
+	latStr := ctx.Query("user_lat")
+	if latStr == "" {
 		latStr = defaultLat
 	}
 
-	lonStr, err := ctx.Cookie("user_lon")
-	if err != nil {
+	lonStr := ctx.Query("user_lon")
+	if lonStr == ""{
 		lonStr = defaultLon
 	}
 

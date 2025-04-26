@@ -1,15 +1,62 @@
 package eventservice
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"time"
-	db "treffly/db/sqlc"
 )
 
-type EventWithStatus struct {
-	Event db.EventRow
-	IsParticipant bool
+type Event struct {
+	ID          int32
+	Name        string
+	Description string
+	Capacity    int32
+	Latitude    pgtype.Numeric
+	Longitude   pgtype.Numeric
+	Address     string
+	Date        time.Time
+	IsPrivate   bool
+	IsPremium   bool
+	CreatedAt   time.Time
+}
+
+type EventWithOwner struct {
+	Event
+	OwnerUsername string
+}
+
+type EventWithTags struct {
+	EventWithOwner
+	Tags []Tag
+}
+
+type EventWithParticipants struct {
+	EventWithTags
+	ParticipantCount int32
+}
+
+type EventWithImages struct {
+	EventWithParticipants
+	ImageEventPath string
+	ImageUserPath  string
+}
+
+type EventWithMeta struct {
+	EventWithImages
 	IsOwner       bool
+	IsParticipant bool
+}
+
+type Tag struct {
+	ID   int32
+	Name string
+}
+
+type HomeEvents struct {
+	Premium     []EventWithImages
+	Recommended []EventWithImages
+	Latest      []EventWithImages
+	Popular     []EventWithImages
 }
 
 type CreateParams struct {
@@ -23,6 +70,8 @@ type CreateParams struct {
 	IsPrivate   bool
 	Tags        []int32
 	OwnerID     int32
+	ImageID     uuid.UUID
+	Path        string
 }
 
 type ListParams struct {
@@ -45,6 +94,10 @@ type UpdateParams struct {
 	IsPrivate   bool
 	Tags        []int32
 	UserID      int32
+	NewImageID  uuid.UUID
+	Path        string
+	DeleteImage bool
+	OldImageID  uuid.UUID
 }
 
 type DeleteParams struct {
@@ -56,13 +109,6 @@ type GetHomeParams struct {
 	UserID int32
 	Lat    pgtype.Numeric
 	Lon    pgtype.Numeric
-}
-
-type HomeEvents struct {
-	Premium     []db.EventRow
-	Recommended []db.EventRow
-	Latest      []db.EventRow
-	Popular     []db.EventRow
 }
 
 type SubscriptionParams struct {

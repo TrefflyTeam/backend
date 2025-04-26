@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"time"
 )
@@ -18,28 +19,41 @@ type CreateEventTxParams struct {
 	OwnerID     int32          `json:"owner_id"`
 	IsPrivate   bool           `json:"is_private"`
 	Tags        []int32        `json:"tags"`
+	ImageID     uuid.UUID      `json:"image_id"`
 }
 
-func (store *SQLStore) CreateEventTx(ctx context.Context, params CreateEventTxParams) (GetEventRow, error) {
+func (store *SQLStore) CreateEventTx(ctx context.Context, eventParams CreateEventTxParams, imageParams CreateImageParams) (GetEventRow, error) {
 	var result GetEventRow
 
 	err := store.execTx(ctx, func(q *Queries) error {
+		if imageParams.ID != uuid.Nil || imageParams.Path != "" {
+			_, err := q.CreateImage(ctx, imageParams)
+			if err != nil {
+				return fmt.Errorf("create image error: %w", err)
+			}
+		}
+		imageUUID := pgtype.UUID{
+			Bytes: imageParams.ID,
+			Valid: imageParams.ID != uuid.Nil,
+		}
+
 		event, err := q.CreateEvent(ctx, CreateEventParams{
-			Name:        params.Name,
-			Description: params.Description,
-			Capacity:    params.Capacity,
-			Latitude:    params.Latitude,
-			Longitude:   params.Longitude,
-			Address:     params.Address,
-			Date:        params.Date,
-			OwnerID:     params.OwnerID,
-			IsPrivate:   params.IsPrivate,
+			Name:        eventParams.Name,
+			Description: eventParams.Description,
+			Capacity:    eventParams.Capacity,
+			Latitude:    eventParams.Latitude,
+			Longitude:   eventParams.Longitude,
+			Address:     eventParams.Address,
+			Date:        eventParams.Date,
+			OwnerID:     eventParams.OwnerID,
+			IsPrivate:   eventParams.IsPrivate,
+			ImageID:     imageUUID,
 		})
 		if err != nil {
 			return fmt.Errorf("create event error: %w", err)
 		}
 
-		for _, tagID := range params.Tags {
+		for _, tagID := range eventParams.Tags {
 			if _, err = q.AddEventTag(ctx, AddEventTagParams{
 				EventID: event.ID,
 				TagID:   tagID,
@@ -74,13 +88,35 @@ type UpdateEventTxParams struct {
 	Date        time.Time
 	IsPrivate   bool
 	Tags        []int32
+	NewImageID  uuid.UUID
+	NewPath     string
+	OldImageID  uuid.UUID
 }
 
-
-func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) ( GetEventRow, error) {
-	var result  GetEventRow
+func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) (GetEventRow, error) {
+	var result GetEventRow
 
 	err := store.execTx(ctx, func(q *Queries) error {
+		newImageID := arg.NewImageID
+		if arg.NewImageID == arg.OldImageID {
+			newImageID = arg.OldImageID
+		}
+		newImageUUID := pgtype.UUID{
+			Bytes: newImageID,
+			Valid: newImageID != uuid.Nil,
+		}
+
+		if newImageUUID.Valid && arg.NewPath != "" && arg.OldImageID != arg.NewImageID{
+			imageArg := CreateImageParams{
+				arg.NewImageID,
+				arg.NewPath,
+			}
+			_, err := q.CreateImage(ctx, imageArg)
+			if err != nil {
+				return fmt.Errorf("create image error: %w", err)
+			}
+		}
+
 		err := q.UpdateEvent(ctx, UpdateEventParams{
 			ID:          arg.EventID,
 			Name:        arg.Name,
@@ -91,6 +127,7 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 			Address:     arg.Address,
 			Date:        arg.Date,
 			IsPrivate:   arg.IsPrivate,
+			ImageID:     newImageUUID,
 		})
 		if err != nil {
 			return fmt.Errorf("update event error: %w", err)
@@ -108,6 +145,18 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 			})
 			if err != nil {
 				return fmt.Errorf("add new tag %d error: %w", tagID, err)
+			}
+		}
+
+		oldImageUUID := pgtype.UUID{
+			Bytes: arg.OldImageID,
+			Valid: arg.OldImageID != uuid.Nil,
+		}
+
+		if oldImageUUID.Valid && arg.OldImageID != arg.NewImageID {
+			err = q.DeleteImage(ctx, oldImageUUID.Bytes)
+			if err != nil {
+				return fmt.Errorf("delete old image error: %w", err)
 			}
 		}
 

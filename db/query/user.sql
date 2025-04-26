@@ -16,7 +16,8 @@ OFFSET $2;
 
 -- name: UpdateUser :one
 UPDATE users
-SET username = $2
+SET username = $2,
+    image_id = $3
 WHERE id = $1
 RETURNING *;
 
