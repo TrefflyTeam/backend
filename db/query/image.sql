@@ -16,3 +16,8 @@ WHERE e.id = @id;
 -- name: DeleteImage :exec
 DELETE FROM images
 WHERE id = @id;
+
+-- name: GetImageByUserID :one
+SELECT i.id, i.path
+FROM images i LEFT JOIN users u ON u.image_id = i.id
+WHERE u.id = @id;
