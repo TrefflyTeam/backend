@@ -70,6 +70,10 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 
 	user, accessToken, refreshToken, err := h.service.LoginUser(ctx, req.Email, req.Password)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.Error(apperror.InvalidCredentials.WithCause(err))
+			return
+		}
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}

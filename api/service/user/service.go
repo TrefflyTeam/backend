@@ -2,8 +2,6 @@ package userservice
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"github.com/google/uuid"
 	"treffly/apperror"
 	"treffly/db/sqlc"
@@ -45,9 +43,6 @@ func (s *Service) CreateUser(ctx context.Context, params CreateParams) (*User, e
 func (s *Service) LoginUser(ctx context.Context, email, password string) (*User, string, string, error) {
 	user, err := s.store.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, "", "", apperror.InvalidCredentials.WithCause(err)
-		}
 		return nil, "", "", err
 	}
 
