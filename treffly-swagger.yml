@@ -305,7 +305,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: "#/components/schemas/UpdateUserRequest"
       responses:
@@ -530,14 +530,14 @@ paths:
             type: string
             enum: [ day, week, month ]
           example: "week"
-        - in: cookie
+        - in: query
           name: latitude
           schema:
             type: number
             format: double
             example: 55.755825
           description: Широта координаты пользователя
-        - in: cookie
+        - in: query
           name: longitude
           schema:
             type: number
@@ -571,7 +571,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: "#/components/schemas/CreateEventRequest"
       responses:
@@ -601,22 +601,6 @@ paths:
           schema:
             type: integer
           description: ID мероприятия
-        - in: cookie
-          name: latitude
-          schema:
-            type: number
-            format: double
-            example: 55.755825
-          description: Широта координаты пользователя
-          required: false
-        - in: cookie
-          name: longitude
-          schema:
-            type: number
-            format: double
-            example: 37.617298
-          description: Долгота координаты пользователя
-          required: false
       responses:
         200:
           description: Успешный ответ
@@ -648,28 +632,12 @@ paths:
           schema:
             type: integer
           description: ID мероприятия
-        - in: cookie
-          name: latitude
-          schema:
-            type: number
-            format: double
-            example: 55.755825
-          description: Широта координаты пользователя
-          required: false
-        - in: cookie
-          name: longitude
-          schema:
-            type: number
-            format: double
-            example: 37.617298
-          description: Долгота координаты пользователя
-          required: false
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: "#/components/schemas/EventByIDResponse"
+              $ref: "#/components/schemas/UpdateEventRequest"
 
       responses:
         200:
@@ -899,7 +867,7 @@ paths:
       tags:
         - Events
       parameters:
-        - in: cookie
+        - in: query
           name: latitude
           schema:
             type: number
@@ -907,7 +875,7 @@ paths:
             example: 55.755825
           description: Широта координаты пользователя
           required: false
-        - in: cookie
+        - in: query
           name: longitude
           schema:
             type: number
@@ -944,71 +912,6 @@ paths:
                     items:
                       $ref: "#/components/schemas/EventResponse"
                     maxItems: 6
-                example:
-                  premium:
-                    - id: 1
-                      name: "Концерт"
-                      description: "Грандиозный концерт"
-                      capacity: 50
-                      latitude: 55.755825
-                      longitude: 37.617298
-                      address: "Москва, Красная площадь"
-                      date: "2025-06-20T14:48:00Z"
-                      owner_id: 1
-                      is_private: false
-                      is_premium: true
-                      tags:
-                        - id: 5
-                          name: "музыка"
-                      created_at: "2025-05-20T14:48:00Z"
-                  recommended:
-                    - id: 1
-                      name: "Концерт"
-                      description: "Грандиозный концерт"
-                      capacity: 50
-                      latitude: 55.755825
-                      longitude: 37.617298
-                      address: "Москва, Красная площадь"
-                      date: "2025-06-20T14:48:00Z"
-                      owner_id: 1
-                      is_private: false
-                      is_premium: true
-                      tags:
-                        - id: 5
-                          name: "музыка"
-                      created_at: "2025-05-20T14:48:00Z"
-                  new:
-                    - id: 1
-                      name: "Концерт"
-                      description: "Грандиозный концерт"
-                      capacity: 50
-                      latitude: 55.755825
-                      longitude: 37.617298
-                      address: "Москва, Красная площадь"
-                      date: "2025-06-20T14:48:00Z"
-                      owner_id: 1
-                      is_private: false
-                      is_premium: true
-                      tags:
-                        - id: 5
-                          name: "музыка"
-                      created_at: "2025-05-20T14:48:00Z"
-                  popular:
-                    - id: 1
-                      name: "Концерт"
-                      description: "Грандиозный концерт"
-                      capacity: 50
-                      latitude: 55.755825
-                      longitude: 37.617298
-                      address: "Москва, Красная площадь"
-                      date: "2025-06-20T14:48:00Z"
-                      owner_id: 1
-                      is_private: false
-                      is_premium: true
-                      tags:
-                        - id: 5
-                          name: "музыка"
-                      created_at: "2025-05-20T14:48:00Z"
         400:
           $ref: "#/components/responses/BadRequest"
         500:
@@ -1224,6 +1127,42 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
 
+  /images:
+    get:
+      summary: Получить изображение
+      description: Возвращает изображение по указанному пути.
+      tags:
+        - Image
+      parameters:
+        - in: query
+          name: path
+          schema:
+            type: string
+            example: "event/123.jpg"
+          required: true
+      responses:
+        200:
+          description: изображение
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/jpg:
+              schema:
+                type: string
+                format: binary
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
+
 components:
   schemas:
     User:
@@ -1300,6 +1239,9 @@ components:
         username:
           type: string
           example: "new_username"
+        image:
+          type: string
+          format: binary
 
     LoginUserRequest:
         type: object
@@ -1368,6 +1310,14 @@ components:
         participant_count:
           type: integer
           example: 10
+        image_event_url:
+          type: string
+          format: uri
+          example: "https://treffly.ru/api/images/event/123.jpg"
+        image_user_url:
+          type: string
+          format: uri
+          example: "https://treffly.ru/api/images/user/123.jpg"
       example:
           id: 1
           name: "Концерт"
@@ -1385,6 +1335,8 @@ components:
               name: "музыка"
           created_at: "2025-05-20T14:48:00Z"
           participant_count: 10
+          image_event_url: "https://treffly.ru/api/images/event/123.jpg"
+          image_user_url: "https://treffly.ru/api/images/user/123.jpg"
 
     CreateEventRequest:
       type: object
@@ -1432,6 +1384,9 @@ components:
             minimum: 1
             maximum: 3
           example: [ 5, 7 ]
+        image:
+          type: string
+          format: binary
       required:
         - name
         - description
@@ -1488,6 +1443,14 @@ components:
             type: string
             format: date-time
             example: "2025-05-20T14:48:00Z"
+          image_event_url:
+            type: string
+            format: uri
+            example: "https://treffly.ru/api/images/event/123.jpg"
+          image_user_url:
+            type: string
+            format: uri
+            example: "https://treffly.ru/api/images/user/123.jpg"
         example:
             id: 1
             name: "Концерт"
@@ -1504,6 +1467,8 @@ components:
               - id: 5
                 name: "музыка"
             created_at: "2025-05-20T14:48:00Z"
+            image_event_url: "https://treffly.ru/api/images/event/123.jpg"
+            image_user_url: "https://treffly.ru/api/images/user/123.jpg"
 
     EventByIDResponse:
       type: object
@@ -1557,6 +1522,14 @@ components:
         is_owner:
           type: boolean
           example: false
+        image_event_url:
+          type: string
+          format: uri
+          example: "https://treffly.ru/api/images/event/123.jpg"
+        image_user_url:
+          type: string
+          format: uri
+          example: "https://treffly.ru/api/images/user/123.jpg"
       example:
         id: 1
         name: "Концерт"
@@ -1575,6 +1548,71 @@ components:
         created_at: "2025-05-20T14:48:00Z"
         participant_count: 10
         is_owner: false
+        image_event_url: "https://treffly.ru/api/images/event/123.jpg"
+        image_user_url: "https://treffly.ru/api/images/user/123.jpg"
+
+    UpdateEventRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Концерт"
+        description:
+          type: string
+          example: "Грандиозный концерт"
+        capacity:
+          type: integer
+          example: 50
+        latitude:
+          type: number
+          format: double
+          example: 55.755825
+        longitude:
+          type: number
+          format: double
+          example: 37.617298
+        address:
+          type: string
+          example: "Москва, Красная площадь"
+        date:
+          type: string
+          format: date-time
+        is_private:
+          type: boolean
+          example: false
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+        image:
+          type: string
+          format: binary
+        delete_image:
+          type: boolean
+          example: false
+      example:
+        id: 1
+        name: "Концерт"
+        description: "Грандиозный концерт"
+        capacity: 50
+        latitude: 55.755825
+        longitude: 37.617298
+        address: "Москва, Красная площадь"
+        date: "2025-06-20T14:48:00Z"
+        is_private: false
+        is_premium: true
+        tags:
+          - id: 5
+            name: "музыка"
+      required:
+        - name
+        - description
+        - capacity
+        - latitude
+        - longitude
+        - address
+        - date
+        - tags
 
     GeocodeResponse:
       type: object
