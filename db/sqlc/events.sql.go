@@ -899,6 +899,7 @@ SELECT
     evt.tags,
     evt.participants_count,
     evt.event_image_path,
+    evt.user_image_path,
     (
         SELECT COUNT(*)
         FROM event_tags et
@@ -981,6 +982,7 @@ type ListEventsRow struct {
 	Tags              []Tag          `json:"tags"`
 	ParticipantsCount int64          `json:"participants_count"`
 	EventImagePath    pgtype.Text    `json:"event_image_path"`
+	UserImagePath     pgtype.Text    `json:"user_image_path"`
 	MatchedTags       int64          `json:"matched_tags"`
 	Distance          interface{}    `json:"distance"`
 }
@@ -1017,6 +1019,7 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 			&i.Tags,
 			&i.ParticipantsCount,
 			&i.EventImagePath,
+			&i.UserImagePath,
 			&i.MatchedTags,
 			&i.Distance,
 		); err != nil {

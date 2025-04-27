@@ -66,6 +66,7 @@ SELECT
     evt.tags,
     evt.participants_count,
     evt.event_image_path,
+    evt.user_image_path,
     (
         SELECT COUNT(*)
         FROM event_tags et
