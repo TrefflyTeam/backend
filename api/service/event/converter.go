@@ -78,6 +78,7 @@ func ConvertListEventsRow(e db.ListEventsRow) EventWithImages {
 			ParticipantCount: int32(e.ParticipantsCount),
 		},
 		ImageEventPath: safeString(e.EventImagePath),
+		ImageUserPath: safeString(e.UserImagePath),
 	}
 }
 
