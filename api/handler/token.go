@@ -53,3 +53,20 @@ func (h *TokenHandler) RefreshTokens(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{})
 }
+
+func (h *TokenHandler) Auth(ctx *gin.Context) {
+	token, err := ctx.Cookie("refresh_token")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		return
+	}
+	err = h.service.ValidateSession(ctx, token)
+	if err != nil {
+		common.SetTokenCookie(ctx, "refresh_token", "",
+			common.RefreshTokenCookiePath, -1, h.config.Environment)
+		ctx.Error(apperror.TokenExpired.WithCause(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{})
+}
