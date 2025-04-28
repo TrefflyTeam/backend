@@ -247,13 +247,3 @@ func (h *UserHandler) UpdateCurrentTags(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{})
 }
-
-func (h *UserHandler) Auth(ctx *gin.Context) {
-	_, err := ctx.Cookie("refresh_token")
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{})
-}

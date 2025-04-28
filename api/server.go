@@ -98,7 +98,7 @@ func (server *Server) setupRouter() {
 	router.POST("/users", userHandler.Create)
 	router.POST("/login", userHandler.Login)
 	router.POST("/auth/refresh", tokenHandler.RefreshTokens)
-	router.GET("/auth", userHandler.Auth)
+	router.GET("/auth", tokenHandler.Auth)
 	router.GET("/tags", tagHandler.GetTags)
 	router.GET("/events", eventHandler.List)
 
