@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"net/http"
 	"treffly/apperror"
 	"treffly/token"
@@ -38,7 +39,7 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 	}
 }
 
-func ErrorHandler() gin.HandlerFunc {
+func ErrorHandler(log *zap.Logger) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Next()
 
@@ -47,8 +48,20 @@ func ErrorHandler() gin.HandlerFunc {
 			var e apperror.ErrorResponse
 			switch {
 			case errors.As(err.Err, &e):
+				log.Error("Request error",
+					zap.String("path", ctx.FullPath()),
+					zap.String("method", ctx.Request.Method),
+					zap.Int("status", ctx.Writer.Status()),
+					zap.Error(e.Unwrap()),
+				)
 				ctx.JSON(e.HTTPCode, e)
 			default:
+				log.Error("Request error",
+					zap.String("path", ctx.FullPath()),
+					zap.String("method", ctx.Request.Method),
+					zap.Int("status", ctx.Writer.Status()),
+					zap.Error(err),
+				)
 				ctx.JSON(http.StatusInternalServerError, apperror.InternalServer)
 			}
 		}

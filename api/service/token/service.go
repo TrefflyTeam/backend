@@ -3,6 +3,7 @@ package tokenservice
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"time"
 	db "treffly/db/sqlc"
 	"treffly/token"
@@ -13,13 +14,15 @@ type Service struct {
 	store      db.Store
 	tokenMaker token.Maker
 	config     util.Config
+	log *zap.Logger
 }
 
-func New(store db.Store, tokenMaker token.Maker, config util.Config) *Service {
+func New(store db.Store, tokenMaker token.Maker, config util.Config, log *zap.Logger) *Service {
 	return &Service{
 		store:      store,
 		tokenMaker: tokenMaker,
 		config:     config,
+		log:        log,
 	}
 }
 
@@ -31,6 +34,10 @@ func (s *Service) RefreshTokens(ctx context.Context, reqRefreshToken string) (ac
 
 	session, err := s.store.GetSession(ctx, reqRefreshPayload.ID)
 	if err != nil {
+		s.log.Error("Error getting session",
+			zap.Any("session id", reqRefreshPayload.ID),
+			zap.String("token prefix", reqRefreshToken[:20]),
+			zap.Error(err))
 		return "", "", err
 	}
 
@@ -77,6 +84,10 @@ func (s *Service) RefreshTokens(ctx context.Context, reqRefreshToken string) (ac
 		ExpiresAt: refreshPayload.ExpiredAt,
 	})
 	if err != nil {
+		s.log.Error("Error updating session",
+			zap.Any("session id", reqRefreshPayload.ID),
+			zap.String("token prefix", reqRefreshToken[:20]),
+			zap.Error(err))
 		return "", "", err
 	}
 

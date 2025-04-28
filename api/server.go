@@ -16,6 +16,7 @@ import (
 	userservice "treffly/api/service/user"
 	db "treffly/db/sqlc"
 	"treffly/image"
+	"treffly/logger"
 	"treffly/token"
 	"treffly/util"
 )
@@ -68,7 +69,9 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 func (server *Server) setupRouter() {
 	router := gin.Default()
 
-	router.Use(ErrorHandler())
+	log := logger.NewZapLogger(server.config.Environment)
+
+	router.Use(ErrorHandler(log))
 
 	eventConverter := eventdto.NewEventConverter(server.config.Environment, server.config.Domain)
 	userConverter := userdto.NewUserConverter(server.config.Environment, server.config.Domain)
@@ -87,7 +90,7 @@ func (server *Server) setupRouter() {
 	geoService := geoservice.New(server.store, server.geocodeClient, server.suggestClient)
 	geoHandler := handler.NewGeoHandler(geoService)
 
-	tokenService := tokenservice.New(server.store, server.tokenMaker, server.config)
+	tokenService := tokenservice.New(server.store, server.tokenMaker, server.config, log)
 	tokenHandler := handler.NewTokenHandler(tokenService, server.config)
 
 	imageHandler := handler.NewImageHandler(imageService)
