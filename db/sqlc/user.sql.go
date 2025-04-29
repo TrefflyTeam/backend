@@ -168,9 +168,21 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 	return items, nil
 }
 
-const subscribeToEvent = `-- name: SubscribeToEvent :exec
+const subscribeToEvent = `-- name: SubscribeToEvent :one
+WITH check_capacity AS (
+    SELECT
+        COUNT(*) AS participants,
+        e.capacity
+    FROM events e
+             LEFT JOIN event_user eu ON e.id = eu.event_id
+    WHERE e.id = $2
+    GROUP BY e.capacity
+)
 INSERT INTO event_user (user_id, event_id)
-VALUES ($1, $2)
+SELECT $1, $2
+FROM check_capacity
+WHERE participants < capacity
+RETURNING (SELECT participants < capacity FROM check_capacity) AS allowed
 `
 
 type SubscribeToEventParams struct {
@@ -178,9 +190,11 @@ type SubscribeToEventParams struct {
 	EventID int32 `json:"event_id"`
 }
 
-func (q *Queries) SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) error {
-	_, err := q.db.Exec(ctx, subscribeToEvent, arg.UserID, arg.EventID)
-	return err
+func (q *Queries) SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) (bool, error) {
+	row := q.db.QueryRow(ctx, subscribeToEvent, arg.UserID, arg.EventID)
+	var allowed bool
+	err := row.Scan(&allowed)
+	return allowed, err
 }
 
 const unsubscribeFromEvent = `-- name: UnsubscribeFromEvent :exec
