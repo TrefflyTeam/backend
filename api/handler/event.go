@@ -239,10 +239,15 @@ func (h *EventHandler) Delete(ctx *gin.Context) {
 	}
 
 	_, path, err := h.imageService.GetDBImageByEventID(ctx, int32(eventID)) //TODO: make deletes transactional
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
+
+	err = h.eventService.Delete(ctx, eventservice.DeleteParams{
+		EventID: int32(eventID),
+		UserID:  userID,
+	})
 
 	if path != "" {
 		err = h.imageService.Delete(path)
@@ -252,10 +257,6 @@ func (h *EventHandler) Delete(ctx *gin.Context) {
 		}
 	}
 
-	err = h.eventService.Delete(ctx, eventservice.DeleteParams{
-		EventID: int32(eventID),
-		UserID:  userID,
-	})
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
