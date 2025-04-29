@@ -260,7 +260,12 @@ func (s *Service) Subscribe(ctx context.Context, params SubscriptionParams) (*Ev
 		return nil, fmt.Errorf("user is owner")
 	}
 
-	if err := s.store.SubscribeToEvent(ctx, arg); err != nil {
+ 	allowed, err := s.store.SubscribeToEvent(ctx, arg)
+	if err != nil {
+		if !allowed {
+			err = fmt.Errorf("event is full")
+			return nil, apperror.BadRequest.WithCause(err)
+		}
 		return nil, err
 	}
 

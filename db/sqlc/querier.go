@@ -42,7 +42,7 @@ type Querier interface {
 	IsParticipant(ctx context.Context, arg IsParticipantParams) (bool, error)
 	ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
-	SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) error
+	SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) (bool, error)
 	UnsubscribeFromEvent(ctx context.Context, arg UnsubscribeFromEventParams) error
 	UpdateEvent(ctx context.Context, arg UpdateEventParams) error
 	UpdateSession(ctx context.Context, arg UpdateSessionParams) error

@@ -32,9 +32,21 @@ WHERE email = $1 LIMIT 1;
 -- name: GetUserWithTags :one
 SELECT * FROM user_with_tags_view WHERE id = $1;
 
--- name: SubscribeToEvent :exec
+-- name: SubscribeToEvent :one
+WITH check_capacity AS (
+    SELECT
+        COUNT(*) AS participants,
+        e.capacity
+    FROM events e
+             LEFT JOIN event_user eu ON e.id = eu.event_id
+    WHERE e.id = $2
+    GROUP BY e.capacity
+)
 INSERT INTO event_user (user_id, event_id)
-VALUES ($1, $2);
+SELECT $1, $2
+FROM check_capacity
+WHERE participants < capacity
+RETURNING (SELECT participants < capacity FROM check_capacity) AS allowed;
 
 -- name: UnsubscribeFromEvent :exec
 DELETE FROM event_user
