@@ -356,21 +356,25 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
 
-  /users/me/tags/{id}:
-    post:
-      summary: Добавить тег текущему пользователю
-      description: Добавляет тег текущему пользователю, используя access токен.
+  /users/me/tags:
+    put:
+      summary: Обновить теги текущему пользователю
+      description: Заменяет предыдущие теги на заданные текущему пользователю, используя access токен.
       tags:
         - Users
       security:
         - CookieAuth: [ ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-            example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tag_ids:
+                  type: array
+                  items:
+                    type: integer
+                  example: [1,2,3]
       responses:
         200:
           description: Успешное добавление тега
@@ -382,28 +386,6 @@ paths:
           $ref: "#/components/responses/TokenExpired"
         404:
           $ref: "#/components/responses/NotFound"
-        500:
-          $ref: "#/components/responses/InternalServerError"
-
-    delete:
-      summary: Удалить тег у текущего пользователя
-      description: Удаляет тег у текущего пользователя, используя access токен.
-      tags:
-        - Users
-      security:
-        - CookieAuth: [ ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        200:
-          description: Успешное удаление тега
-        401:
-          $ref: "#/components/responses/TokenExpired"
         500:
           $ref: "#/components/responses/InternalServerError"
 
