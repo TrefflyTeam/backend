@@ -2,13 +2,14 @@ package eventservice
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
+	"treffly/api/models"
 	db "treffly/db/sqlc"
 )
 
-func convertTags(dbTags []db.Tag) []Tag {
-	tags := make([]Tag, len(dbTags))
+func convertTags(dbTags []db.Tag) []models.Tag {
+	tags := make([]models.Tag, len(dbTags))
 	for i, t := range dbTags {
-		tags[i] = Tag{
+		tags[i] = models.Tag{
 			ID:   t.ID,
 			Name: t.Name,
 		}
@@ -16,8 +17,8 @@ func convertTags(dbTags []db.Tag) []Tag {
 	return tags
 }
 
-func ConvertGetEventRow(e db.GetEventRow, isOwner, isParticipant bool) EventWithMeta {
-	base := Event{
+func ConvertGetEventRow(e db.GetEventRow, isOwner, isParticipant bool) models.EventWithMeta {
+	base := models.Event{
 		ID:          e.ID,
 		Name:        e.Name,
 		Description: e.Description,
@@ -31,11 +32,11 @@ func ConvertGetEventRow(e db.GetEventRow, isOwner, isParticipant bool) EventWith
 		CreatedAt:   e.CreatedAt,
 	}
 
-	return EventWithMeta{
-		EventWithImages: EventWithImages{
-			EventWithParticipants: EventWithParticipants{
-				EventWithTags: EventWithTags{
-					EventWithOwner: EventWithOwner{
+	return models.EventWithMeta{
+		EventWithImages: models.EventWithImages{
+			EventWithParticipants: models.EventWithParticipants{
+				EventWithTags: models.EventWithTags{
+					EventWithOwner: models.EventWithOwner{
 						Event:         base,
 						OwnerUsername: safeString(e.OwnerUsername),
 					},
@@ -51,8 +52,8 @@ func ConvertGetEventRow(e db.GetEventRow, isOwner, isParticipant bool) EventWith
 	}
 }
 
-func ConvertListEventsRow(e db.ListEventsRow) EventWithImages {
-	base := Event{
+func ConvertListEventsRow(e db.ListEventsRow) models.EventWithImages {
+	base := models.Event{
 		ID:          e.ID,
 		Name:        e.Name,
 		Description: e.Description,
@@ -66,10 +67,10 @@ func ConvertListEventsRow(e db.ListEventsRow) EventWithImages {
 		CreatedAt:   e.CreatedAt,
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
+	return models.EventWithImages{
+		EventWithParticipants: models.EventWithParticipants{
+			EventWithTags: models.EventWithTags{
+				EventWithOwner: models.EventWithOwner{
 					Event:         base,
 					OwnerUsername: safeString(e.OwnerUsername),
 				},
@@ -98,8 +99,8 @@ func ConvertHomeEvents[T RecommendedRow](
 	recommended []T,
 	latest []db.GetLatestEventsRow,
 	popular []db.GetPopularEventsRow,
-) HomeEvents {
-	return HomeEvents{
+) models.HomeEvents {
+	return models.HomeEvents{
 		Premium:     convertEventType(premium),
 		Recommended: convertRecommendedEvents(recommended),
 		Latest:      convertEventType(latest),
@@ -107,15 +108,15 @@ func ConvertHomeEvents[T RecommendedRow](
 	}
 }
 
-func convertRecommendedEvents[T RecommendedRow](rows []T) []EventWithImages {
-	result := make([]EventWithImages, len(rows))
+func convertRecommendedEvents[T RecommendedRow](rows []T) []models.EventWithImages {
+	result := make([]models.EventWithImages, len(rows))
 	for i, row := range rows {
 		result[i] = convertSingleRecommended(row)
 	}
 	return result
 }
 
-func convertSingleRecommended[T RecommendedRow](row T) EventWithImages {
+func convertSingleRecommended[T RecommendedRow](row T) models.EventWithImages {
 	switch v := any(row).(type) {
 	case db.GetUserRecommendedEventsRow:
 		return convertUserRecommended(v)
@@ -126,8 +127,8 @@ func convertSingleRecommended[T RecommendedRow](row T) EventWithImages {
 	}
 }
 
-func convertUserRecommended(e db.GetUserRecommendedEventsRow) EventWithImages {
-	base := Event{
+func convertUserRecommended(e db.GetUserRecommendedEventsRow) models.EventWithImages {
+	base := models.Event{
 		ID:          e.ID,
 		Name:        e.Name,
 		Description: e.Description,
@@ -141,10 +142,10 @@ func convertUserRecommended(e db.GetUserRecommendedEventsRow) EventWithImages {
 		CreatedAt:   e.CreatedAt,
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
+	return models.EventWithImages{
+		EventWithParticipants: models.EventWithParticipants{
+			EventWithTags: models.EventWithTags{
+				EventWithOwner: models.EventWithOwner{
 					Event:         base,
 					OwnerUsername: safeString(e.OwnerUsername),
 				},
@@ -156,8 +157,8 @@ func convertUserRecommended(e db.GetUserRecommendedEventsRow) EventWithImages {
 	}
 }
 
-func convertGuestRecommended(e db.GetGuestRecommendedEventsRow) EventWithImages {
-	base := Event{
+func convertGuestRecommended(e db.GetGuestRecommendedEventsRow) models.EventWithImages {
+	base := models.Event{
 		ID:          e.ID,
 		Name:        e.Name,
 		Description: e.Description,
@@ -171,10 +172,10 @@ func convertGuestRecommended(e db.GetGuestRecommendedEventsRow) EventWithImages 
 		CreatedAt:   e.CreatedAt,
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
+	return models.EventWithImages{
+		EventWithParticipants: models.EventWithParticipants{
+			EventWithTags: models.EventWithTags{
+				EventWithOwner: models.EventWithOwner{
 					Event:         base,
 					OwnerUsername: safeString(e.OwnerUsername),
 				},
@@ -186,8 +187,8 @@ func convertGuestRecommended(e db.GetGuestRecommendedEventsRow) EventWithImages 
 	}
 }
 
-func convertEventType[T any](rows []T) []EventWithImages {
-	result := make([]EventWithImages, len(rows))
+func convertEventType[T any](rows []T) []models.EventWithImages {
+	result := make([]models.EventWithImages, len(rows))
 	for i, row := range rows {
 		switch v := any(row).(type) {
 		case db.ListEventsRow:
@@ -213,8 +214,8 @@ func convertEventType[T any](rows []T) []EventWithImages {
 	return result
 }
 
-func convertOwnedEventsRow(e db.GetOwnedUserEventsRow) EventWithImages {
-	base := Event{
+func convertOwnedEventsRow(e db.GetOwnedUserEventsRow) models.EventWithImages {
+	base := models.Event{
 		ID:          e.ID,
 		Name:        e.Name,
 		Description: e.Description,
@@ -228,10 +229,10 @@ func convertOwnedEventsRow(e db.GetOwnedUserEventsRow) EventWithImages {
 		CreatedAt:   e.CreatedAt,
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
+	return models.EventWithImages{
+		EventWithParticipants: models.EventWithParticipants{
+			EventWithTags: models.EventWithTags{
+				EventWithOwner: models.EventWithOwner{
 					Event:         base,
 					OwnerUsername: safeString(e.OwnerUsername),
 				},
@@ -243,8 +244,8 @@ func convertOwnedEventsRow(e db.GetOwnedUserEventsRow) EventWithImages {
 	}
 }
 
-func convertPastEventsRow(e db.GetPastUserEventsRow) EventWithImages {
-	base := Event{
+func convertPastEventsRow(e db.GetPastUserEventsRow) models.EventWithImages {
+	base := models.Event{
 		ID:          e.ID,
 		Name:        e.Name,
 		Description: e.Description,
@@ -258,10 +259,10 @@ func convertPastEventsRow(e db.GetPastUserEventsRow) EventWithImages {
 		CreatedAt:   e.CreatedAt,
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
+	return models.EventWithImages{
+		EventWithParticipants: models.EventWithParticipants{
+			EventWithTags: models.EventWithTags{
+				EventWithOwner: models.EventWithOwner{
 					Event:         base,
 					OwnerUsername: safeString(e.OwnerUsername),
 				},
@@ -273,8 +274,8 @@ func convertPastEventsRow(e db.GetPastUserEventsRow) EventWithImages {
 	}
 }
 
-func convertUpcomingEventsRow(e db.GetUpcomingUserEventsRow) EventWithImages {
-	base := Event{
+func convertUpcomingEventsRow(e db.GetUpcomingUserEventsRow) models.EventWithImages {
+	base := models.Event{
 		ID:          e.ID,
 		Name:        e.Name,
 		Description: e.Description,
@@ -288,10 +289,10 @@ func convertUpcomingEventsRow(e db.GetUpcomingUserEventsRow) EventWithImages {
 		CreatedAt:   e.CreatedAt,
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
+	return models.EventWithImages{
+		EventWithParticipants: models.EventWithParticipants{
+			EventWithTags: models.EventWithTags{
+				EventWithOwner: models.EventWithOwner{
 					Event:         base,
 					OwnerUsername: safeString(e.OwnerUsername),
 				},
@@ -303,8 +304,8 @@ func convertUpcomingEventsRow(e db.GetUpcomingUserEventsRow) EventWithImages {
 	}
 }
 
-func convertPremiumEvent(e db.GetPremiumEventsRow) EventWithImages {
-	base := Event{
+func convertPremiumEvent(e db.GetPremiumEventsRow) models.EventWithImages {
+	base := models.Event{
 		ID:          e.ID,
 		Name:        e.Name,
 		Description: e.Description,
@@ -318,10 +319,10 @@ func convertPremiumEvent(e db.GetPremiumEventsRow) EventWithImages {
 		CreatedAt:   e.CreatedAt,
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
+	return models.EventWithImages{
+		EventWithParticipants: models.EventWithParticipants{
+			EventWithTags: models.EventWithTags{
+				EventWithOwner: models.EventWithOwner{
 					Event:         base,
 					OwnerUsername: safeString(e.OwnerUsername),
 				},
@@ -333,8 +334,8 @@ func convertPremiumEvent(e db.GetPremiumEventsRow) EventWithImages {
 	}
 }
 
-func convertLatestEvent(e db.GetLatestEventsRow) EventWithImages {
-	base := Event{
+func convertLatestEvent(e db.GetLatestEventsRow) models.EventWithImages {
+	base := models.Event{
 		ID:          e.ID,
 		Name:        e.Name,
 		Description: e.Description,
@@ -348,10 +349,10 @@ func convertLatestEvent(e db.GetLatestEventsRow) EventWithImages {
 		CreatedAt:   e.CreatedAt,
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
+	return models.EventWithImages{
+		EventWithParticipants: models.EventWithParticipants{
+			EventWithTags: models.EventWithTags{
+				EventWithOwner: models.EventWithOwner{
 					Event:         base,
 					OwnerUsername: safeString(e.OwnerUsername),
 				},
@@ -363,8 +364,8 @@ func convertLatestEvent(e db.GetLatestEventsRow) EventWithImages {
 	}
 }
 
-func convertPopularEvent(e db.GetPopularEventsRow) EventWithImages {
-	base := Event{
+func convertPopularEvent(e db.GetPopularEventsRow) models.EventWithImages {
+	base := models.Event{
 		ID:          e.ID,
 		Name:        e.Name,
 		Description: e.Description,
@@ -378,10 +379,10 @@ func convertPopularEvent(e db.GetPopularEventsRow) EventWithImages {
 		CreatedAt:   e.CreatedAt,
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
+	return models.EventWithImages{
+		EventWithParticipants: models.EventWithParticipants{
+			EventWithTags: models.EventWithTags{
+				EventWithOwner: models.EventWithOwner{
 					Event:         base,
 					OwnerUsername: safeString(e.OwnerUsername),
 				},

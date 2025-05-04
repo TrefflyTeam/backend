@@ -1,6 +1,7 @@
-package handler
+package event
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -10,30 +11,31 @@ import (
 	"strconv"
 	"strings"
 	"treffly/api/common"
-	"treffly/api/dto/event"
-	eventservice "treffly/api/service/event"
-	imageservice "treffly/api/service/image"
+	eventdto "treffly/api/dto/event"
+	"treffly/api/models"
 	"treffly/apperror"
-	"treffly/util"
 )
 
-type EventHandler struct {
-	eventService *eventservice.Service
-	imageService *imageservice.Service
-	config       util.Config
-	converter    *eventdto.EventConverter
+type crudService interface {
+	Create(ctx context.Context, params models.CreateParams) (*models.EventWithMeta, error)
+	List(ctx context.Context, params models.ListParams) ([]models.EventWithImages, error)
+	GetEventWithMeta(ctx context.Context, eventID int32, userID int32) (*models.EventWithMeta, error)
+	Update(ctx context.Context, params models.UpdateParams) (*models.EventWithMeta, error)
+	Delete(ctx context.Context, params models.DeleteParams) error
 }
 
-func NewEventHandler(eventService *eventservice.Service, imageService *imageservice.Service, config util.Config, converter *eventdto.EventConverter) *EventHandler {
-	return &EventHandler{
-		eventService: eventService,
-		imageService: imageService,
-		config:       config,
-		converter:    converter,
-	}
+type CRUDHandler struct {
+	BaseHandler
+	crudService crudService
+	imageService ImageService
+	converter *eventdto.EventConverter
 }
 
-func (h *EventHandler) Create(ctx *gin.Context) {
+func NewEventCRUDHandler(crudService crudService, imageService ImageService, converter *eventdto.EventConverter) *CRUDHandler {
+	return &CRUDHandler{crudService: crudService, imageService: imageService, converter: converter}
+}
+
+func (h *CRUDHandler) Create(ctx *gin.Context) {
 	userID := common.GetUserIDFromContextPayload(ctx)
 
 	var req eventdto.CreateEventRequest
@@ -61,7 +63,7 @@ func (h *EventHandler) Create(ctx *gin.Context) {
 			return
 		}
 	}
-	params := eventservice.CreateParams{
+	params := models.CreateParams{
 		Name:        req.Name,
 		Description: req.Description,
 		Capacity:    req.Capacity,
@@ -76,7 +78,7 @@ func (h *EventHandler) Create(ctx *gin.Context) {
 		Path:        path,
 	}
 
-	createdEvent, err := h.eventService.Create(ctx, params)
+	createdEvent, err := h.crudService.Create(ctx, params)
 	if err != nil {
 		if path != "" {
 			_ = h.imageService.Delete(path)
@@ -90,7 +92,7 @@ func (h *EventHandler) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-func (h *EventHandler) List(ctx *gin.Context) {
+func (h *CRUDHandler) List(ctx *gin.Context) {
 	lat, lon, err := common.GetUserLocation(ctx)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
@@ -103,7 +105,7 @@ func (h *EventHandler) List(ctx *gin.Context) {
 		return
 	}
 
-	params := eventservice.ListParams{
+	params := models.ListParams{
 		Lat:       lat,
 		Lon:       lon,
 		Search:    ctx.Query("keywords"),
@@ -111,7 +113,7 @@ func (h *EventHandler) List(ctx *gin.Context) {
 		DateRange: ctx.Query("dateWithin"),
 	}
 
-	events, err := h.eventService.List(ctx, params)
+	events, err := h.crudService.List(ctx, params)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
@@ -122,7 +124,7 @@ func (h *EventHandler) List(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func (h *EventHandler) GetByID(ctx *gin.Context) {
+func (h *CRUDHandler) GetByID(ctx *gin.Context) {
 	eventID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
@@ -131,7 +133,7 @@ func (h *EventHandler) GetByID(ctx *gin.Context) {
 
 	userID := common.GetUserIDFromSoftAuth(ctx)
 
-	eventWithMeta, err := h.eventService.GetEventWithMeta(ctx, int32(eventID), userID)
+	eventWithMeta, err := h.crudService.GetEventWithMeta(ctx, int32(eventID), userID)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
@@ -142,7 +144,7 @@ func (h *EventHandler) GetByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func (h *EventHandler) Update(ctx *gin.Context) {
+func (h *CRUDHandler) Update(ctx *gin.Context) {
 	userID := common.GetUserIDFromContextPayload(ctx)
 	eventID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -189,7 +191,7 @@ func (h *EventHandler) Update(ctx *gin.Context) {
 		}
 	}
 
-	params := eventservice.UpdateParams{
+	params := models.UpdateParams{
 		EventID:     int32(eventID),
 		Name:        req.Name,
 		Description: req.Description,
@@ -207,7 +209,7 @@ func (h *EventHandler) Update(ctx *gin.Context) {
 		OldImageID:  oldImageID,
 	}
 
-	updatedEvent, err := h.eventService.Update(ctx, params)
+	updatedEvent, err := h.crudService.Update(ctx, params)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
@@ -230,7 +232,7 @@ func (h *EventHandler) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func (h *EventHandler) Delete(ctx *gin.Context) {
+func (h *CRUDHandler) Delete(ctx *gin.Context) {
 	userID := common.GetUserIDFromContextPayload(ctx)
 	eventID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -252,7 +254,7 @@ func (h *EventHandler) Delete(ctx *gin.Context) {
 		}
 	}
 
-	err = h.eventService.Delete(ctx, eventservice.DeleteParams{
+	err = h.crudService.Delete(ctx, models.DeleteParams{
 		EventID: int32(eventID),
 		UserID:  userID,
 	})
@@ -262,126 +264,6 @@ func (h *EventHandler) Delete(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
-}
-
-func (h *EventHandler) Subscribe(ctx *gin.Context) {
-	h.handleSubscription(ctx, true)
-}
-
-func (h *EventHandler) Unsubscribe(ctx *gin.Context) {
-	h.handleSubscription(ctx, false)
-}
-
-func (h *EventHandler) handleSubscription(ctx *gin.Context, subscribe bool) {
-	userID := common.GetUserIDFromContextPayload(ctx)
-	eventID, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		ctx.Error(apperror.BadRequest.WithCause(err))
-		return
-	}
-
-	params := eventservice.SubscriptionParams{
-		EventID: int32(eventID),
-		UserID:  userID,
-	}
-
-	var eventWithMeta *eventservice.EventWithMeta
-	if subscribe {
-		eventWithMeta, err = h.eventService.Subscribe(ctx, params)
-		if err != nil {
-			ctx.Error(apperror.BadRequest.WithCause(err))
-			return
-		}
-	} else {
-		eventWithMeta, err = h.eventService.Unsubscribe(ctx, params)
-	}
-
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
-	}
-
-	resp := h.converter.ToEventWithMetaResponse(eventWithMeta)
-
-	ctx.JSON(http.StatusOK, resp)
-}
-
-func (h *EventHandler) GetHome(ctx *gin.Context) {
-	userID := common.GetUserIDFromSoftAuth(ctx)
-	lat, lon, err := common.GetUserLocation(ctx)
-	if err != nil {
-		ctx.Error(apperror.BadRequest.WithCause(err))
-		return
-	}
-
-	var homeEvents *eventservice.HomeEvents
-	if userID > 0 {
-		homeEvents, err = h.eventService.GetHomeForUser(ctx, eventservice.GetHomeParams{
-			UserID: userID,
-			Lat:    lat,
-			Lon:    lon,
-		})
-		if err != nil {
-			ctx.Error(apperror.WrapDBError(err))
-			return
-		}
-	} else {
-		homeEvents, err = h.eventService.GetHomeForGuest(ctx, eventservice.GetHomeParams{
-			UserID: userID,
-			Lat:    lat,
-			Lon:    lon,
-		})
-		if err != nil {
-			ctx.Error(apperror.WrapDBError(err))
-			return
-		}
-	}
-
-	resp := h.converter.ToHomeEventsResponse(homeEvents)
-
-	ctx.JSON(http.StatusOK, resp)
-}
-
-func (h *EventHandler) GetUpcoming(ctx *gin.Context) {
-	userID := common.GetUserIDFromContextPayload(ctx)
-
-	events, err := h.eventService.GetUpcomingUserEvents(ctx, userID)
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
-	}
-
-	resp := h.converter.ToEventsWithImages(events)
-
-	ctx.JSON(http.StatusOK, resp)
-}
-
-func (h *EventHandler) GetPast(ctx *gin.Context) {
-	userID := common.GetUserIDFromContextPayload(ctx)
-
-	events, err := h.eventService.GetPastUserEvents(ctx, userID)
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
-	}
-
-	resp := h.converter.ToEventsWithImages(events)
-
-	ctx.JSON(http.StatusOK, resp)
-}
-
-func (h *EventHandler) GetOwned(ctx *gin.Context) {
-	userID := common.GetUserIDFromContextPayload(ctx)
-
-	events, err := h.eventService.GetOwnedUserEvents(ctx, userID)
-	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
-		return
-	}
-
-	resp := h.converter.ToEventsWithImages(events)
-
-	ctx.JSON(http.StatusOK, resp)
 }
 
 func parseTagIDs(tagsStr string) ([]int32, error) {

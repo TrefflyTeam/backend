@@ -2,7 +2,7 @@ package eventdto
 
 import (
 	"treffly/api/common"
-	eventservice "treffly/api/service/event"
+	"treffly/api/models"
 )
 
 type EventConverter struct {
@@ -17,14 +17,14 @@ func NewEventConverter(env, domain string) *EventConverter {
 	}
 }
 
-func (c *EventConverter) ToEventWithParticipantsResponse(e eventservice.EventWithParticipants) EventWithParticipantsResponse {
+func (c *EventConverter) ToEventWithParticipantsResponse(e models.EventWithParticipants) EventWithParticipantsResponse {
 	return EventWithParticipantsResponse{
 		EventWithTagsResponse: c.ToEventWithTagsResponse(e.EventWithTags),
 		ParticipantCount:      e.ParticipantCount,
 	}
 }
 
-func (c *EventConverter) ConvertEventToResponse(e eventservice.Event) EventResponse {
+func (c *EventConverter) ConvertEventToResponse(e models.Event) EventResponse {
 	return EventResponse{
 		ID:          e.ID,
 		Name:        e.Name,
@@ -40,21 +40,21 @@ func (c *EventConverter) ConvertEventToResponse(e eventservice.Event) EventRespo
 	}
 }
 
-func (c *EventConverter) ConvertEventWithOwnerToResponse(e eventservice.EventWithOwner) EventWithOwnerResponse {
+func (c *EventConverter) ConvertEventWithOwnerToResponse(e models.EventWithOwner) EventWithOwnerResponse {
 	return EventWithOwnerResponse{
 		EventResponse: c.ConvertEventToResponse(e.Event),
 		OwnerUsername: e.OwnerUsername,
 	}
 }
 
-func (c *EventConverter) ToEventWithTagsResponse(e eventservice.EventWithTags) EventWithTagsResponse {
+func (c *EventConverter) ToEventWithTagsResponse(e models.EventWithTags) EventWithTagsResponse {
 	return EventWithTagsResponse{
 		EventWithOwnerResponse: c.ConvertEventWithOwnerToResponse(e.EventWithOwner),
 		Tags:                   c.convertTagsToResponse(e.Tags),
 	}
 }
 
-func (c *EventConverter) ToEventWithImagesResponse(e *eventservice.EventWithImages) EventWithImagesResponse {
+func (c *EventConverter) ToEventWithImagesResponse(e *models.EventWithImages) EventWithImagesResponse {
 	return EventWithImagesResponse{
 		EventWithParticipantsResponse: c.ToEventWithParticipantsResponse(e.EventWithParticipants),
 		ImageEventURL:                 common.ImageURL(c.env, c.domain, e.ImageEventPath),
@@ -62,7 +62,7 @@ func (c *EventConverter) ToEventWithImagesResponse(e *eventservice.EventWithImag
 	}
 }
 
-func (c *EventConverter) ToEventWithMetaResponse(e *eventservice.EventWithMeta) EventWithMetaResponse {
+func (c *EventConverter) ToEventWithMetaResponse(e *models.EventWithMeta) EventWithMetaResponse {
 	return EventWithMetaResponse{
 		EventWithImagesResponse: c.ToEventWithImagesResponse(&e.EventWithImages),
 		IsOwner:                 e.IsOwner,
@@ -70,7 +70,7 @@ func (c *EventConverter) ToEventWithMetaResponse(e *eventservice.EventWithMeta) 
 	}
 }
 
-func (c *EventConverter) convertTagsToResponse(tags []eventservice.Tag) []TagResponse {
+func (c *EventConverter) convertTagsToResponse(tags []models.Tag) []TagResponse {
 	result := make([]TagResponse, len(tags))
 	for i, t := range tags {
 		result[i] = TagResponse{
@@ -81,7 +81,7 @@ func (c *EventConverter) convertTagsToResponse(tags []eventservice.Tag) []TagRes
 	return result
 }
 
-func (c *EventConverter) ToEventsWithImages(events []eventservice.EventWithImages) []EventWithImagesResponse {
+func (c *EventConverter) ToEventsWithImages(events []models.EventWithImages) []EventWithImagesResponse {
 	result := make([]EventWithImagesResponse, len(events))
 	for i, e := range events {
 		result[i] = c.ToEventWithImagesResponse(&e)
@@ -89,7 +89,7 @@ func (c *EventConverter) ToEventsWithImages(events []eventservice.EventWithImage
 	return result
 }
 
-func (c *EventConverter) ToHomeEventsResponse(h *eventservice.HomeEvents) HomeEventsResponse {
+func (c *EventConverter) ToHomeEventsResponse(h *models.HomeEvents) HomeEventsResponse {
 	return HomeEventsResponse{
 		Premium:     c.ToEventsWithImages(h.Premium),
 		Recommended: c.ToEventsWithImages(h.Recommended),

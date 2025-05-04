@@ -1,4 +1,4 @@
-package eventservice
+package models
 
 import (
 	"github.com/google/uuid"
@@ -11,7 +11,7 @@ type Event struct {
 	Name        string
 	Description string
 	Capacity    int32
-	Latitude    pgtype.Numeric
+	Latitude    pgtype.Numeric //TODO: postgres dependency
 	Longitude   pgtype.Numeric
 	Address     string
 	Date        time.Time

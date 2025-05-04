@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"treffly/api/models"
 	"treffly/apperror"
 	db "treffly/db/sqlc"
 	"treffly/util"
@@ -18,7 +19,7 @@ func New(store db.Store, config util.Config) *Service {
 	return &Service{store: store, config: config}
 }
 
-func (s *Service) Create(ctx context.Context, params CreateParams) (*EventWithMeta, error) {
+func (s *Service) Create(ctx context.Context, params models.CreateParams) (*models.EventWithMeta, error) {
 	eventArg := db.CreateEventTxParams{
 		Name:        params.Name,
 		Description: params.Description,
@@ -48,7 +49,7 @@ func (s *Service) Create(ctx context.Context, params CreateParams) (*EventWithMe
 	return &resp, nil
 }
 
-func (s *Service) List(ctx context.Context, params ListParams) ([]EventWithImages, error) {
+func (s *Service) List(ctx context.Context, params models.ListParams) ([]models.EventWithImages, error) {
 	arg := db.ListEventsParams{
 		UserLat:    params.Lat,
 		UserLon:    params.Lon,
@@ -67,7 +68,7 @@ func (s *Service) List(ctx context.Context, params ListParams) ([]EventWithImage
 	return result, nil
 }
 
-func (s *Service) Update(ctx context.Context, params UpdateParams) (*EventWithMeta, error) {
+func (s *Service) Update(ctx context.Context, params models.UpdateParams) (*models.EventWithMeta, error) {
 	event, err := s.store.GetEvent(ctx, params.EventID)
 	if err != nil {
 		return nil, err
@@ -115,7 +116,7 @@ func (s *Service) Update(ctx context.Context, params UpdateParams) (*EventWithMe
 	return &resp, nil
 }
 
-func (s *Service) Delete(ctx context.Context, params DeleteParams) error {
+func (s *Service) Delete(ctx context.Context, params models.DeleteParams) error {
 	event, err := s.store.GetEvent(ctx, params.EventID)
 	if err != nil {
 		return err
@@ -129,7 +130,7 @@ func (s *Service) Delete(ctx context.Context, params DeleteParams) error {
 	return s.store.DeleteEvent(ctx, params.EventID)
 }
 
-func (s *Service) GetHomeForUser(ctx context.Context, params GetHomeParams) (*HomeEvents, error) {
+func (s *Service) GetHomeForUser(ctx context.Context, params models.GetHomeParams) (*models.HomeEvents, error) {
 	premium, latest, popular, err := s.getHome(ctx)
 	if err != nil {
 		return nil, err
@@ -151,7 +152,7 @@ func (s *Service) GetHomeForUser(ctx context.Context, params GetHomeParams) (*Ho
 	return &resp, nil
 }
 
-func (s *Service) GetHomeForGuest(ctx context.Context, params GetHomeParams) (*HomeEvents, error) {
+func (s *Service) GetHomeForGuest(ctx context.Context, params models.GetHomeParams) (*models.HomeEvents, error) {
 	premium, latest, popular, err := s.getHome(ctx)
 	if err != nil {
 		return nil, err
@@ -197,7 +198,7 @@ func (s *Service) getPremiumEvents(ctx context.Context) ([]db.GetPremiumEventsRo
 	return rows, nil
 }
 
-func (s *Service) getRecommendedEvents(ctx context.Context, params GetHomeParams) ([]db.GetUserRecommendedEventsRow, []db.GetGuestRecommendedEventsRow, error) {
+func (s *Service) getRecommendedEvents(ctx context.Context, params models.GetHomeParams) ([]db.GetUserRecommendedEventsRow, []db.GetGuestRecommendedEventsRow, error) {
 	var (
 		userRecommended  []db.GetUserRecommendedEventsRow
 		guestRecommended []db.GetGuestRecommendedEventsRow
@@ -245,7 +246,7 @@ func (s *Service) getPopularEvents(ctx context.Context) ([]db.GetPopularEventsRo
 	return rows, nil
 }
 
-func (s *Service) Subscribe(ctx context.Context, params SubscriptionParams) (*EventWithMeta, error) {
+func (s *Service) Subscribe(ctx context.Context, params models.SubscriptionParams) (*models.EventWithMeta, error) {
 	arg := db.SubscribeToEventParams{
 		EventID: params.EventID,
 		UserID:  params.UserID,
@@ -267,7 +268,7 @@ func (s *Service) Subscribe(ctx context.Context, params SubscriptionParams) (*Ev
 	return s.GetEventWithMeta(ctx, params.EventID, params.UserID)
 }
 
-func (s *Service) Unsubscribe(ctx context.Context, params SubscriptionParams) (*EventWithMeta, error) {
+func (s *Service) Unsubscribe(ctx context.Context, params models.SubscriptionParams) (*models.EventWithMeta, error) {
 	arg := db.UnsubscribeFromEventParams{
 		EventID: params.EventID,
 		UserID:  params.UserID,
@@ -280,7 +281,7 @@ func (s *Service) Unsubscribe(ctx context.Context, params SubscriptionParams) (*
 	return s.GetEventWithMeta(ctx, params.EventID, params.UserID)
 }
 
-func (s *Service) GetEventWithMeta(ctx context.Context, eventID, userID int32) (*EventWithMeta, error) {
+func (s *Service) GetEventWithMeta(ctx context.Context, eventID, userID int32) (*models.EventWithMeta, error) {
 	event, err := s.store.GetEvent(ctx, eventID)
 	if err != nil {
 		return nil, err
@@ -303,7 +304,7 @@ func (s *Service) GetEventWithMeta(ctx context.Context, eventID, userID int32) (
 	return &resp, nil
 }
 
-func (s *Service) GetUpcomingUserEvents(ctx context.Context, userID int32) ([]EventWithImages, error) {
+func (s *Service) GetUpcomingUserEvents(ctx context.Context, userID int32) ([]models.EventWithImages, error) {
 	rows, err := s.store.GetUpcomingUserEvents(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -314,7 +315,7 @@ func (s *Service) GetUpcomingUserEvents(ctx context.Context, userID int32) ([]Ev
 	return resp, nil
 }
 
-func (s *Service) GetPastUserEvents(ctx context.Context, userID int32) ([]EventWithImages, error) {
+func (s *Service) GetPastUserEvents(ctx context.Context, userID int32) ([]models.EventWithImages, error) {
 	rows, err := s.store.GetPastUserEvents(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -325,7 +326,7 @@ func (s *Service) GetPastUserEvents(ctx context.Context, userID int32) ([]EventW
 	return resp, nil
 }
 
-func (s *Service) GetOwnedUserEvents(ctx context.Context, userID int32) ([]EventWithImages, error) {
+func (s *Service) GetOwnedUserEvents(ctx context.Context, userID int32) ([]models.EventWithImages, error) {
 	rows, err := s.store.GetOwnedUserEvents(ctx, userID)
 	if err != nil {
 		return nil, err
