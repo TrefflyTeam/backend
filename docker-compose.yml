@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: ${PSQL_USER}
+      POSTGRES_PASSWORD: ${PSQL_PASSWORD}
+      POSTGRES_DB: ${PSQL_DATABASE}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  frontend:
+    image: g0dd0r0/treffly-client:latest
+    expose:
+      - "80"
+    restart: always
+    networks:
+      - app-network
+
+  backend:
+    image: m1ll3r1337/treffly-server:latest
+    expose:
+      - "8080"
+    env_file: app.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    networks:
+      - app-network
+    volumes:
+      - /treffly/images:/app/images
+  caddy:
+    image: caddy:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: always
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:

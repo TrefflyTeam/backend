@@ -23,12 +23,25 @@ jobs:
       - name: List files
         run: ls -la
 
-      - name: Copy docker-compose.yml and Caddyfile to server
+- name: Create app.env file
+        run: |
+          echo "DB_DRIVER=pgx" > app.env
+          echo "DB_SOURCE=${{ secrets.DB_SOURCE }}" >> app.env
+          echo "SERVER_ADDRESS=${{ secrets.SERVER_ADDRESS }}" >> app.env
+          echo "TOKEN_SYMMETRIC_KEY=${{ secrets.TOKEN_SYMMETRIC_KEY }}" >> app.env
+          echo "ACCESS_TOKEN_DURATION=${{ secrets.ACCESS_TOKEN_DURATION }}" >> app.env
+          echo "REFRESH_TOKEN_DURATION=${{ secrets.REFRESH_TOKEN_DURATION }}" >> app.env
+          echo "Y_SUGGESTER_API=${{ secrets.Y_SUGGESTER_API }}" >> app.env
+          echo "Y_GEOCODER_API=${{ secrets.Y_GEOCODER_API }}" >> app.env
+          echo "ENVIRONMENT=${{ secrets.ENVIRONMENT }}" >> app.env
+          echo "DOMAIN=${{ secrets.DOMAIN }}" >> app.env
+          echo "IMAGE_BASE_PATH=${{ secrets.IMAGE_BASE_PATH }}" >> app.env
+
+      - name: Copy files to the server
         run: |
           eval $(ssh-agent -s)
           echo "${{ secrets.SSH_PASSPHRASE }}" | ssh-add ~/.ssh/id_rsa
-          scp -o StrictHostKeyChecking=no ./docker-compose.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.APP_PATH }}/docker-compose.yml
-          scp -o StrictHostKeyChecking=no ./Caddyfile ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.APP_PATH }}/Caddyfile
+          scp ./docker-compose.yml ./Caddyfile ./app.env ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.APP_PATH }}/
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
