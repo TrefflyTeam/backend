@@ -11,11 +11,11 @@ import (
 )
 
 type queryService interface {
-	GetHomeForUser(ctx context.Context, params models.GetHomeParams) (*models.HomeEvents, error)
-	GetHomeForGuest(ctx context.Context, params models.GetHomeParams) (*models.HomeEvents, error)
-	GetUpcomingUserEvents(ctx context.Context, userID int32) ([]models.EventWithImages, error)
-	GetPastUserEvents(ctx context.Context, userID int32) ([]models.EventWithImages, error)
-	GetOwnedUserEvents(ctx context.Context, userID int32) ([]models.EventWithImages, error)
+	GetHomeForUser(ctx context.Context, params models.GetHomeParams) (models.HomeEvents, error)
+	GetHomeForGuest(ctx context.Context, params models.GetHomeParams) (models.HomeEvents, error)
+	GetUpcomingUserEvents(ctx context.Context, userID int32) ([]models.Event, error)
+	GetPastUserEvents(ctx context.Context, userID int32) ([]models.Event, error)
+	GetOwnedUserEvents(ctx context.Context, userID int32) ([]models.Event, error)
 }
 
 type QueryHandler struct {
@@ -41,7 +41,7 @@ func (h *QueryHandler) GetHome(ctx *gin.Context) {
 		return
 	}
 
-	var homeEvents *models.HomeEvents
+	var homeEvents models.HomeEvents
 	if userID > 0 {
 		homeEvents, err = h.queryService.GetHomeForUser(ctx, models.GetHomeParams{
 			UserID: userID,
@@ -78,7 +78,7 @@ func (h *QueryHandler) GetUpcoming(ctx *gin.Context) {
 		return
 	}
 
-	resp := h.converter.ToEventsWithImages(events)
+	resp := h.converter.ToEventsResponse(events)
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -92,7 +92,7 @@ func (h *QueryHandler) GetPast(ctx *gin.Context) {
 		return
 	}
 
-	resp := h.converter.ToEventsWithImages(events)
+	resp := h.converter.ToEventsResponse(events)
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -106,7 +106,7 @@ func (h *QueryHandler) GetOwned(ctx *gin.Context) {
 		return
 	}
 
-	resp := h.converter.ToEventsWithImages(events)
+	resp := h.converter.ToEventsResponse(events)
 
 	ctx.JSON(http.StatusOK, resp)
 }

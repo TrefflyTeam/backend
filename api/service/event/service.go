@@ -19,7 +19,7 @@ func New(store db.Store, config util.Config) *Service {
 	return &Service{store: store, config: config}
 }
 
-func (s *Service) Create(ctx context.Context, params models.CreateParams) (*models.EventWithMeta, error) {
+func (s *Service) Create(ctx context.Context, params models.CreateParams) (models.Event, error) {
 	eventArg := db.CreateEventTxParams{
 		Name:        params.Name,
 		Description: params.Description,
@@ -41,15 +41,15 @@ func (s *Service) Create(ctx context.Context, params models.CreateParams) (*mode
 
 	event, err := s.store.CreateEventTx(ctx, eventArg, imageArg)
 	if err != nil {
-		return nil, err
+		return models.Event{}, err
 	}
 
 	resp := ConvertGetEventRow(event, true, false)
 
-	return &resp, nil
+	return resp, nil
 }
 
-func (s *Service) List(ctx context.Context, params models.ListParams) ([]models.EventWithImages, error) {
+func (s *Service) List(ctx context.Context, params models.ListParams) ([]models.Event, error) {
 	arg := db.ListEventsParams{
 		UserLat:    params.Lat,
 		UserLon:    params.Lon,
@@ -68,15 +68,15 @@ func (s *Service) List(ctx context.Context, params models.ListParams) ([]models.
 	return result, nil
 }
 
-func (s *Service) Update(ctx context.Context, params models.UpdateParams) (*models.EventWithMeta, error) {
+func (s *Service) Update(ctx context.Context, params models.UpdateParams) (models.Event, error) {
 	event, err := s.store.GetEvent(ctx, params.EventID)
 	if err != nil {
-		return nil, err
+		return models.Event{}, err
 	}
 
 	if event.OwnerID != params.UserID {
 		err = fmt.Errorf("owner id missmatch")
-		return nil, apperror.Forbidden.WithCause(err)
+		return models.Event{}, apperror.Forbidden.WithCause(err)
 	}
 
 	imageID := params.NewImageID
@@ -108,12 +108,12 @@ func (s *Service) Update(ctx context.Context, params models.UpdateParams) (*mode
 
 	event, err = s.store.UpdateEventTx(ctx, arg)
 	if err != nil {
-		return nil, err
+		return models.Event{}, err
 	}
 
 	resp := ConvertGetEventRow(event, true, false)
 
-	return &resp, nil
+	return resp, nil
 }
 
 func (s *Service) Delete(ctx context.Context, params models.DeleteParams) error {
@@ -130,10 +130,10 @@ func (s *Service) Delete(ctx context.Context, params models.DeleteParams) error 
 	return s.store.DeleteEvent(ctx, params.EventID)
 }
 
-func (s *Service) GetHomeForUser(ctx context.Context, params models.GetHomeParams) (*models.HomeEvents, error) {
+func (s *Service) GetHomeForUser(ctx context.Context, params models.GetHomeParams) (models.HomeEvents, error) {
 	premium, latest, popular, err := s.getHome(ctx)
 	if err != nil {
-		return nil, err
+		return models.HomeEvents{}, err
 	}
 
 	arg := db.GetUserRecommendedEventsParams{
@@ -144,18 +144,18 @@ func (s *Service) GetHomeForUser(ctx context.Context, params models.GetHomeParam
 
 	recommended, err := s.store.GetUserRecommendedEvents(ctx, arg)
 	if err != nil {
-		return nil, err
+		return models.HomeEvents{}, err
 	}
 
 	resp := ConvertHomeEvents(premium, recommended, latest, popular)
 
-	return &resp, nil
+	return resp, nil
 }
 
-func (s *Service) GetHomeForGuest(ctx context.Context, params models.GetHomeParams) (*models.HomeEvents, error) {
+func (s *Service) GetHomeForGuest(ctx context.Context, params models.GetHomeParams) (models.HomeEvents, error) {
 	premium, latest, popular, err := s.getHome(ctx)
 	if err != nil {
-		return nil, err
+		return models.HomeEvents{}, err
 	}
 
 	arg := db.GetGuestRecommendedEventsParams{
@@ -165,12 +165,12 @@ func (s *Service) GetHomeForGuest(ctx context.Context, params models.GetHomePara
 
 	recommended, err := s.store.GetGuestRecommendedEvents(ctx, arg)
 	if err != nil {
-		return nil, err
+		return models.HomeEvents{}, err
 	}
 
 	resp := ConvertHomeEvents(premium, recommended, latest, popular)
 
-	return &resp, nil
+	return resp, nil
 }
 
 func (s *Service) getHome(ctx context.Context) ([]db.GetPremiumEventsRow, []db.GetLatestEventsRow, []db.GetPopularEventsRow, error) {
@@ -246,7 +246,7 @@ func (s *Service) getPopularEvents(ctx context.Context) ([]db.GetPopularEventsRo
 	return rows, nil
 }
 
-func (s *Service) Subscribe(ctx context.Context, params models.SubscriptionParams) (*models.EventWithMeta, error) {
+func (s *Service) Subscribe(ctx context.Context, params models.SubscriptionParams) (models.Event, error) {
 	arg := db.SubscribeToEventParams{
 		EventID: params.EventID,
 		UserID:  params.UserID,
@@ -254,37 +254,37 @@ func (s *Service) Subscribe(ctx context.Context, params models.SubscriptionParam
 
 	event, err := s.store.GetEvent(ctx, params.EventID)
 	if err != nil {
-		return nil, err
+		return models.Event{}, err
 	}
 
 	if event.OwnerID == params.UserID {
-		return nil, fmt.Errorf("user is owner")
+		return models.Event{}, fmt.Errorf("user is owner")
 	}
 
 	if err := s.store.SubscribeToEvent(ctx, arg); err != nil {
-		return nil, err
+		return models.Event{}, err
 	}
 
-	return s.GetEventWithMeta(ctx, params.EventID, params.UserID)
+	return s.GetEvent(ctx, params.EventID, params.UserID)
 }
 
-func (s *Service) Unsubscribe(ctx context.Context, params models.SubscriptionParams) (*models.EventWithMeta, error) {
+func (s *Service) Unsubscribe(ctx context.Context, params models.SubscriptionParams) (models.Event, error) {
 	arg := db.UnsubscribeFromEventParams{
 		EventID: params.EventID,
 		UserID:  params.UserID,
 	}
 
 	if err := s.store.UnsubscribeFromEvent(ctx, arg); err != nil {
-		return nil, err
+		return models.Event{}, err
 	}
 
-	return s.GetEventWithMeta(ctx, params.EventID, params.UserID)
+	return s.GetEvent(ctx, params.EventID, params.UserID)
 }
 
-func (s *Service) GetEventWithMeta(ctx context.Context, eventID, userID int32) (*models.EventWithMeta, error) {
+func (s *Service) GetEvent(ctx context.Context, eventID, userID int32) (models.Event, error) {
 	event, err := s.store.GetEvent(ctx, eventID)
 	if err != nil {
-		return nil, err
+		return models.Event{}, err
 	}
 
 	participantArg := db.IsParticipantParams{
@@ -294,17 +294,17 @@ func (s *Service) GetEventWithMeta(ctx context.Context, eventID, userID int32) (
 
 	isParticipant, err := s.store.IsParticipant(ctx, participantArg)
 	if err != nil {
-		return nil, err
+		return models.Event{}, err
 	}
 
 	isOwner := event.OwnerID == userID
 
 	resp := ConvertGetEventRow(event, isOwner, isParticipant)
 
-	return &resp, nil
+	return resp, nil
 }
 
-func (s *Service) GetUpcomingUserEvents(ctx context.Context, userID int32) ([]models.EventWithImages, error) {
+func (s *Service) GetUpcomingUserEvents(ctx context.Context, userID int32) ([]models.Event, error) {
 	rows, err := s.store.GetUpcomingUserEvents(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -315,7 +315,7 @@ func (s *Service) GetUpcomingUserEvents(ctx context.Context, userID int32) ([]mo
 	return resp, nil
 }
 
-func (s *Service) GetPastUserEvents(ctx context.Context, userID int32) ([]models.EventWithImages, error) {
+func (s *Service) GetPastUserEvents(ctx context.Context, userID int32) ([]models.Event, error) {
 	rows, err := s.store.GetPastUserEvents(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -326,7 +326,7 @@ func (s *Service) GetPastUserEvents(ctx context.Context, userID int32) ([]models
 	return resp, nil
 }
 
-func (s *Service) GetOwnedUserEvents(ctx context.Context, userID int32) ([]models.EventWithImages, error) {
+func (s *Service) GetOwnedUserEvents(ctx context.Context, userID int32) ([]models.Event, error) {
 	rows, err := s.store.GetOwnedUserEvents(ctx, userID)
 	if err != nil {
 		return nil, err

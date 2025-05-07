@@ -17,10 +17,10 @@ import (
 )
 
 type crudService interface {
-	Create(ctx context.Context, params models.CreateParams) (*models.EventWithMeta, error)
-	List(ctx context.Context, params models.ListParams) ([]models.EventWithImages, error)
-	GetEventWithMeta(ctx context.Context, eventID int32, userID int32) (*models.EventWithMeta, error)
-	Update(ctx context.Context, params models.UpdateParams) (*models.EventWithMeta, error)
+	Create(ctx context.Context, params models.CreateParams) (models.Event, error)
+	List(ctx context.Context, params models.ListParams) ([]models.Event, error)
+	GetEvent(ctx context.Context, eventID int32, userID int32) (models.Event, error)
+	Update(ctx context.Context, params models.UpdateParams) (models.Event, error)
 	Delete(ctx context.Context, params models.DeleteParams) error
 }
 
@@ -87,7 +87,7 @@ func (h *CRUDHandler) Create(ctx *gin.Context) {
 		return
 	}
 
-	response := h.converter.ToEventWithMetaResponse(createdEvent)
+	response := h.converter.ToEventResponse(createdEvent)
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -119,7 +119,7 @@ func (h *CRUDHandler) List(ctx *gin.Context) {
 		return
 	}
 
-	resp := h.converter.ToEventsWithImages(events)
+	resp := h.converter.ToEventsResponse(events)
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -133,13 +133,13 @@ func (h *CRUDHandler) GetByID(ctx *gin.Context) {
 
 	userID := common.GetUserIDFromSoftAuth(ctx)
 
-	eventWithMeta, err := h.crudService.GetEventWithMeta(ctx, int32(eventID), userID)
+	Event, err := h.crudService.GetEvent(ctx, int32(eventID), userID)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
 
-	resp := h.converter.ToEventWithMetaResponse(eventWithMeta)
+	resp := h.converter.ToEventResponse(Event)
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -227,7 +227,7 @@ func (h *CRUDHandler) Update(ctx *gin.Context) {
 		_ = h.imageService.Delete(oldPath)
 	}
 
-	resp := h.converter.ToEventWithMetaResponse(updatedEvent)
+	resp := h.converter.ToEventResponse(updatedEvent)
 
 	ctx.JSON(http.StatusOK, resp)
 }

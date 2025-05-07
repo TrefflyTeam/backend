@@ -11,8 +11,8 @@ import (
 )
 
 type subscriptionService interface {
-	Subscribe(ctx context.Context, params models.SubscriptionParams) (*models.EventWithMeta, error)
-	Unsubscribe(ctx context.Context, params models.SubscriptionParams) (*models.EventWithMeta, error)
+	Subscribe(ctx context.Context, params models.SubscriptionParams) (models.Event, error)
+	Unsubscribe(ctx context.Context, params models.SubscriptionParams) (models.Event, error)
 }
 
 type SubscriptionHandler struct {
@@ -49,15 +49,15 @@ func (h *SubscriptionHandler) handleSubscription(ctx *gin.Context, subscribe boo
 		UserID:  userID,
 	}
 
-	var eventWithMeta *models.EventWithMeta
+	var Event models.Event
 	if subscribe {
-		eventWithMeta, err = h.service.Subscribe(ctx, params)
+		Event, err = h.service.Subscribe(ctx, params)
 		if err != nil {
 			ctx.Error(apperror.BadRequest.WithCause(err))
 			return
 		}
 	} else {
-		eventWithMeta, err = h.service.Unsubscribe(ctx, params)
+		Event, err = h.service.Unsubscribe(ctx, params)
 	}
 
 	if err != nil {
@@ -65,7 +65,7 @@ func (h *SubscriptionHandler) handleSubscription(ctx *gin.Context, subscribe boo
 		return
 	}
 
-	resp := h.converter.ToEventWithMetaResponse(eventWithMeta)
+	resp := h.converter.ToEventResponse(Event)
 
 	ctx.JSON(http.StatusOK, resp)
 }
