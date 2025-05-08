@@ -1,4 +1,4 @@
-package handler
+package geo
 
 import (
 	"encoding/json"
@@ -11,22 +11,27 @@ import (
 	"strings"
 	"treffly/api/common"
 	geodto "treffly/api/dto/geo"
-	geoservice "treffly/api/service/geo"
 	"treffly/apperror"
 	"treffly/util"
 )
 
-type GeoHandler struct {
-	service *geoservice.Service
+type geoService interface {
+	GetSuggestions(query string, lat, lon, radius float64) ([]byte, error)
+	ReverseGeocode(address string) ([]byte, error)
+	Geocode(lat, lon float64) ([]byte, error)
 }
 
-func NewGeoHandler(service *geoservice.Service) *GeoHandler {
-	return &GeoHandler{
-		service: service,
+type Handler struct {
+	mapService geoService
+}
+
+func NewGeoHandler(service geoService) *Handler {
+	return &Handler{
+		mapService: service,
 	}
 }
 
-func (h *GeoHandler) Suggest(ctx *gin.Context) {
+func (h *Handler) Suggest(ctx *gin.Context) {
 	query := ctx.Query("text")
 	if query == "" {
 		ctx.Error(apperror.BadRequest.WithCause(fmt.Errorf("text parameter is required")))
@@ -53,7 +58,7 @@ func (h *GeoHandler) Suggest(ctx *gin.Context) {
 		return
 	}
 
-	rawData, err := h.service.GetSuggestions(query, latFloat, lonFloat, radius)
+	rawData, err := h.mapService.GetSuggestions(query, latFloat, lonFloat, radius)
 	if err != nil {
 		ctx.Error(apperror.BadGateway.WithCause(err))
 		return
@@ -68,8 +73,7 @@ func (h *GeoHandler) Suggest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, suggestions)
 }
 
-
-func (h *GeoHandler) Geocode(ctx *gin.Context) {
+func (h *Handler) Geocode(ctx *gin.Context) {
 	lat, err := strconv.ParseFloat(ctx.Query("lat"), 64)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
@@ -92,7 +96,7 @@ func (h *GeoHandler) Geocode(ctx *gin.Context) {
 		return
 	}
 
-	body, err := h.service.Geocode(lat, lon)
+	body, err := h.mapService.Geocode(lat, lon)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
@@ -103,14 +107,14 @@ func (h *GeoHandler) Geocode(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-func (h *GeoHandler) ReverseGeocode(ctx *gin.Context) {
+func (h *Handler) ReverseGeocode(ctx *gin.Context) {
 	address := ctx.Query("address")
 	if address == "" {
 		ctx.Error(apperror.BadRequest.WithCause(fmt.Errorf("address parameter is required")))
 		return
 	}
 
-	rawData, err := h.service.ReverseGeocode(address)
+	rawData, err := h.mapService.ReverseGeocode(address)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
@@ -173,7 +177,6 @@ func parseGeocodeResponse(data []byte) (*geodto.LocationResult, error) {
 		Lon:     lon,
 	}, nil
 }
-
 
 func ParseReverseGeocodeResponse(data []byte) (*geodto.LocationResult, error) {
 	return parseGeocodeResponse(data)

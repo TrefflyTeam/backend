@@ -27,11 +27,6 @@ type Event struct {
 	OwnerImagePath   string
 }
 
-type Tag struct {
-	ID   int32
-	Name string
-}
-
 type HomeEvents struct {
 	Premium     []Event
 	Recommended []Event
