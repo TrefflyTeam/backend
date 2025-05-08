@@ -1,4 +1,4 @@
-package eventservice
+package models
 
 import (
 	"github.com/google/uuid"
@@ -7,56 +7,31 @@ import (
 )
 
 type Event struct {
-	ID          int32
-	Name        string
-	Description string
-	Capacity    int32
-	Latitude    pgtype.Numeric
-	Longitude   pgtype.Numeric
-	Address     string
-	Date        time.Time
-	IsPrivate   bool
-	IsPremium   bool
-	CreatedAt   time.Time
-}
-
-type EventWithOwner struct {
-	Event
-	OwnerUsername string
-}
-
-type EventWithTags struct {
-	EventWithOwner
-	Tags []Tag
-}
-
-type EventWithParticipants struct {
-	EventWithTags
-	ParticipantCount int32
-}
-
-type EventWithImages struct {
-	EventWithParticipants
-	ImageEventPath string
-	ImageUserPath  string
-}
-
-type EventWithMeta struct {
-	EventWithImages
-	IsOwner       bool
-	IsParticipant bool
-}
-
-type Tag struct {
-	ID   int32
-	Name string
+	ID               int32
+	Name             string
+	Description      string
+	Capacity         int32
+	Latitude         float64
+	Longitude        float64
+	Address          string
+	Date             time.Time
+	IsPrivate        bool
+	IsPremium        bool
+	CreatedAt        time.Time
+	OwnerUsername    string
+	IsOwner          bool
+	IsParticipant     bool
+	Tags             []Tag
+	ParticipantCount int
+	ImagePath        string
+	OwnerImagePath   string
 }
 
 type HomeEvents struct {
-	Premium     []EventWithImages
-	Recommended []EventWithImages
-	Latest      []EventWithImages
-	Popular     []EventWithImages
+	Premium     []Event
+	Recommended []Event
+	Latest      []Event
+	Popular     []Event
 }
 
 type CreateParams struct {

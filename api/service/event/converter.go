@@ -2,13 +2,15 @@ package eventservice
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
+	"treffly/api/models"
 	db "treffly/db/sqlc"
+	"treffly/util"
 )
 
-func convertTags(dbTags []db.Tag) []Tag {
-	tags := make([]Tag, len(dbTags))
+func convertTags(dbTags []db.Tag) []models.Tag {
+	tags := make([]models.Tag, len(dbTags))
 	for i, t := range dbTags {
-		tags[i] = Tag{
+		tags[i] = models.Tag{
 			ID:   t.ID,
 			Name: t.Name,
 		}
@@ -16,70 +18,56 @@ func convertTags(dbTags []db.Tag) []Tag {
 	return tags
 }
 
-func ConvertGetEventRow(e db.GetEventRow, isOwner, isParticipant bool) EventWithMeta {
-	base := Event{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+func ConvertGetEventRow(e db.GetEventRow, isOwner, isParticipant bool) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		IsOwner:        isOwner,
+		IsParticipant:  isParticipant,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
 	}
 
-	return EventWithMeta{
-		EventWithImages: EventWithImages{
-			EventWithParticipants: EventWithParticipants{
-				EventWithTags: EventWithTags{
-					EventWithOwner: EventWithOwner{
-						Event:         base,
-						OwnerUsername: safeString(e.OwnerUsername),
-					},
-					Tags: convertTags(e.Tags),
-				},
-				ParticipantCount: int32(e.ParticipantsCount),
-			},
-			ImageEventPath: safeString(e.EventImagePath),
-			ImageUserPath:  safeString(e.UserImagePath),
-		},
-		IsOwner:       isOwner,
-		IsParticipant: isParticipant,
-	}
+	return base
 }
 
-func ConvertListEventsRow(e db.ListEventsRow) EventWithImages {
-	base := Event{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+func ConvertListEventsRow(e db.ListEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		IsOwner:        false,
+		IsParticipant:  false,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
-					Event:         base,
-					OwnerUsername: safeString(e.OwnerUsername),
-				},
-				Tags: convertTags(e.Tags),
-			},
-			ParticipantCount: int32(e.ParticipantsCount),
-		},
-		ImageEventPath: safeString(e.EventImagePath),
-		ImageUserPath: safeString(e.UserImagePath),
-	}
+	return base
 }
 
 func safeString(s pgtype.Text) string {
@@ -98,8 +86,8 @@ func ConvertHomeEvents[T RecommendedRow](
 	recommended []T,
 	latest []db.GetLatestEventsRow,
 	popular []db.GetPopularEventsRow,
-) HomeEvents {
-	return HomeEvents{
+) models.HomeEvents {
+	return models.HomeEvents{
 		Premium:     convertEventType(premium),
 		Recommended: convertRecommendedEvents(recommended),
 		Latest:      convertEventType(latest),
@@ -107,15 +95,15 @@ func ConvertHomeEvents[T RecommendedRow](
 	}
 }
 
-func convertRecommendedEvents[T RecommendedRow](rows []T) []EventWithImages {
-	result := make([]EventWithImages, len(rows))
+func convertRecommendedEvents[T RecommendedRow](rows []T) []models.Event {
+	result := make([]models.Event, len(rows))
 	for i, row := range rows {
 		result[i] = convertSingleRecommended(row)
 	}
 	return result
 }
 
-func convertSingleRecommended[T RecommendedRow](row T) EventWithImages {
+func convertSingleRecommended[T RecommendedRow](row T) models.Event {
 	switch v := any(row).(type) {
 	case db.GetUserRecommendedEventsRow:
 		return convertUserRecommended(v)
@@ -126,68 +114,56 @@ func convertSingleRecommended[T RecommendedRow](row T) EventWithImages {
 	}
 }
 
-func convertUserRecommended(e db.GetUserRecommendedEventsRow) EventWithImages {
-	base := Event{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+func convertUserRecommended(e db.GetUserRecommendedEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
-					Event:         base,
-					OwnerUsername: safeString(e.OwnerUsername),
-				},
-				Tags: convertTags(e.Tags),
-			},
-			ParticipantCount: int32(e.ParticipantsCount),
-		},
-		ImageEventPath: safeString(e.EventImagePath),
-	}
+	return base
 }
 
-func convertGuestRecommended(e db.GetGuestRecommendedEventsRow) EventWithImages {
-	base := Event{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+func convertGuestRecommended(e db.GetGuestRecommendedEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
-					Event:         base,
-					OwnerUsername: safeString(e.OwnerUsername),
-				},
-				Tags: convertTags(e.Tags),
-			},
-			ParticipantCount: int32(e.ParticipantsCount),
-		},
-		ImageEventPath: safeString(e.EventImagePath),
-	}
+	return base
 }
 
-func convertEventType[T any](rows []T) []EventWithImages {
-	result := make([]EventWithImages, len(rows))
+func convertEventType[T any](rows []T) []models.Event {
+	result := make([]models.Event, len(rows))
 	for i, row := range rows {
 		switch v := any(row).(type) {
 		case db.ListEventsRow:
@@ -213,182 +189,146 @@ func convertEventType[T any](rows []T) []EventWithImages {
 	return result
 }
 
-func convertOwnedEventsRow(e db.GetOwnedUserEventsRow) EventWithImages {
-	base := Event{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+func convertOwnedEventsRow(e db.GetOwnedUserEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
-					Event:         base,
-					OwnerUsername: safeString(e.OwnerUsername),
-				},
-				Tags: convertTags(e.Tags),
-			},
-			ParticipantCount: int32(e.ParticipantsCount),
-		},
-		ImageEventPath: safeString(e.EventImagePath),
-	}
+	return base
 }
 
-func convertPastEventsRow(e db.GetPastUserEventsRow) EventWithImages {
-	base := Event{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+func convertPastEventsRow(e db.GetPastUserEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
-					Event:         base,
-					OwnerUsername: safeString(e.OwnerUsername),
-				},
-				Tags: convertTags(e.Tags),
-			},
-			ParticipantCount: int32(e.ParticipantsCount),
-		},
-		ImageEventPath: safeString(e.EventImagePath),
-	}
+	return base
 }
 
-func convertUpcomingEventsRow(e db.GetUpcomingUserEventsRow) EventWithImages {
-	base := Event{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+func convertUpcomingEventsRow(e db.GetUpcomingUserEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
-					Event:         base,
-					OwnerUsername: safeString(e.OwnerUsername),
-				},
-				Tags: convertTags(e.Tags),
-			},
-			ParticipantCount: int32(e.ParticipantsCount),
-		},
-		ImageEventPath: safeString(e.EventImagePath),
-	}
+	return base
 }
 
-func convertPremiumEvent(e db.GetPremiumEventsRow) EventWithImages {
-	base := Event{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+func convertPremiumEvent(e db.GetPremiumEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
-					Event:         base,
-					OwnerUsername: safeString(e.OwnerUsername),
-				},
-				Tags: convertTags(e.Tags),
-			},
-			ParticipantCount: int32(e.ParticipantsCount),
-		},
-		ImageEventPath: safeString(e.EventImagePath),
-	}
+	return base
 }
 
-func convertLatestEvent(e db.GetLatestEventsRow) EventWithImages {
-	base := Event{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+func convertLatestEvent(e db.GetLatestEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
-					Event:         base,
-					OwnerUsername: safeString(e.OwnerUsername),
-				},
-				Tags: convertTags(e.Tags),
-			},
-			ParticipantCount: int32(e.ParticipantsCount),
-		},
-		ImageEventPath: safeString(e.EventImagePath),
-	}
+	return base
 }
 
-func convertPopularEvent(e db.GetPopularEventsRow) EventWithImages {
-	base := Event{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+func convertPopularEvent(e db.GetPopularEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
 	}
 
-	return EventWithImages{
-		EventWithParticipants: EventWithParticipants{
-			EventWithTags: EventWithTags{
-				EventWithOwner: EventWithOwner{
-					Event:         base,
-					OwnerUsername: safeString(e.OwnerUsername),
-				},
-				Tags: convertTags(e.Tags),
-			},
-			ParticipantCount: int32(e.ParticipantsCount),
-		},
-		ImageEventPath: safeString(e.EventImagePath),
-	}
+	return base
 }

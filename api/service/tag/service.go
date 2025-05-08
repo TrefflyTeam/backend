@@ -2,6 +2,7 @@ package tagservice
 
 import (
 	"context"
+	"treffly/api/models"
 	db "treffly/db/sqlc"
 )
 
@@ -15,11 +16,11 @@ func New(store db.Store) *Service {
 	}
 }
 
-func (s *Service) GetTags(ctx context.Context) ([]db.Tag, error) {
+func (s *Service) GetTags(ctx context.Context) ([]models.Tag, error) {
 	tags, err := s.store.GetTags(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return tags, nil
+	return convertTags(tags), nil
 }

@@ -158,7 +158,8 @@ SELECT
     created_at,
     tags,
     participants_count,
-    event_image_path
+    event_image_path,
+    user_image_path
 FROM event_with_tags_view
 WHERE is_premium = TRUE
   AND date > NOW() AND is_private = false
@@ -182,7 +183,8 @@ SELECT
     created_at,
     tags,
     participants_count,
-    event_image_path
+    event_image_path,
+    user_image_path
 FROM event_with_tags_view
 WHERE date > NOW() AND is_private = false
 ORDER BY created_at DESC
@@ -205,7 +207,8 @@ SELECT
     created_at,
     tags,
     participants_count,
-    event_image_path
+    event_image_path,
+    user_image_path
 FROM event_with_tags_view
 WHERE date > NOW() AND is_private = false
 ORDER BY participants_count DESC, created_at DESC
@@ -234,7 +237,8 @@ SELECT
     evt.created_at,
     evt.tags,
     evt.participants_count,
-    event_image_path,
+    evt.event_image_path,
+    evt.user_image_path,
     (
         SELECT COUNT(*)
         FROM event_tags et
@@ -278,7 +282,8 @@ SELECT
     created_at,
     tags,
     participants_count,
-    event_image_path
+    event_image_path,
+    user_image_path
 FROM event_with_tags_view
 WHERE
     date > NOW()
@@ -310,7 +315,8 @@ SELECT
     e.created_at,
     e.tags,
     e.participants_count,
-    e.event_image_path
+    e.event_image_path,
+    e.user_image_path
 FROM event_with_tags_view e
          JOIN event_user eu ON e.id = eu.event_id
 WHERE
@@ -336,7 +342,8 @@ SELECT
     e.created_at,
     e.tags,
     e.participants_count,
-    e.event_image_path
+    e.event_image_path,
+    e.user_image_path
 FROM event_with_tags_view e
          JOIN event_user eu ON e.id = eu.event_id
 WHERE
@@ -362,7 +369,8 @@ SELECT
     e.created_at,
     e.tags,
     e.participants_count,
-    e.event_image_path
+    e.event_image_path,
+    e.user_image_path
 FROM event_with_tags_view e
 WHERE
     e.owner_id = @user_id

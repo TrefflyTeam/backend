@@ -7,7 +7,12 @@ import (
 	"github.com/go-playground/validator/v10"
 	eventdto "treffly/api/dto/event"
 	userdto "treffly/api/dto/user"
-	"treffly/api/handler"
+	"treffly/api/handler/event"
+	"treffly/api/handler/geo"
+	image2 "treffly/api/handler/image"
+	"treffly/api/handler/tag"
+	token2 "treffly/api/handler/token"
+	"treffly/api/handler/user"
 	eventservice "treffly/api/service/event"
 	geoservice "treffly/api/service/geo"
 	imageservice "treffly/api/service/image"
@@ -79,28 +84,31 @@ func (server *Server) setupRouter() {
 	imageService := imageservice.New(server.imageStore, server.config, server.store)
 
 	eventService := eventservice.New(server.store, server.config)
-	eventHandler := handler.NewEventHandler(eventService, imageService, server.config, eventConverter)
+	eventQueryHandler := event.NewEventQueryHandler(eventService, imageService, eventConverter)
+	eventCRUDHandler := event.NewEventCRUDHandler(eventService, imageService, eventConverter)
+	eventSubscriptionHandler := event.NewEventSubscriptionHandler(eventService, eventConverter)
 
 	userService := userservice.New(server.store, server.tokenMaker, server.config)
-	userHandler := handler.NewUserHandler(userService, imageService, server.config, userConverter)
+	userProfileHandler := user.NewProfileHandler(userService, userService, userService, imageService, userConverter, server.config.Environment)
+	userAuthHandler := user.NewAuthHandler(userService, userService, userConverter, server.config)
 
 	tagService := tagservice.New(server.store)
-	tagHandler := handler.NewTagHandler(tagService)
+	tagHandler := tag.NewTagHandler(tagService)
 
 	geoService := geoservice.New(server.store, server.geocodeClient, server.suggestClient)
-	geoHandler := handler.NewGeoHandler(geoService)
+	geoHandler := geo.NewGeoHandler(geoService)
 
 	tokenService := tokenservice.New(server.store, server.tokenMaker, server.config, log)
-	tokenHandler := handler.NewTokenHandler(tokenService, server.config)
+	tokenHandler := token2.NewTokenHandler(tokenService, server.config)
 
-	imageHandler := handler.NewImageHandler(imageService)
+	imageHandler := image2.NewImageHandler(imageService)
 
-	router.POST("/users", userHandler.Create)
-	router.POST("/login", userHandler.Login)
+	router.POST("/users", userAuthHandler.Create)
+	router.POST("/login", userAuthHandler.Login)
 	router.POST("/auth/refresh", tokenHandler.RefreshTokens)
 	router.GET("/auth", tokenHandler.Auth)
 	router.GET("/tags", tagHandler.GetTags)
-	router.GET("/events", eventHandler.List)
+	router.GET("/events", eventCRUDHandler.List)
 
 	router.GET("/images/*path", imageHandler.Get)
 
@@ -109,25 +117,25 @@ func (server *Server) setupRouter() {
 	router.GET("/reverse-geocode", geoHandler.ReverseGeocode)
 
 	softAuthRoutes := router.Group("/").Use(softAuthMiddleware(server.tokenMaker))
-	softAuthRoutes.GET("/events/home", eventHandler.GetHome)
-	softAuthRoutes.GET("/events/:id", eventHandler.GetByID)
+	softAuthRoutes.GET("/events/home", eventQueryHandler.GetHome)
+	softAuthRoutes.GET("/events/:id", eventCRUDHandler.GetByID)
 
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
-	authRoutes.POST("/logout", userHandler.Logout)
+	authRoutes.POST("/logout", userAuthHandler.Logout)
 
-	authRoutes.GET("/users/me", userHandler.GetCurrent)
-	authRoutes.PUT("/users/me", userHandler.UpdateCurrent)
-	authRoutes.DELETE("/users/me", userHandler.DeleteCurrent)
-	authRoutes.PUT("users/me/tags", userHandler.UpdateCurrentTags)
+	authRoutes.GET("/users/me", userProfileHandler.GetCurrent)
+	authRoutes.PUT("/users/me", userProfileHandler.UpdateCurrent)
+	authRoutes.DELETE("/users/me", userProfileHandler.DeleteCurrent)
+	authRoutes.PUT("users/me/tags", userProfileHandler.UpdateCurrentTags)
 
-	authRoutes.POST("/events", eventHandler.Create)
-	authRoutes.PUT("/events/:id", eventHandler.Update)
-	authRoutes.DELETE("/events/:id", eventHandler.Delete)
-	authRoutes.POST("/events/:id/subscription", eventHandler.Subscribe)
-	authRoutes.DELETE("/events/:id/subscription", eventHandler.Unsubscribe)
-	authRoutes.GET("/users/me/past-events", eventHandler.GetPast)
-	authRoutes.GET("/users/me/upcoming-events", eventHandler.GetUpcoming)
-	authRoutes.GET("/users/me/owned-events", eventHandler.GetOwned)
+	authRoutes.POST("/events", eventCRUDHandler.Create)
+	authRoutes.PUT("/events/:id", eventCRUDHandler.Update)
+	authRoutes.DELETE("/events/:id", eventCRUDHandler.Delete)
+	authRoutes.POST("/events/:id/subscription", eventSubscriptionHandler.Subscribe)
+	authRoutes.DELETE("/events/:id/subscription", eventSubscriptionHandler.Unsubscribe)
+	authRoutes.GET("/users/me/past-events", eventQueryHandler.GetPast)
+	authRoutes.GET("/users/me/upcoming-events", eventQueryHandler.GetUpcoming)
+	authRoutes.GET("/users/me/owned-events", eventQueryHandler.GetOwned)
 
 	server.router = router
 }

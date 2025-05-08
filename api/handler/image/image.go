@@ -1,4 +1,4 @@
-package handler
+package image
 
 import (
 	"errors"
@@ -7,21 +7,24 @@ import (
 	"io"
 	"os"
 	"strings"
-	imageservice "treffly/api/service/image"
 	"treffly/apperror"
 )
 
-type ImageHandler struct {
-	imageService *imageservice.Service
+type imageService interface {
+	Get(path string) (io.ReadCloser, string, error)
 }
 
-func NewImageHandler(imageService *imageservice.Service) *ImageHandler {
-	return &ImageHandler{
+type Handler struct {
+	imageService imageService
+}
+
+func NewImageHandler(imageService imageService) *Handler {
+	return &Handler{
 		imageService: imageService,
 	}
 }
 
-func (h *ImageHandler) Get(ctx *gin.Context) {
+func (h *Handler) Get(ctx *gin.Context) {
 	path := ctx.Param("path")
 
 	if strings.Contains(path, "..") || strings.Contains(path, "//") {
