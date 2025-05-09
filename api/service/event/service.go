@@ -261,7 +261,10 @@ func (s *Service) Subscribe(ctx context.Context, params models.SubscriptionParam
 		return models.Event{}, fmt.Errorf("user is owner")
 	}
 
-	if err := s.store.SubscribeToEvent(ctx, arg); err != nil {
+	if allowed, err := s.store.SubscribeToEvent(ctx, arg); err != nil {
+		if !allowed {
+			return models.Event{}, fmt.Errorf("event is full")
+		}
 		return models.Event{}, err
 	}
 
