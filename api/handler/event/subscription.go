@@ -44,9 +44,12 @@ func (h *SubscriptionHandler) handleSubscription(ctx *gin.Context, subscribe boo
 		return
 	}
 
+	token := ctx.Query("invite")
+
 	params := models.SubscriptionParams{
 		EventID: eventID,
 		UserID:  userID,
+		Token:   token,
 	}
 
 	var Event models.Event

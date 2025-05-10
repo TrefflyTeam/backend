@@ -19,7 +19,7 @@ import (
 type crudService interface {
 	Create(ctx context.Context, params models.CreateParams) (models.Event, error)
 	List(ctx context.Context, params models.ListParams) ([]models.Event, error)
-	GetEvent(ctx context.Context, eventID int32, userID int32) (models.Event, error)
+	GetEvent(ctx context.Context, eventID int32, userID int32, token string) (models.Event, error)
 	Update(ctx context.Context, params models.UpdateParams) (models.Event, error)
 	Delete(ctx context.Context, params models.DeleteParams) error
 }
@@ -131,9 +131,11 @@ func (h *CRUDHandler) GetByID(ctx *gin.Context) {
 		return
 	}
 
+	token := ctx.Query("invite")
+
 	userID := common.GetUserIDFromSoftAuth(ctx)
 
-	Event, err := h.crudService.GetEvent(ctx, int32(eventID), userID)
+	Event, err := h.crudService.GetEvent(ctx, int32(eventID), userID, token)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
