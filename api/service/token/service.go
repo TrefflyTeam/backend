@@ -120,4 +120,32 @@ func (s *Service) ValidateSession(ctx context.Context, refreshToken string) erro
 	return nil
 }
 
+func (s *Service) CreatePrivateEventToken(ctx context.Context, eventID int32, userID int32) (string, error) {
+	event, err := s.store.GetEvent(ctx, db.GetEventParams{ID: eventID, OwnerID: userID})
+	if err != nil {
+		return "", err
+	}
 
+	if userID != event.OwnerID {
+		err = fmt.Errorf("not allowed")
+		return "", err
+	}
+
+	t,payload, err := s.tokenMaker.CreateToken(0, time.Hour)
+	if err != nil {
+		return "", err
+	}
+
+	arg := db.CreatePrivateEventTokenParams{
+		EventID: eventID,
+		Token: t,
+		ExpiresAt: payload.ExpiredAt,
+	}
+
+	err = s.store.CreatePrivateEventToken(ctx, arg)
+	if err != nil {
+		return "", err
+	}
+
+	return t, nil
+}

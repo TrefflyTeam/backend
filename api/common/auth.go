@@ -25,7 +25,7 @@ func SetTokenCookie(ctx *gin.Context, name, token, path string, maxAge time.Dura
 		token,
 		int(maxAge.Seconds()),
 		path,
-		CookieDomain, //TODO: set domain before releasing
+		CookieDomain, //TODO: set models before releasing
 		isSecure, //TODO: set to true before releasing
 		true,
 	)

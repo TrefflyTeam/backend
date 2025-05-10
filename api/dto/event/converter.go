@@ -2,7 +2,7 @@ package eventdto
 
 import (
 	"treffly/api/common"
-	eventservice "treffly/api/service/event"
+	"treffly/api/models"
 )
 
 type EventConverter struct {
@@ -17,60 +17,30 @@ func NewEventConverter(env, domain string) *EventConverter {
 	}
 }
 
-func (c *EventConverter) ToEventWithParticipantsResponse(e eventservice.EventWithParticipants) EventWithParticipantsResponse {
-	return EventWithParticipantsResponse{
-		EventWithTagsResponse: c.ToEventWithTagsResponse(e.EventWithTags),
-		ParticipantCount:      e.ParticipantCount,
-	}
-}
-
-func (c *EventConverter) ConvertEventToResponse(e eventservice.Event) EventResponse {
+func (c *EventConverter) ToEventResponse(e models.Event) EventResponse {
 	return EventResponse{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Capacity:    e.Capacity,
-		Latitude:    e.Latitude,
-		Longitude:   e.Longitude,
-		Address:     e.Address,
-		Date:        e.Date,
-		IsPrivate:   e.IsPrivate,
-		IsPremium:   e.IsPremium,
-		CreatedAt:   e.CreatedAt,
+		ID:               e.ID,
+		Name:             e.Name,
+		Description:      e.Description,
+		Capacity:         e.Capacity,
+		Latitude:         e.Latitude,
+		Longitude:        e.Longitude,
+		Address:          e.Address,
+		Date:             e.Date,
+		IsPrivate:        e.IsPrivate,
+		IsPremium:        e.IsPremium,
+		CreatedAt:        e.CreatedAt,
+		OwnerUsername: 	  e.OwnerUsername,
+		IsOwner:          e.IsOwner,
+		IsParticipant:    e.IsParticipant,
+		Tags:             c.convertTagsToResponse(e.Tags),
+		ParticipantCount: e.ParticipantCount,
+		ImageEventURL:    common.ImageURL(c.env, c.domain, e.ImagePath),
+		ImageUserURL:     common.ImageURL(c.env, c.domain, e.OwnerImagePath),
 	}
 }
 
-func (c *EventConverter) ConvertEventWithOwnerToResponse(e eventservice.EventWithOwner) EventWithOwnerResponse {
-	return EventWithOwnerResponse{
-		EventResponse: c.ConvertEventToResponse(e.Event),
-		OwnerUsername: e.OwnerUsername,
-	}
-}
-
-func (c *EventConverter) ToEventWithTagsResponse(e eventservice.EventWithTags) EventWithTagsResponse {
-	return EventWithTagsResponse{
-		EventWithOwnerResponse: c.ConvertEventWithOwnerToResponse(e.EventWithOwner),
-		Tags:                   c.convertTagsToResponse(e.Tags),
-	}
-}
-
-func (c *EventConverter) ToEventWithImagesResponse(e *eventservice.EventWithImages) EventWithImagesResponse {
-	return EventWithImagesResponse{
-		EventWithParticipantsResponse: c.ToEventWithParticipantsResponse(e.EventWithParticipants),
-		ImageEventURL:                 common.ImageURL(c.env, c.domain, e.ImageEventPath),
-		ImageUserURL:                  common.ImageURL(c.env, c.domain, e.ImageUserPath),
-	}
-}
-
-func (c *EventConverter) ToEventWithMetaResponse(e *eventservice.EventWithMeta) EventWithMetaResponse {
-	return EventWithMetaResponse{
-		EventWithImagesResponse: c.ToEventWithImagesResponse(&e.EventWithImages),
-		IsOwner:                 e.IsOwner,
-		IsParticipant:           e.IsParticipant,
-	}
-}
-
-func (c *EventConverter) convertTagsToResponse(tags []eventservice.Tag) []TagResponse {
+func (c *EventConverter) convertTagsToResponse(tags []models.Tag) []TagResponse {
 	result := make([]TagResponse, len(tags))
 	for i, t := range tags {
 		result[i] = TagResponse{
@@ -81,20 +51,19 @@ func (c *EventConverter) convertTagsToResponse(tags []eventservice.Tag) []TagRes
 	return result
 }
 
-func (c *EventConverter) ToEventsWithImages(events []eventservice.EventWithImages) []EventWithImagesResponse {
-	result := make([]EventWithImagesResponse, len(events))
+func (c *EventConverter) ToEventsResponse(events []models.Event) []EventResponse {
+	result := make([]EventResponse, len(events))
 	for i, e := range events {
-		result[i] = c.ToEventWithImagesResponse(&e)
+		result[i] = c.ToEventResponse(e)
 	}
 	return result
 }
 
-func (c *EventConverter) ToHomeEventsResponse(h *eventservice.HomeEvents) HomeEventsResponse {
+func (c *EventConverter) ToHomeEventsResponse(h models.HomeEvents) HomeEventsResponse {
 	return HomeEventsResponse{
-		Premium:     c.ToEventsWithImages(h.Premium),
-		Recommended: c.ToEventsWithImages(h.Recommended),
-		Latest:      c.ToEventsWithImages(h.Latest),
-		Popular:     c.ToEventsWithImages(h.Popular),
+		Premium:     c.ToEventsResponse(h.Premium),
+		Recommended: c.ToEventsResponse(h.Recommended),
+		Latest:      c.ToEventsResponse(h.Latest),
+		Popular:     c.ToEventsResponse(h.Popular),
 	}
 }
-

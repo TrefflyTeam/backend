@@ -2,13 +2,14 @@ package userservice
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
+	"treffly/api/models"
 	db "treffly/db/sqlc"
 )
 
-func convertTags(dbTags []db.Tag) []Tag {
-	tags := make([]Tag, len(dbTags))
+func convertTags(dbTags []db.Tag) []models.Tag {
+	tags := make([]models.Tag, len(dbTags))
 	for i, t := range dbTags {
-		tags[i] = Tag{
+		tags[i] = models.Tag{
 			ID:   t.ID,
 			Name: t.Name,
 		}
@@ -23,8 +24,8 @@ func safeString(s pgtype.Text) string {
 	return ""
 }
 
-func ConvertUser(dbUser db.User) User {
-	return User{
+func ConvertUser(dbUser db.User) models.User {
+	return models.User{
 		ID:       dbUser.ID,
 		Username: dbUser.Username,
 		Email:    dbUser.Email,
@@ -32,9 +33,9 @@ func ConvertUser(dbUser db.User) User {
 	}
 }
 
-func ConvertUserWithTags(dbUser db.UserWithTagsView) UserWithTags {
-	return UserWithTags{
-		User: User{
+func ConvertUserWithTags(dbUser db.UserWithTagsView) models.UserWithTags {
+	return models.UserWithTags{
+		User: models.User{
 			ID: dbUser.ID,
 			Username: dbUser.Username,
 			Email: dbUser.Email,

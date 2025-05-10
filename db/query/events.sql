@@ -27,26 +27,50 @@ INSERT INTO events (
 
 -- name: GetEvent :one
 SELECT
-    id,
-    name,
-    description,
-    capacity,
-    latitude,
-    longitude,
-    address,
-    date,
-    owner_id,
-    owner_username,
-    is_private,
-    is_premium,
-    created_at,
-    tags,
-    image_id,
-    participants_count,
-    event_image_path,
-    user_image_path
-FROM event_with_tags_view
-WHERE id = $1;
+    e.id,
+    e.name,
+    e.description,
+    e.capacity,
+    e.latitude,
+    e.longitude,
+    e.address,
+    e.date,
+    e.owner_id,
+    e.owner_username,
+    e.is_private,
+    e.is_premium,
+    e.created_at,
+    e.tags,
+    e.image_id,
+    e.participants_count,
+    e.event_image_path,
+    e.user_image_path,
+    CASE
+        WHEN $2 = e.owner_id THEN true
+        WHEN NOT e.is_private THEN true
+        WHEN EXISTS (
+            SELECT 1 FROM event_user eu
+            WHERE eu.event_id = e.id
+              AND eu.user_id = $2
+        ) THEN true
+        WHEN et.token IS NOT NULL THEN
+            et.expires_at > NOW()
+        ELSE false
+        END AS allowed
+FROM event_with_tags_view e
+         LEFT JOIN event_tokens et
+                   ON e.id = et.event_id
+                       AND et.token = $3
+WHERE e.id = $1
+  AND (
+    NOT e.is_private
+        OR
+    (e.is_private AND (
+        EXISTS (SELECT 1 FROM event_user WHERE event_id = e.id AND user_id = $2)
+            OR et.token IS NOT NULL
+            OR $2 = e.owner_id
+        ))
+    );
 
 -- name: ListEvents :many
 SELECT
@@ -158,7 +182,8 @@ SELECT
     created_at,
     tags,
     participants_count,
-    event_image_path
+    event_image_path,
+    user_image_path
 FROM event_with_tags_view
 WHERE is_premium = TRUE
   AND date > NOW() AND is_private = false
@@ -182,7 +207,8 @@ SELECT
     created_at,
     tags,
     participants_count,
-    event_image_path
+    event_image_path,
+    user_image_path
 FROM event_with_tags_view
 WHERE date > NOW() AND is_private = false
 ORDER BY created_at DESC
@@ -205,7 +231,8 @@ SELECT
     created_at,
     tags,
     participants_count,
-    event_image_path
+    event_image_path,
+    user_image_path
 FROM event_with_tags_view
 WHERE date > NOW() AND is_private = false
 ORDER BY participants_count DESC, created_at DESC
@@ -234,7 +261,8 @@ SELECT
     evt.created_at,
     evt.tags,
     evt.participants_count,
-    event_image_path,
+    evt.event_image_path,
+    evt.user_image_path,
     (
         SELECT COUNT(*)
         FROM event_tags et
@@ -278,7 +306,8 @@ SELECT
     created_at,
     tags,
     participants_count,
-    event_image_path
+    event_image_path,
+    user_image_path
 FROM event_with_tags_view
 WHERE
     date > NOW()
@@ -310,7 +339,8 @@ SELECT
     e.created_at,
     e.tags,
     e.participants_count,
-    e.event_image_path
+    e.event_image_path,
+    e.user_image_path
 FROM event_with_tags_view e
          JOIN event_user eu ON e.id = eu.event_id
 WHERE
@@ -336,7 +366,8 @@ SELECT
     e.created_at,
     e.tags,
     e.participants_count,
-    e.event_image_path
+    e.event_image_path,
+    e.user_image_path
 FROM event_with_tags_view e
          JOIN event_user eu ON e.id = eu.event_id
 WHERE
@@ -362,9 +393,17 @@ SELECT
     e.created_at,
     e.tags,
     e.participants_count,
-    e.event_image_path
+    e.event_image_path,
+    e.user_image_path
 FROM event_with_tags_view e
 WHERE
     e.owner_id = @user_id
 ORDER BY
     e.date DESC;
+
+-- name: CreatePrivateEventToken :exec
+INSERT INTO event_tokens (
+    event_id,
+    token,
+    expires_at
+) VALUES ($1, $2, $3);

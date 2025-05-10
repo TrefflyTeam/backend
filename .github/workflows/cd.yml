@@ -23,7 +23,7 @@ jobs:
       - name: List files
         run: ls -la
 
-- name: Create app.env file
+      - name: Create app.env file
         run: |
           echo "DB_DRIVER=pgx" > app.env
           echo "DB_SOURCE=${{ secrets.DB_SOURCE }}" >> app.env

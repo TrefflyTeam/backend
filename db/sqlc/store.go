@@ -8,7 +8,7 @@ import (
 type Store interface {
 	Querier
 	CreateEventTx(ctx context.Context, eventParams CreateEventTxParams, imageParams CreateImageParams) (GetEventRow, error)
-	UpdateEventTx(ctx context.Context, params UpdateEventTxParams) (GetEventRow, error)
+	UpdateEventTx(ctx context.Context, params UpdateEventTxParams) error
 	UpdateUserTagsTx(ctx context.Context, params UpdateUserTagsTxParams) error
 	UpdateUserTx(ctx context.Context, params UpdateUserTxParams) (UserWithTagsView, error)
 }

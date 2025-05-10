@@ -1,29 +1,36 @@
-package handler
+package token
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"treffly/api/common"
-	tokenservice "treffly/api/service/token"
 	"treffly/apperror"
 	"treffly/util"
 )
 
-type TokenHandler struct {
-	service *tokenservice.Service
+type tokenManager interface {
+	RefreshTokens(ctx context.Context, reqRefreshToken string) (accessToken string, refreshToken string, err error)
+	ValidateSession(ctx context.Context, refreshToken string) error
+	CreatePrivateEventToken(ctx context.Context, eventID int32, userID int32) (string, error)
+}
+
+type Handler struct {
+	tokenManager tokenManager
 	config util.Config
 }
 
-func NewTokenHandler(service *tokenservice.Service, config util.Config) *TokenHandler {
-	return &TokenHandler{
-		service: service,
+func NewTokenHandler(tokenManager tokenManager, config util.Config) *Handler {
+	return &Handler{
+		tokenManager: tokenManager,
 		config: config,
 	}
 }
 
-func (h *TokenHandler) RefreshTokens(ctx *gin.Context) {
+func (h *Handler) RefreshTokens(ctx *gin.Context) {
 	reqRefreshToken, err := ctx.Cookie("refresh_token")
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
@@ -34,7 +41,7 @@ func (h *TokenHandler) RefreshTokens(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.service.RefreshTokens(ctx, reqRefreshToken)
+	accessToken, refreshToken, err := h.tokenManager.RefreshTokens(ctx, reqRefreshToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ctx.Error(apperror.NotFound.WithCause(err))
@@ -54,13 +61,13 @@ func (h *TokenHandler) RefreshTokens(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{})
 }
 
-func (h *TokenHandler) Auth(ctx *gin.Context) {
+func (h *Handler) Auth(ctx *gin.Context) {
 	token, err := ctx.Cookie("refresh_token")
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
-	err = h.service.ValidateSession(ctx, token)
+	err = h.tokenManager.ValidateSession(ctx, token)
 	if err != nil {
 		common.SetTokenCookie(ctx, "refresh_token", "",
 			common.RefreshTokenCookiePath, -1, h.config.Environment)
@@ -69,4 +76,23 @@ func (h *TokenHandler) Auth(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{})
+}
+
+func (h *Handler) CreatePrivateEventToken(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	userID := common.GetUserIDFromContextPayload(ctx)
+
+	t, err := h.tokenManager.CreatePrivateEventToken(ctx, int32(id), userID)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"token": t})
 }

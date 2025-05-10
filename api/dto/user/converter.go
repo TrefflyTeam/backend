@@ -2,7 +2,7 @@ package userdto
 
 import (
 	"treffly/api/common"
-	userservice "treffly/api/service/user"
+	"treffly/api/models"
 )
 
 type UserConverter struct {
@@ -17,7 +17,7 @@ func NewUserConverter(env, domain string) *UserConverter {
 	}
 }
 
-func (c *UserConverter) ToUserResponse(user *userservice.User) UserResponse {
+func (c *UserConverter) ToUserResponse(user models.User) UserResponse {
 	return UserResponse{
 		Username: user.Username,
 		Email:    user.Email,
@@ -25,15 +25,15 @@ func (c *UserConverter) ToUserResponse(user *userservice.User) UserResponse {
 	}
 }
 
-func (c *UserConverter) ToUserWithTagsResponse(user *userservice.UserWithTags) UserWithTagsResponse {
+func (c *UserConverter) ToUserWithTagsResponse(user models.UserWithTags) UserWithTagsResponse {
 	return UserWithTagsResponse{
-		UserResponse: c.ToUserResponse(&user.User),
+		UserResponse: c.ToUserResponse(user.User),
 		Tags: c.convertTagsToResponse(user.Tags),
 		ImageURL: common.ImageURL(c.env, c.domain, user.ImagePath),
 	}
 }
 
-func (c *UserConverter) convertTagsToResponse(tags []userservice.Tag) []TagResponse {
+func (c *UserConverter) convertTagsToResponse(tags []models.Tag) []TagResponse {
 	result := make([]TagResponse, len(tags))
 	for i, t := range tags {
 		result[i] = TagResponse{

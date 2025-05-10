@@ -1,4 +1,4 @@
-package userservice
+package models
 
 import (
 	"github.com/google/uuid"
@@ -18,12 +18,7 @@ type UserWithTags struct {
 	ImagePath string
 }
 
-type Tag struct {
-	ID   int32
-	Name string
-}
-
-type CreateParams struct {
+type CreateUserParams struct {
 	Username string
 	Email    string
 	Password string
@@ -54,3 +49,4 @@ type UpdateUserTagsParams struct {
 	UserID int32
 	TagIDs []int32
 }
+
