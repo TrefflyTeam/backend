@@ -2,6 +2,7 @@ package eventservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"treffly/api/models"
@@ -69,14 +70,18 @@ func (s *Service) List(ctx context.Context, params models.ListParams) ([]models.
 }
 
 func (s *Service) Update(ctx context.Context, params models.UpdateParams) (models.Event, error) {
-	event, err := s.store.GetEvent(ctx, params.EventID)
+	getArg := db.GetEventParams{
+		ID: params.EventID,
+		OwnerID:  params.UserID,
+	}
+	event, err := s.store.GetEvent(ctx, getArg)
 	if err != nil {
 		return models.Event{}, err
 	}
 
 	if event.OwnerID != params.UserID {
-		err = fmt.Errorf("owner id missmatch")
-		return models.Event{}, apperror.Forbidden.WithCause(err)
+		err = errors.New("owner id missmatch")
+		return models.Event{}, err
 	}
 
 	imageID := params.NewImageID
@@ -106,10 +111,12 @@ func (s *Service) Update(ctx context.Context, params models.UpdateParams) (model
 		OldImageID:  params.OldImageID,
 	}
 
-	event, err = s.store.UpdateEventTx(ctx, arg)
+	err = s.store.UpdateEventTx(ctx, arg)
 	if err != nil {
 		return models.Event{}, err
 	}
+
+	event, err = s.store.GetEvent(ctx, getArg)
 
 	resp := ConvertGetEventRow(event, true, false)
 
@@ -117,7 +124,11 @@ func (s *Service) Update(ctx context.Context, params models.UpdateParams) (model
 }
 
 func (s *Service) Delete(ctx context.Context, params models.DeleteParams) error {
-	event, err := s.store.GetEvent(ctx, params.EventID)
+	getArg := db.GetEventParams{
+		ID: params.EventID,
+		OwnerID:  params.UserID,
+	}
+	event, err := s.store.GetEvent(ctx, getArg)
 	if err != nil {
 		return err
 	}
@@ -250,9 +261,16 @@ func (s *Service) Subscribe(ctx context.Context, params models.SubscriptionParam
 	arg := db.SubscribeToEventParams{
 		EventID: params.EventID,
 		UserID:  params.UserID,
+		Token: params.Token,
 	}
 
-	event, err := s.store.GetEvent(ctx, params.EventID)
+	getArg := db.GetEventParams{
+		ID: params.EventID,
+		OwnerID:  params.UserID,
+		Token: params.Token,
+	}
+
+	event, err := s.store.GetEvent(ctx, getArg)
 	if err != nil {
 		return models.Event{}, err
 	}
@@ -261,14 +279,15 @@ func (s *Service) Subscribe(ctx context.Context, params models.SubscriptionParam
 		return models.Event{}, fmt.Errorf("user is owner")
 	}
 
-	if allowed, err := s.store.SubscribeToEvent(ctx, arg); err != nil {
-		if !allowed {
-			return models.Event{}, fmt.Errorf("event is full")
-		}
+	allowed, err := s.store.SubscribeToEvent(ctx, arg)
+	if err != nil {
 		return models.Event{}, err
 	}
+	if allowed.Valid && !allowed.Bool {
+		return models.Event{}, fmt.Errorf("event is full")
+	}
 
-	return s.GetEvent(ctx, params.EventID, params.UserID)
+	return s.GetEvent(ctx, params.EventID, params.UserID, params.Token)
 }
 
 func (s *Service) Unsubscribe(ctx context.Context, params models.SubscriptionParams) (models.Event, error) {
@@ -277,15 +296,25 @@ func (s *Service) Unsubscribe(ctx context.Context, params models.SubscriptionPar
 		UserID:  params.UserID,
 	}
 
+	event, err := s.GetEvent(ctx, params.EventID, params.UserID, params.Token)
+	if err != nil {
+		return models.Event{}, err
+	}
+
 	if err := s.store.UnsubscribeFromEvent(ctx, arg); err != nil {
 		return models.Event{}, err
 	}
 
-	return s.GetEvent(ctx, params.EventID, params.UserID)
+	return event, err
 }
 
-func (s *Service) GetEvent(ctx context.Context, eventID, userID int32) (models.Event, error) {
-	event, err := s.store.GetEvent(ctx, eventID)
+func (s *Service) GetEvent(ctx context.Context, eventID, userID int32, token string) (models.Event, error) {
+	getArg := db.GetEventParams{
+		ID: eventID,
+		OwnerID:  userID,
+		Token: token,
+	}
+	event, err := s.store.GetEvent(ctx, getArg)
 	if err != nil {
 		return models.Event{}, err
 	}

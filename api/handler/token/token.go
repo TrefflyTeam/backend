@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"treffly/api/common"
 	"treffly/apperror"
 	"treffly/util"
@@ -14,6 +15,7 @@ import (
 type tokenManager interface {
 	RefreshTokens(ctx context.Context, reqRefreshToken string) (accessToken string, refreshToken string, err error)
 	ValidateSession(ctx context.Context, refreshToken string) error
+	CreatePrivateEventToken(ctx context.Context, eventID int32, userID int32) (string, error)
 }
 
 type Handler struct {
@@ -74,4 +76,23 @@ func (h *Handler) Auth(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{})
+}
+
+func (h *Handler) CreatePrivateEventToken(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	userID := common.GetUserIDFromContextPayload(ctx)
+
+	t, err := h.tokenManager.CreatePrivateEventToken(ctx, int32(id), userID)
+	if err != nil {
+		ctx.Error(apperror.BadRequest.WithCause(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"token": t})
 }

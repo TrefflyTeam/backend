@@ -33,6 +33,13 @@ type EventTag struct {
 	TagID   int32 `json:"tag_id"`
 }
 
+type EventToken struct {
+	EventID   int32     `json:"event_id"`
+	Token     string    `json:"token"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
 type EventUser struct {
 	UserID  int32 `json:"user_id"`
 	EventID int32 `json:"event_id"`

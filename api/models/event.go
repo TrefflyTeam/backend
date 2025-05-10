@@ -20,7 +20,7 @@ type Event struct {
 	CreatedAt        time.Time
 	OwnerUsername    string
 	IsOwner          bool
-	IsParticipant     bool
+	IsParticipant    bool
 	Tags             []Tag
 	ParticipantCount int
 	ImagePath        string
@@ -89,6 +89,7 @@ type GetHomeParams struct {
 type SubscriptionParams struct {
 	EventID int32
 	UserID  int32
+	Token   string
 }
 
 type UserEventsParams struct {

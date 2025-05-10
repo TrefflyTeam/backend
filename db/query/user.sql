@@ -33,20 +33,37 @@ WHERE email = $1 LIMIT 1;
 SELECT * FROM user_with_tags_view WHERE id = $1;
 
 -- name: SubscribeToEvent :one
-WITH check_capacity AS (
+WITH event_check AS (
     SELECT
-        COUNT(*) AS participants,
-        e.capacity
+        e.capacity,
+        e.is_private,
+        COUNT(eu.user_id) AS participants,
+        EXISTS (
+            SELECT 1 FROM event_tokens
+            WHERE event_id = e.id
+              AND token = $3
+              AND (expires_at > NOW())
+        ) AS valid_token
     FROM events e
              LEFT JOIN event_user eu ON e.id = eu.event_id
     WHERE e.id = $2
-    GROUP BY e.capacity
+    GROUP BY e.id
 )
 INSERT INTO event_user (user_id, event_id)
 SELECT $1, $2
-FROM check_capacity
-WHERE participants < capacity
-RETURNING (SELECT participants < capacity FROM check_capacity) AS allowed;
+FROM event_check
+WHERE
+    participants < capacity
+  AND (
+    NOT is_private
+        OR
+    (is_private AND valid_token)
+    )
+    RETURNING (
+    SELECT participants < capacity
+    AND (NOT is_private OR valid_token)
+    FROM event_check
+) AS allowed;
 
 -- name: UnsubscribeFromEvent :exec
 DELETE FROM event_user

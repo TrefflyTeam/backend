@@ -136,6 +136,7 @@ func (server *Server) setupRouter() {
 	authRoutes.GET("/users/me/past-events", eventQueryHandler.GetPast)
 	authRoutes.GET("/users/me/upcoming-events", eventQueryHandler.GetUpcoming)
 	authRoutes.GET("/users/me/owned-events", eventQueryHandler.GetOwned)
+	authRoutes.GET("/events/:id/invite", tokenHandler.CreatePrivateEventToken)
 
 	server.router = router
 }
