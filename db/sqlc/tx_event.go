@@ -62,7 +62,13 @@ func (store *SQLStore) CreateEventTx(ctx context.Context, eventParams CreateEven
 			}
 		}
 
-		result, err = q.GetEvent(ctx, event.ID)
+		arg := GetEventParams{
+			event.ID,
+			event.OwnerID,
+			"",
+		}
+
+		result, err = q.GetEvent(ctx, arg)
 		if err != nil {
 			return fmt.Errorf("get event with tags error: %w", err)
 		}
@@ -93,9 +99,7 @@ type UpdateEventTxParams struct {
 	OldImageID  uuid.UUID
 }
 
-func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) (GetEventRow, error) {
-	var result GetEventRow
-
+func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParams) error {
 	err := store.execTx(ctx, func(q *Queries) error {
 		newImageID := arg.NewImageID
 		if arg.NewImageID == arg.OldImageID {
@@ -160,7 +164,6 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 			}
 		}
 
-		result, err = q.GetEvent(ctx, arg.EventID)
 		if err != nil {
 			return fmt.Errorf("get updated event error: %w", err)
 		}
@@ -168,5 +171,5 @@ func (store *SQLStore) UpdateEventTx(ctx context.Context, arg UpdateEventTxParam
 		return nil
 	})
 
-	return result, err
+	return err
 }

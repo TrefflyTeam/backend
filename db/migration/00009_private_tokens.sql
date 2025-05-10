@@ -3,9 +3,8 @@
 CREATE TABLE event_tokens (
                               event_id     INTEGER NOT NULL,
                               token        TEXT NOT NULL,
-                              created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                              expires_at   TIMESTAMPTZ,
-                              usage_limit  INTEGER,
+                              created_at   timestamptz NOT NULL DEFAULT NOW(),
+                              expires_at   timestamptz NOT NULL,
                               PRIMARY KEY (event_id, token)
 );
 
