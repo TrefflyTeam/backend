@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"treffly/api/models"
 	"treffly/apperror"
 )
 
@@ -29,7 +30,8 @@ type GenerateDescriptionRequest struct {
 
 type GenerateDescriptionResponse struct {
 	Description string `json:"description"`
-	Error       string `json:"error,omitempty"`
+	Remaining   int    `json:"remaining"`
+	ResetAt     string `json:"reset_at"`
 }
 
 func (g *GeneratorHandler) CreateChatCompletion(ctx *gin.Context) {
@@ -39,24 +41,27 @@ func (g *GeneratorHandler) CreateChatCompletion(ctx *gin.Context) {
 		return
 	}
 
+	var result models.RateLimitResult
+	if val, exists := ctx.Get("rate_limit"); exists {
+		result = val.(models.RateLimitResult)
+	}
+
 	responseData, err := g.generator.CreateChatCompletion(req.Name, req.Description)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, GenerateDescriptionResponse{
-			Error: "Failed to generate description: " + err.Error(),
-		})
+		ctx.Error(apperror.BadGateway.WithCause(err))
 		return
 	}
 
 	description, err := parseGeneratedDescription(responseData)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, GenerateDescriptionResponse{
-			Error: "Failed to parse API response: " + err.Error(),
-		})
+		ctx.Error(apperror.BadGateway.WithCause(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, GenerateDescriptionResponse{
 		Description: description,
+		Remaining: result.Remaining,
+		ResetAt: result.ResetAt.String(),
 	})
 }
 
