@@ -5,6 +5,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
+	"treffly/api/common"
+	"treffly/api/models"
 	"treffly/apperror"
 	"treffly/token"
 )
@@ -84,6 +87,37 @@ func softAuthMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 
 		userID := payload.UserID
 		ctx.Set("user_id", userID)
+		ctx.Next()
+	}
+}
+
+type rateLimitStore interface {
+	CheckDescriptionLimit(ctx *gin.Context, endpoint string, userID string, limit int, window time.Duration) (models.RateLimitResult, error)
+}
+
+func RateLimitMiddleware(store rateLimitStore, limit int, window time.Duration) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		userID := common.GetUserIDFromContextPayload(ctx)
+		endpoint := ctx.FullPath()
+
+		result, err := store.CheckDescriptionLimit(ctx, endpoint, string(userID), limit, window)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, apperror.InternalServer.WithCause(err))
+			return
+		}
+
+		ctx.Set("rate_limit", result)
+
+		if !result.Allowed {
+			ctx.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"error": "Too many requests",
+				"rate_limit": map[string]interface{}{
+					"reset_at": result.ResetAt.String(),
+				},
+			})
+			return
+		}
+
 		ctx.Next()
 	}
 }

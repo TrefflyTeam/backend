@@ -37,6 +37,14 @@ services:
       - app-network
     volumes:
       - /treffly/images:/app/images
+
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+
   caddy:
     image: caddy:latest
     ports:
@@ -58,3 +66,4 @@ volumes:
   caddy_data:
   caddy_config:
   postgres_data:
+  redis_data:

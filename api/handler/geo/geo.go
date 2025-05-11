@@ -22,12 +22,12 @@ type geoService interface {
 }
 
 type Handler struct {
-	mapService geoService
+	geoService geoService
 }
 
 func NewGeoHandler(service geoService) *Handler {
 	return &Handler{
-		mapService: service,
+		geoService: service,
 	}
 }
 
@@ -58,7 +58,7 @@ func (h *Handler) Suggest(ctx *gin.Context) {
 		return
 	}
 
-	rawData, err := h.mapService.GetSuggestions(query, latFloat, lonFloat, radius)
+	rawData, err := h.geoService.GetSuggestions(query, latFloat, lonFloat, radius)
 	if err != nil {
 		ctx.Error(apperror.BadGateway.WithCause(err))
 		return
@@ -96,7 +96,7 @@ func (h *Handler) Geocode(ctx *gin.Context) {
 		return
 	}
 
-	body, err := h.mapService.Geocode(lat, lon)
+	body, err := h.geoService.Geocode(lat, lon)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
@@ -114,7 +114,7 @@ func (h *Handler) ReverseGeocode(ctx *gin.Context) {
 		return
 	}
 
-	rawData, err := h.mapService.ReverseGeocode(address)
+	rawData, err := h.geoService.ReverseGeocode(address)
 	if err != nil {
 		ctx.Error(apperror.BadRequest.WithCause(err))
 		return

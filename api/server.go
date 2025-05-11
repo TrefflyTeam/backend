@@ -14,11 +14,13 @@ import (
 	token2 "treffly/api/handler/token"
 	"treffly/api/handler/user"
 	eventservice "treffly/api/service/event"
+	"treffly/api/service/generator"
 	geoservice "treffly/api/service/geo"
 	imageservice "treffly/api/service/image"
 	tagservice "treffly/api/service/tag"
 	tokenservice "treffly/api/service/token"
 	userservice "treffly/api/service/user"
+	"treffly/db/redis"
 	db "treffly/db/sqlc"
 	"treffly/image"
 	"treffly/logger"
@@ -32,8 +34,9 @@ type Server struct {
 	tokenMaker    token.Maker
 	router        *gin.Engine
 	geocodeClient *geoservice.GeocoderClient
-	suggestClient  *geoservice.SuggestClient
+	suggestClient *geoservice.SuggestClient
 	imageStore    image.Store
+	rlClient      *redis.Client
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -50,13 +53,24 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		return nil, fmt.Errorf("cannot create image store: %w", err)
 	}
 
+	rlClient, err := redis.NewClient(&redis.Config{
+		Host:     config.RedisHost,
+		Port:     config.RedisPort,
+		Password: config.RedisPassword,
+		DB:       config.RedisDB,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("cannot create redis store: %w", err)
+	}
+
 	server := &Server{
-		store:      store,
-		tokenMaker: tokenMaker,
-		config:     config,
+		store:         store,
+		tokenMaker:    tokenMaker,
+		config:        config,
 		geocodeClient: geocoderClient,
 		suggestClient: suggesterClient,
 		imageStore:    imageStore,
+		rlClient:      rlClient,
 	}
 
 	err = server.registerValidators()
@@ -82,6 +96,9 @@ func (server *Server) setupRouter() {
 	userConverter := userdto.NewUserConverter(server.config.Environment, server.config.Domain)
 
 	imageService := imageservice.New(server.imageStore, server.config, server.store)
+
+	generatorClient := generator.NewClient(server.config.GenBaseURL, server.config.GenAPIKey, server.config.GenSystemPrompt, server.config.GenModel)
+	generatorHandler := event.NewGenerator(generatorClient)
 
 	eventService := eventservice.New(server.store, server.config)
 	eventQueryHandler := event.NewEventQueryHandler(eventService, imageService, eventConverter)
@@ -137,6 +154,9 @@ func (server *Server) setupRouter() {
 	authRoutes.GET("/users/me/upcoming-events", eventQueryHandler.GetUpcoming)
 	authRoutes.GET("/users/me/owned-events", eventQueryHandler.GetOwned)
 	authRoutes.GET("/events/:id/invite", tokenHandler.CreatePrivateEventToken)
+
+	rlStore := redis.NewRateLimitStore(server.rlClient)
+	authRoutes.GET("/events/generate-desc", RateLimitMiddleware(rlStore, server.config.GenLimit, server.config.GenTimeout), generatorHandler.CreateChatCompletion)
 
 	server.router = router
 }
