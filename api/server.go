@@ -14,6 +14,7 @@ import (
 	token2 "treffly/api/handler/token"
 	"treffly/api/handler/user"
 	eventservice "treffly/api/service/event"
+	"treffly/api/service/generator"
 	geoservice "treffly/api/service/geo"
 	imageservice "treffly/api/service/image"
 	tagservice "treffly/api/service/tag"
@@ -83,6 +84,9 @@ func (server *Server) setupRouter() {
 
 	imageService := imageservice.New(server.imageStore, server.config, server.store)
 
+	generatorClient := generator.NewClient(server.config.GenBaseURL, server.config.GenAPIKey, server.config.GenSystemPrompt, server.config.GenModel)
+	generatorHandler := event.NewGenerator(generatorClient)
+
 	eventService := eventservice.New(server.store, server.config)
 	eventQueryHandler := event.NewEventQueryHandler(eventService, imageService, eventConverter)
 	eventCRUDHandler := event.NewEventCRUDHandler(eventService, imageService, eventConverter)
@@ -137,6 +141,8 @@ func (server *Server) setupRouter() {
 	authRoutes.GET("/users/me/upcoming-events", eventQueryHandler.GetUpcoming)
 	authRoutes.GET("/users/me/owned-events", eventQueryHandler.GetOwned)
 	authRoutes.GET("/events/:id/invite", tokenHandler.CreatePrivateEventToken)
+
+	authRoutes.GET("events/generate-desc", generatorHandler.CreateChatCompletion)
 
 	server.router = router
 }

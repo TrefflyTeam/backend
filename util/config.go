@@ -17,6 +17,10 @@ type Config struct {
 	YandexSuggesterAPIKey string        `mapstructure:"Y_SUGGESTER_API"`
 	Domain                string        `mapstructure:"DOMAIN"`
 	ImageBasePath         string        `mapstructure:"IMAGE_BASE_PATH"`
+	GenBaseURL            string        `mapstructure:"GEN_BASE_URL"`
+	GenAPIKey             string        `mapstructure:"GEN_API_KEY"`
+	GenSystemPrompt       string        `mapstructure:"GEN_SYSTEM_PROMPT"`
+	GenModel              string        `mapstructure:"GEN_MODEL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
