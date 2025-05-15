@@ -156,7 +156,10 @@ func (server *Server) setupRouter() {
 	authRoutes.GET("/events/:id/invite", tokenHandler.CreatePrivateEventToken)
 
 	rlStore := redis.NewRateLimitStore(server.rlClient)
+	limitCheckHandler := user.NewLimitCheckHandler(rlStore, server.config.GenLimit, server.config.GenTimeout)
+
 	authRoutes.GET("/events/generate-desc", RateLimitMiddleware(rlStore, server.config.GenLimit, server.config.GenTimeout), generatorHandler.CreateChatCompletion)
+	authRoutes.GET("/users/generate-limit", limitCheckHandler.CheckGenerateRateLimit)
 
 	server.router = router
 }
