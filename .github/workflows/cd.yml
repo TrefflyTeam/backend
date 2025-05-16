@@ -17,8 +17,8 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           eval $(ssh-agent -s)
-          echo "${{ secrets.SSH_PASSPHRASE }}" | ssh-add -v ~/.ssh/id_rsa
-          ssh-keyscan -v -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts  
+          printf "%s" "${{ secrets.SSH_PASSPHRASE }}" | ssh-add -v ~/.ssh/id_rsa
+          ssh-keyscan -v -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
       - name: List files
         run: ls -la
