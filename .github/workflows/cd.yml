@@ -36,6 +36,16 @@ jobs:
           echo "ENVIRONMENT=${{ secrets.ENVIRONMENT }}" >> app.env
           echo "DOMAIN=${{ secrets.DOMAIN }}" >> app.env
           echo "IMAGE_BASE_PATH=${{ secrets.IMAGE_BASE_PATH }}" >> app.env
+          echo "GEN_BASE_URL=${{ secrets.GEN_BASE_URL }}" >> app.env
+          echo "GEN_API_KEY=${{ secrets.GEN_API_KEY }}" >> app.env
+          echo "GEN_SYSTEM_PROMPT=${{ secrets.GEN_SYSTEM_PROMPT }}" >> app.env
+          echo "GEN_MODEL=${{ secrets.GEN_MODEL }}" >> app.env
+          echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> app.env
+          echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> app.env
+          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> app.env
+          echo "REDIS_DB=${{ secrets.REDIS_DB }}" >> app.env
+          echo "GEN_LIMIT=${{ secrets.GEN_LIMIT }}" >> app.env
+          echo "GEN_TIMEOUT=${{ secrets.GEN_TIMEOUT }}" >> app.env
 
       - name: Copy files to the server
         run: |
