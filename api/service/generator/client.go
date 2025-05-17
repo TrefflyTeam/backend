@@ -26,11 +26,11 @@ func NewClient(baseURL, apiKey, systemPrompt, model string) *Client {
 	}
 }
 
-func (c *Client) CreateChatCompletion(name, desc string) ([]byte, error) {
+func (c *Client) CreateChatCompletion(name, desc string, maxCharacters int) ([]byte, error) {
 	messages := []map[string]string{
 		{
 			"role":    "system",
-			"content": c.SystemPrompt,
+			"content": fmt.Sprintf("%s Максимальная длина ответа: %d", c.SystemPrompt, maxCharacters),
 		},
 		{
 			"role":    "user",
