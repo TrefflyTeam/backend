@@ -35,6 +35,7 @@ type Config struct {
 	SMTPUsername          string        `mapstructure:"SMTP_USERNAME"`
 	SMTPPassword          string        `mapstructure:"SMTP_PASSWORD"`
 	SMTPDefaultFrom       string        `mapstructure:"SMTP_DEFAULT_FROM"`
+	SendCodeRateLimit 	  time.Duration	`mapstructure:"SEND_CODE_RATE_LIMIT"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

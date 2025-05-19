@@ -18,18 +18,20 @@ import (
 )
 
 type Service struct {
-	store      db.Store
-	resetStore redis.ResetStore
-	tokenMaker token.Maker
-	config     util.Config
+	store          db.Store
+	resetStore     redis.ResetStore
+	rateLimitStore redis.RateLimitStore
+	tokenMaker     token.Maker
+	config         util.Config
 }
 
-func New(store db.Store, redisStore redis.ResetStore, tokenMaker token.Maker, config util.Config) *Service {
+func New(store db.Store, redisStore redis.ResetStore, tokenMaker token.Maker, config util.Config, rateLimitStore redis.RateLimitStore) *Service {
 	return &Service{
 		store:      store,
 		tokenMaker: tokenMaker,
 		config:     config,
 		resetStore: redisStore,
+		rateLimitStore: rateLimitStore,
 	}
 }
 
@@ -167,6 +169,14 @@ func (s *Service) InitiatePasswordReset(ctx context.Context, email string) (stri
 		return "", nil
 	}
 
+	allowed, err := s.rateLimitStore.CanSendResetRequest(ctx, email, s.config.SendCodeRateLimit)
+	if err != nil {
+		return "", err
+	}
+	if !allowed {
+		return "", errors.New("too many requests")
+	}
+
 	code, err := s.generateResetCode()
 	if err != nil {
 		return "", err
@@ -248,7 +258,7 @@ func (s *Service) CompletePasswordReset(ctx context.Context, token, newPassword 
 		return err
 	}
 
-	_ = s.resetStore.DeleteToken(ctx, userID) //TODO: log
+	_ = s.resetStore.DeleteToken(ctx, token) //TODO: log
 	return nil
 }
 

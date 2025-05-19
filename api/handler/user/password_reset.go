@@ -62,7 +62,7 @@ func (h *PasswordResetHandler) ConfirmResetCode(ctx *gin.Context) {
 
 	token, err := h.service.ConfirmResetCode(ctx, req.Email, req.Code)
 	if err != nil {
-		ctx.Error(apperror.WrapDBError(err))
+		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
 
@@ -85,7 +85,7 @@ func (h *PasswordResetHandler) CompletePasswordReset(ctx *gin.Context) {
 	}
 
 	if err := h.service.CompletePasswordReset(ctx, token, req.NewPassword); err != nil {
-		ctx.Error(apperror.WrapDBError(err))
+		ctx.Error(apperror.BadRequest.WithCause(err))
 		return
 	}
 

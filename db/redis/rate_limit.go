@@ -1,9 +1,9 @@
 package redis
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"strconv"
 	"time"
@@ -14,12 +14,12 @@ type RateLimitStore struct {
 	client *Client
 }
 
-func NewRateLimitStore(client *Client) *RateLimitStore {
-	return &RateLimitStore{client: client}
+func NewRateLimitStore(client *Client) RateLimitStore {
+	return RateLimitStore{client: client}
 }
 
 func (s *RateLimitStore) CheckDescriptionLimit(
-	ctx *gin.Context,
+	ctx context.Context,
 	endpoint string,
 	userID string,
 	limit int,
@@ -55,7 +55,7 @@ func (s *RateLimitStore) CheckDescriptionLimit(
 }
 
 func (s *RateLimitStore) GetRateLimitInfo(
-	ctx *gin.Context,
+	ctx context.Context,
 	endpoint string,
 	userID string,
 	limit int,
@@ -94,4 +94,28 @@ func (s *RateLimitStore) GetRateLimitInfo(
 		Remaining:  max(limit-count, 0),
 		ResetAt:    resetAt,
 	}, nil
+}
+
+func (s *RateLimitStore) CanSendResetRequest(ctx context.Context, email string, rateLimit time.Duration) (bool, error) {
+	key := "rate_limit:" + email
+	now := time.Now().Unix()
+
+	result, err := s.client.SetNX(ctx, key, now, rateLimit).Result()
+	if err != nil {
+		return false, err
+	}
+
+	if !result {
+		lastSent, err := s.client.Get(ctx, key).Int64()
+		if err != nil {
+			return false, err
+		}
+		if now-lastSent < int64(rateLimit.Seconds()) {
+			return false, nil
+		}
+
+		s.client.Set(ctx, key, now, rateLimit)
+	}
+
+	return true, nil
 }

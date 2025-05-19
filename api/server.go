@@ -107,7 +107,9 @@ func (server *Server) setupRouter() {
 	eventSubscriptionHandler := event.NewEventSubscriptionHandler(eventService, eventConverter)
 
 	resetStore := redis.NewRedisResetStore(server.rlClient)
-	userService := userservice.New(server.store, resetStore,  server.tokenMaker, server.config)
+	rlStore := redis.NewRateLimitStore(server.rlClient)
+
+	userService := userservice.New(server.store, resetStore,  server.tokenMaker, server.config, rlStore)
 	userProfileHandler := user.NewProfileHandler(userService, userService, userService, imageService, userConverter, server.config.Environment)
 	userAuthHandler := user.NewAuthHandler(userService, userService, userConverter, server.config)
 
@@ -157,10 +159,9 @@ func (server *Server) setupRouter() {
 	authRoutes.GET("/users/me/owned-events", eventQueryHandler.GetOwned)
 	authRoutes.GET("/events/:id/invite", tokenHandler.CreatePrivateEventToken)
 
-	rlStore := redis.NewRateLimitStore(server.rlClient)
-	limitCheckHandler := user.NewLimitCheckHandler(rlStore, server.config.GenLimit, server.config.GenTimeout)
+	limitCheckHandler := user.NewLimitCheckHandler(&rlStore, server.config.GenLimit, server.config.GenTimeout)
 
-	authRoutes.GET("/events/generate-desc", RateLimitMiddleware(rlStore, server.config.GenLimit, server.config.GenTimeout), generatorHandler.CreateChatCompletion)
+	authRoutes.GET("/events/generate-desc", RateLimitMiddleware(&rlStore, server.config.GenLimit, server.config.GenTimeout), generatorHandler.CreateChatCompletion)
 	authRoutes.POST("/users/generate-limit", limitCheckHandler.CheckGenerateRateLimit)
 
 	mailer := mail.New(mail.SMTPConfig{
