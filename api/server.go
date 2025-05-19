@@ -161,8 +161,8 @@ func (server *Server) setupRouter() {
 
 	limitCheckHandler := user.NewLimitCheckHandler(&rlStore, server.config.GenLimit, server.config.GenTimeout)
 
-	authRoutes.GET("/events/generate-desc", RateLimitMiddleware(&rlStore, server.config.GenLimit, server.config.GenTimeout), generatorHandler.CreateChatCompletion)
-	authRoutes.POST("/users/generate-limit", limitCheckHandler.CheckGenerateRateLimit)
+	authRoutes.POST("/events/generate-desc", RateLimitMiddleware(&rlStore, server.config.GenLimit, server.config.GenTimeout), generatorHandler.CreateChatCompletion)
+	authRoutes.GET("/users/generate-limit", limitCheckHandler.CheckGenerateRateLimit)
 
 	mailer := mail.New(mail.SMTPConfig{
 		Host: server.config.SMTPHost,
