@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -92,7 +93,7 @@ func softAuthMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 }
 
 type rateLimitStore interface {
-	CheckDescriptionLimit(ctx *gin.Context, endpoint string, userID string, limit int, window time.Duration) (models.RateLimitResult, error)
+	CheckDescriptionLimit(ctx context.Context, endpoint string, userID string, limit int, window time.Duration) (models.RateLimitResult, error)
 }
 
 func RateLimitMiddleware(store rateLimitStore, limit int, window time.Duration) gin.HandlerFunc {
@@ -112,7 +113,7 @@ func RateLimitMiddleware(store rateLimitStore, limit int, window time.Duration) 
 			ctx.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
 				"error": "Too many requests",
 				"rate_limit": map[string]interface{}{
-					"reset_at": result.ResetAt.String(),
+					"reset_at": result.ResetAt,
 				},
 			})
 			return

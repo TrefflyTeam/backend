@@ -17,6 +17,7 @@ import (
 	"treffly/api/service/generator"
 	geoservice "treffly/api/service/geo"
 	imageservice "treffly/api/service/image"
+	"treffly/api/service/mail"
 	tagservice "treffly/api/service/tag"
 	tokenservice "treffly/api/service/token"
 	userservice "treffly/api/service/user"
@@ -105,7 +106,10 @@ func (server *Server) setupRouter() {
 	eventCRUDHandler := event.NewEventCRUDHandler(eventService, imageService, eventConverter)
 	eventSubscriptionHandler := event.NewEventSubscriptionHandler(eventService, eventConverter)
 
-	userService := userservice.New(server.store, server.tokenMaker, server.config)
+	resetStore := redis.NewRedisResetStore(server.rlClient)
+	rlStore := redis.NewRateLimitStore(server.rlClient)
+
+	userService := userservice.New(server.store, resetStore,  server.tokenMaker, server.config, rlStore)
 	userProfileHandler := user.NewProfileHandler(userService, userService, userService, imageService, userConverter, server.config.Environment)
 	userAuthHandler := user.NewAuthHandler(userService, userService, userConverter, server.config)
 
@@ -155,11 +159,22 @@ func (server *Server) setupRouter() {
 	authRoutes.GET("/users/me/owned-events", eventQueryHandler.GetOwned)
 	authRoutes.GET("/events/:id/invite", tokenHandler.CreatePrivateEventToken)
 
-	rlStore := redis.NewRateLimitStore(server.rlClient)
-	limitCheckHandler := user.NewLimitCheckHandler(rlStore, server.config.GenLimit, server.config.GenTimeout)
+	limitCheckHandler := user.NewLimitCheckHandler(&rlStore, server.config.GenLimit, server.config.GenTimeout)
 
-	authRoutes.GET("/events/generate-desc", RateLimitMiddleware(rlStore, server.config.GenLimit, server.config.GenTimeout), generatorHandler.CreateChatCompletion)
-	authRoutes.GET("/users/generate-limit", limitCheckHandler.CheckGenerateRateLimit)
+	authRoutes.GET("/events/generate-desc", RateLimitMiddleware(&rlStore, server.config.GenLimit, server.config.GenTimeout), generatorHandler.CreateChatCompletion)
+	authRoutes.POST("/users/generate-limit", limitCheckHandler.CheckGenerateRateLimit)
+
+	mailer := mail.New(mail.SMTPConfig{
+		Host: server.config.SMTPHost,
+		Port: server.config.SMTPPort,
+		Username: server.config.SMTPUsername,
+		Password: server.config.SMTPPassword,
+		DefaultFrom: server.config.SMTPDefaultFrom,
+	})
+	pwResetHandler := user.NewPasswordResetHandler(userService, mailer, server.config)
+	router.POST("/forgot-pw", pwResetHandler.InitiatePasswordReset)
+	router.POST("/verify-code", pwResetHandler.ConfirmResetCode)
+	router.POST("/reset-pw", pwResetHandler.CompletePasswordReset)
 
 	server.router = router
 }

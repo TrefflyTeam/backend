@@ -27,6 +27,15 @@ type Config struct {
 	RedisDB               int           `mapstructure:"REDIS_DB"`
 	GenLimit              int           `mapstructure:"GEN_LIMIT"`
 	GenTimeout            time.Duration `mapstructure:"GEN_TIMEOUT"`
+	ResetCodeTTL          time.Duration `mapstructure:"RESET_CODE_TTL"`
+	ResetCodeLength       int           `mapstructure:"RESET_CODE_LENGTH"`
+	ResetTokenDuration    time.Duration `mapstructure:"RESET_TOKEN_DURATION"`
+	SMTPHost              string        `mapstructure:"SMTP_HOST"`
+	SMTPPort              int           `mapstructure:"SMTP_PORT"`
+	SMTPUsername          string        `mapstructure:"SMTP_USERNAME"`
+	SMTPPassword          string        `mapstructure:"SMTP_PASSWORD"`
+	SMTPDefaultFrom       string        `mapstructure:"SMTP_DEFAULT_FROM"`
+	SendCodeRateLimit 	  time.Duration	`mapstructure:"SEND_CODE_RATE_LIMIT"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

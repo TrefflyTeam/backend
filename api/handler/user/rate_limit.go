@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
@@ -10,7 +11,7 @@ import (
 )
 
 type limitChecker interface {
-	GetRateLimitInfo(ctx *gin.Context, endpoint string, userID string, limit int, window time.Duration) (*models.RateLimitResult, error)
+	GetRateLimitInfo(ctx context.Context, endpoint string, userID string, limit int, window time.Duration) (*models.RateLimitResult, error)
 }
 
 type LimitCheckHandler struct {
@@ -19,8 +20,8 @@ type LimitCheckHandler struct {
 	window       time.Duration
 }
 
-func NewLimitCheckHandler(limitChecker limitChecker, limit int, window time.Duration) *LimitCheckHandler {
-	return &LimitCheckHandler{
+func NewLimitCheckHandler(limitChecker limitChecker, limit int, window time.Duration) LimitCheckHandler {
+	return LimitCheckHandler{
 		limitChecker: limitChecker,
 		limit:        limit,
 		window:       window,
@@ -39,6 +40,6 @@ func (g *LimitCheckHandler) CheckGenerateRateLimit(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"limit":     g.limit,
 		"remaining": result.Remaining,
-		"reset_at":  result.ResetAt.String(),
+		"reset_at":  result.ResetAt,
 	})
 }

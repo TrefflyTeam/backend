@@ -47,6 +47,7 @@ type Querier interface {
 	SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) (pgtype.Bool, error)
 	UnsubscribeFromEvent(ctx context.Context, arg UnsubscribeFromEventParams) error
 	UpdateEvent(ctx context.Context, arg UpdateEventParams) error
+	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error
 	UpdateSession(ctx context.Context, arg UpdateSessionParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
