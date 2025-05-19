@@ -46,6 +46,16 @@ jobs:
           echo "REDIS_DB=${{ secrets.REDIS_DB }}" >> app.env
           echo "GEN_LIMIT=${{ secrets.GEN_LIMIT }}" >> app.env
           echo "GEN_TIMEOUT=${{ secrets.GEN_TIMEOUT }}" >> app.env
+          
+          echo "RESET_CODE_TTL=${{ secrets.RESET_CODE_TTL }}" >> app.env 
+          echo "RESET_CODE_LENGTH=${{ secrets.RESET_CODE_LENGTH }}" >> app.env
+          echo "RESET_TOKEN_DURATION=${{ secrets.RESET_TOKEN_DURATION }}" >> app.env
+          echo "SMTP_HOST=${{ secrets.SMTP_HOST }}" >> app.env
+          echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> app.env
+          echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> app.env
+          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> app.env
+          echo "SMTP_DEFAULT_FROM=${{ secrets.SMTP_DEFAULT_FROM }}" >> app.env
+          echo "SEND_CODE_RATE_LIMIT=${{ secrets.SEND_CODE_RATE_LIMIT }}" >> app.env
 
       - name: Copy files to the server
         run: |
