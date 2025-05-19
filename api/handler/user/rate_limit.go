@@ -39,6 +39,6 @@ func (g *LimitCheckHandler) CheckGenerateRateLimit(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"limit":     g.limit,
 		"remaining": result.Remaining,
-		"reset_at":  result.ResetAt.String(),
+		"reset_at":  result.ResetAt,
 	})
 }

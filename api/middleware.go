@@ -112,7 +112,7 @@ func RateLimitMiddleware(store rateLimitStore, limit int, window time.Duration) 
 			ctx.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
 				"error": "Too many requests",
 				"rate_limit": map[string]interface{}{
-					"reset_at": result.ResetAt.String(),
+					"reset_at": result.ResetAt,
 				},
 			})
 			return
