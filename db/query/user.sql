@@ -76,3 +76,8 @@ SELECT EXISTS (
     WHERE event_id = $1
       AND user_id = $2
 ) AS is_participant;
+
+-- name: UpdatePassword :exec
+UPDATE users
+SET password_hash = $2
+WHERE id = $1;
