@@ -26,7 +26,7 @@ func NewClient(baseURL, apiKey, systemPrompt, model string) *Client {
 	}
 }
 
-func (c *Client) CreateChatCompletion(name, desc string, maxCharacters int) ([]byte, error) {
+func (c *Client) CreateChatCompletion(name string, maxCharacters int) ([]byte, error) {
 	messages := []map[string]string{
 		{
 			"role":    "system",
@@ -34,7 +34,7 @@ func (c *Client) CreateChatCompletion(name, desc string, maxCharacters int) ([]b
 		},
 		{
 			"role":    "user",
-			"content": fmt.Sprintf("Название: %s\nОписание: %s", name, desc),
+			"content": fmt.Sprintf("Название: %s", name),
 		},
 	}
 	requestBody := map[string]interface{}{

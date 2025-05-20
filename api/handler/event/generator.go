@@ -11,7 +11,7 @@ import (
 )
 
 type descriptionGenerator interface {
-	CreateChatCompletion(name, desc string, maxCharacters int) ([]byte, error)
+	CreateChatCompletion(name string, maxCharacters int) ([]byte, error)
 }
 
 type GeneratorHandler struct {
@@ -26,7 +26,6 @@ func NewGenerator(generator descriptionGenerator) *GeneratorHandler {
 
 type GenerateDescriptionRequest struct {
 	Name          string `json:"name" binding:"required,event_name,min=5,max=50"`
-	Description   string `json:"description"`
 	MaxCharacters int    `json:"max_characters" biding:"required,min=100,max=1000"`
 }
 
@@ -48,7 +47,7 @@ func (g *GeneratorHandler) CreateChatCompletion(ctx *gin.Context) {
 		result = val.(models.RateLimitResult)
 	}
 
-	responseData, err := g.generator.CreateChatCompletion(req.Name, req.Description, req.MaxCharacters)
+	responseData, err := g.generator.CreateChatCompletion(req.Name, req.MaxCharacters)
 	if err != nil {
 		ctx.Error(apperror.BadGateway.WithCause(err))
 		return
