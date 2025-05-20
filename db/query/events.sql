@@ -109,7 +109,7 @@ WHERE
             ST_MakePoint(@user_lon::numeric, @user_lat::numeric)::GEOGRAPHY,
             100000
     )
-  AND evt.is_private = false
+  AND (evt.is_private = false OR @is_admin::boolean)
   AND evt.date > NOW()
   AND (
     @search_term::text = ''

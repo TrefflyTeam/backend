@@ -993,13 +993,13 @@ WHERE
             ST_MakePoint($2::numeric, $3::numeric)::GEOGRAPHY,
             100000
     )
-  AND evt.is_private = false
+  AND (evt.is_private = false OR $4::boolean)
   AND evt.date > NOW()
   AND (
-    $4::text = ''
+    $5::text = ''
         OR (
-            evt.name ILIKE '%' || $4 || '%'
-            OR evt.description ILIKE '%' || $4 || '%'
+            evt.name ILIKE '%' || $5 || '%'
+            OR evt.description ILIKE '%' || $5 || '%'
         )
     )
   AND (
@@ -1013,19 +1013,19 @@ WHERE
     )
     )
   AND (
-    $5::text IS NULL
-        OR $5::text = ''
+    $6::text IS NULL
+        OR $6::text = ''
         OR CASE
-            WHEN $5 = 'day' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 day'
-            WHEN $5 = 'week' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '7 days'
-            WHEN $5 = 'month' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 month'
+            WHEN $6 = 'day' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 day'
+            WHEN $6 = 'week' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '7 days'
+            WHEN $6 = 'month' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 month'
             ELSE TRUE
         END
     )
 ORDER BY
-    CASE WHEN $4::text <> '' THEN
-             SIMILARITY(evt.name, $4) +
-             SIMILARITY(evt.description, $4)
+    CASE WHEN $5::text <> '' THEN
+             SIMILARITY(evt.name, $5) +
+             SIMILARITY(evt.description, $5)
          ELSE 0 END DESC,
     matched_tags DESC,
     evt.created_at DESC,
@@ -1036,6 +1036,7 @@ type ListEventsParams struct {
 	TagIds     []int32        `json:"tag_ids"`
 	UserLon    pgtype.Numeric `json:"user_lon"`
 	UserLat    pgtype.Numeric `json:"user_lat"`
+	IsAdmin    bool           `json:"is_admin"`
 	SearchTerm string         `json:"search_term"`
 	DateRange  string         `json:"date_range"`
 }
@@ -1067,6 +1068,7 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 		arg.TagIds,
 		arg.UserLon,
 		arg.UserLat,
+		arg.IsAdmin,
 		arg.SearchTerm,
 		arg.DateRange,
 	)
