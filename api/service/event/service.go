@@ -370,13 +370,13 @@ func (s *Service) GetOwnedUserEvents(ctx context.Context, userID int32) ([]model
 }
 
 func (s *Service) ListAll(ctx context.Context, params models.ListParams) ([]models.Event, error) {
-	arg := db.ListAllParams{
+	arg := db.ListAllEventsParams{
 		TagIds: params.TagIDs,
 		SearchTerm: params.Search,
 		DateRange: params.DateRange,
 	}
 
-	rows, err := s.store.ListAll(ctx, arg)
+	rows, err := s.store.ListAllEvents(ctx, arg)
 	if err != nil {
 		return nil, err
 	}

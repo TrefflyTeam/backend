@@ -184,9 +184,35 @@ func convertEventType[T any](rows []T) []models.Event {
 			result[i] = convertPastEventsRow(v)
 		case db.GetOwnedUserEventsRow:
 			result[i] = convertOwnedEventsRow(v)
+		case db.ListAllEventsRow:
+			result[i] = convertListAllEventsRow(v)
 		}
 	}
 	return result
+}
+
+func convertListAllEventsRow(e db.ListAllEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
+	}
+
+	return base
 }
 
 func convertOwnedEventsRow(e db.GetOwnedUserEventsRow) models.Event {

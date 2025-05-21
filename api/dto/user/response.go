@@ -12,8 +12,8 @@ type UserResponse struct {
 
 type UserWithTagsResponse struct {
 	UserResponse
-	Tags      []TagResponse `json:"tags"`
-	ImageURL  string        `json:"image_url"`
+	Tags     []TagResponse `json:"tags"`
+	ImageURL string        `json:"image_url"`
 }
 
 type TagResponse struct {
@@ -21,3 +21,7 @@ type TagResponse struct {
 	Name string `json:"name"`
 }
 
+type AdminUserResponse struct {
+	ID int32 `json:"id"`
+	UserResponse
+}

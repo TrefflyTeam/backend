@@ -123,7 +123,7 @@ func RateLimitMiddleware(store rateLimitStore, limit int, window time.Duration) 
 	}
 }
 
-func AdminMiddleware() gin.HandlerFunc {
+func adminMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		payload, exists := ctx.Get(authorizationPayloadKey)
 		if !exists {

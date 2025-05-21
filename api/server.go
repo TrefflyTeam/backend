@@ -176,6 +176,16 @@ func (server *Server) setupRouter() {
 	router.POST("/verify-code", pwResetHandler.ConfirmResetCode)
 	router.POST("/reset-pw", pwResetHandler.CompletePasswordReset)
 
+	adminEventHandler := event.NewAdminEventCRUDHandler(eventService, imageService, eventConverter)
+	adminUserHandler := user.NewAdminUserHandler(userService, userConverter, imageService)
+
+	adminRoutes := router.Group("/admin").Use(authMiddleware(server.tokenMaker), adminMiddleware())
+
+	adminRoutes.GET("/events", adminEventHandler.List)
+	adminRoutes.DELETE("/events/:id", adminEventHandler.Delete)
+	adminRoutes.GET("/users", adminUserHandler.ListAll)
+	adminRoutes.DELETE("/users/:id", adminUserHandler.Delete)
+
 	server.router = router
 }
 

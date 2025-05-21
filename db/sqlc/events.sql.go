@@ -956,7 +956,7 @@ func (q *Queries) GetUserRecommendedEvents(ctx context.Context, arg GetUserRecom
 	return items, nil
 }
 
-const listAll = `-- name: ListAll :many
+const listAllEvents = `-- name: ListAllEvents :many
 SELECT
     evt.id,
     evt.name,
@@ -1020,13 +1020,13 @@ ORDER BY
     evt.created_at DESC
 `
 
-type ListAllParams struct {
+type ListAllEventsParams struct {
 	TagIds     []int32 `json:"tag_ids"`
 	SearchTerm string  `json:"search_term"`
 	DateRange  string  `json:"date_range"`
 }
 
-type ListAllRow struct {
+type ListAllEventsRow struct {
 	ID                int32          `json:"id"`
 	Name              string         `json:"name"`
 	Description       string         `json:"description"`
@@ -1048,15 +1048,15 @@ type ListAllRow struct {
 	Distance          pgtype.Float8  `json:"distance"`
 }
 
-func (q *Queries) ListAll(ctx context.Context, arg ListAllParams) ([]ListAllRow, error) {
-	rows, err := q.db.Query(ctx, listAll, arg.TagIds, arg.SearchTerm, arg.DateRange)
+func (q *Queries) ListAllEvents(ctx context.Context, arg ListAllEventsParams) ([]ListAllEventsRow, error) {
+	rows, err := q.db.Query(ctx, listAllEvents, arg.TagIds, arg.SearchTerm, arg.DateRange)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListAllRow{}
+	items := []ListAllEventsRow{}
 	for rows.Next() {
-		var i ListAllRow
+		var i ListAllEventsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,

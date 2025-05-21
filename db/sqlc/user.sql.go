@@ -128,6 +128,42 @@ func (q *Queries) IsParticipant(ctx context.Context, arg IsParticipantParams) (b
 	return is_participant, err
 }
 
+const listAllUsers = `-- name: ListAllUsers :many
+SELECT id, username, email, password_hash, created_at, is_admin, image_id
+FROM users
+WHERE
+    ($1::text = '' OR username ILIKE '%' || $1 || '%')
+ORDER BY username
+`
+
+func (q *Queries) ListAllUsers(ctx context.Context, username string) ([]User, error) {
+	rows, err := q.db.Query(ctx, listAllUsers, username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []User{}
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Email,
+			&i.PasswordHash,
+			&i.CreatedAt,
+			&i.IsAdmin,
+			&i.ImageID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
 SELECT id, username, email, password_hash, created_at, is_admin, image_id FROM users
 ORDER BY id

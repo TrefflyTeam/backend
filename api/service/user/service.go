@@ -62,12 +62,12 @@ func (s *Service) LoginUser(ctx context.Context, email, password string) (models
 		return models.User{}, "", "", apperror.InvalidCredentials.WithCause(err)
 	}
 
-	accessToken, _, err := s.tokenMaker.CreateToken(user.ID, false, s.config.AccessTokenDuration)
+	accessToken, _, err := s.tokenMaker.CreateToken(user.ID, user.IsAdmin, s.config.AccessTokenDuration)
 	if err != nil {
 		return models.User{}, "", "", apperror.InternalServer.WithCause(err)
 	}
 
-	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(user.ID, false,  s.config.RefreshTokenDuration)
+	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(user.ID, user.IsAdmin,  s.config.RefreshTokenDuration)
 	if err != nil {
 		return models.User{}, "", "", apperror.InternalServer.WithCause(err)
 	}
@@ -278,4 +278,21 @@ func (s *Service) generateResetCode() (string, error) {
 
 	format := fmt.Sprintf("%%0%dd", s.config.ResetCodeLength)
 	return fmt.Sprintf(format, code), nil
+}
+
+func (s *Service) ListAll(ctx context.Context, username string) ([]models.User, error) {
+	users, err := s.store.ListAllUsers(ctx, username)
+	var resp []models.User
+	for _, u := range users {
+		resp = append(resp, ConvertUser(u))
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (s *Service) AdminDelete(ctx context.Context, id int32) error {
+	return s.store.DeleteUser(ctx, id)
 }

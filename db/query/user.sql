@@ -81,3 +81,10 @@ SELECT EXISTS (
 UPDATE users
 SET password_hash = $2
 WHERE id = $1;
+
+-- name: ListAllUsers :many
+SELECT *
+FROM users
+WHERE
+    (@username::text = '' OR username ILIKE '%' || @username || '%')
+ORDER BY username;

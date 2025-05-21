@@ -406,7 +406,7 @@ INSERT INTO event_tokens (
     expires_at
 ) VALUES ($1, $2, $3);
 
--- name: ListAll :many
+-- name: ListAllEvents :many
 SELECT
     evt.id,
     evt.name,

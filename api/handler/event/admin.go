@@ -2,7 +2,9 @@ package event
 
 import (
 	"context"
+	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"net/http"
 	"strconv"
 	eventdto "treffly/api/dto/event"
@@ -11,7 +13,7 @@ import (
 )
 
 type adminCrudService interface {
-	List(ctx context.Context, params models.ListParams) ([]models.Event, error)
+	ListAll(ctx context.Context, params models.ListParams) ([]models.Event, error)
 	AdminDelete(ctx context.Context, id int32) error
 }
 
@@ -39,7 +41,7 @@ func (h *AdminCRUDHandler) List(ctx *gin.Context) {
 		DateRange: ctx.Query("dateWithin"),
 	}
 
-	events, err := h.crudService.List(ctx, params)
+	events, err := h.crudService.ListAll(ctx, params)
 	if err != nil {
 		ctx.Error(apperror.WrapDBError(err))
 		return
@@ -58,7 +60,7 @@ func (h *AdminCRUDHandler) Delete(ctx *gin.Context) {
 	}
 
 	_, path, err := h.imageService.GetDBImageByEventID(ctx, int32(eventID)) //TODO: make deletes transactional
-	if err != nil {
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
