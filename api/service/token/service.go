@@ -59,6 +59,7 @@ func (s *Service) RefreshTokens(ctx context.Context, reqRefreshToken string) (ac
 
 	accessToken, _, err = s.tokenMaker.CreateToken(
 		reqRefreshPayload.UserID,
+		false,
 		s.config.AccessTokenDuration,
 	)
 	if err != nil {
@@ -67,6 +68,7 @@ func (s *Service) RefreshTokens(ctx context.Context, reqRefreshToken string) (ac
 
 	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
 		reqRefreshPayload.UserID,
+		false,
 		s.config.RefreshTokenDuration,
 	)
 	if err != nil {
@@ -131,7 +133,7 @@ func (s *Service) CreatePrivateEventToken(ctx context.Context, eventID int32, us
 		return "", err
 	}
 
-	t,payload, err := s.tokenMaker.CreateToken(0, time.Hour)
+	t,payload, err := s.tokenMaker.CreateToken(0, false, time.Hour)
 	if err != nil {
 		return "", err
 	}

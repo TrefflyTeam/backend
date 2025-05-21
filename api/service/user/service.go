@@ -62,12 +62,12 @@ func (s *Service) LoginUser(ctx context.Context, email, password string) (models
 		return models.User{}, "", "", apperror.InvalidCredentials.WithCause(err)
 	}
 
-	accessToken, _, err := s.tokenMaker.CreateToken(user.ID, s.config.AccessTokenDuration)
+	accessToken, _, err := s.tokenMaker.CreateToken(user.ID, false, s.config.AccessTokenDuration)
 	if err != nil {
 		return models.User{}, "", "", apperror.InternalServer.WithCause(err)
 	}
 
-	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(user.ID, s.config.RefreshTokenDuration)
+	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(user.ID, false,  s.config.RefreshTokenDuration)
 	if err != nil {
 		return models.User{}, "", "", apperror.InternalServer.WithCause(err)
 	}
@@ -89,12 +89,12 @@ func (s *Service) LoginUser(ctx context.Context, email, password string) (models
 }
 
 func (s *Service) CreateAuthSession(ctx context.Context, userID int32) (string, string, error) {
-	accessToken, _, err := s.tokenMaker.CreateToken(userID, s.config.AccessTokenDuration)
+	accessToken, _, err := s.tokenMaker.CreateToken(userID, false,  s.config.AccessTokenDuration)
 	if err != nil {
 		return "", "", apperror.InternalServer.WithCause(err)
 	}
 
-	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(userID, s.config.RefreshTokenDuration)
+	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(userID, false, s.config.RefreshTokenDuration)
 	if err != nil {
 		return "", "", apperror.InternalServer.WithCause(err)
 	}
@@ -205,7 +205,7 @@ func (s *Service) ConfirmResetCode(ctx context.Context, email, code string) (str
 		return "", errors.New("invalid code")
 	}
 
-	t, _, err := s.tokenMaker.CreateToken(user.ID, s.config.ResetTokenDuration)
+	t, _, err := s.tokenMaker.CreateToken(user.ID, false, s.config.ResetTokenDuration)
 	if err != nil {
 		return "", err
 	}
