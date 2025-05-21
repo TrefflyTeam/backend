@@ -30,7 +30,12 @@ func (c *Client) CreateChatCompletion(name string, maxCharacters int) ([]byte, e
 	messages := []map[string]string{
 		{
 			"role":    "system",
-			"content": fmt.Sprintf("%s Максимальная длина ответа: %d", c.SystemPrompt, maxCharacters),
+			"content": fmt.Sprintf(
+				"%s\n\n" +
+					"ВНИМАНИЕ! Ответ ДОЛЖЕН быть короче %d символов (включая пробелы и знаки препинания). " +
+					"Если превысишь лимит — ответ будет отключен.",
+				c.SystemPrompt,
+				maxCharacters),
 		},
 		{
 			"role":    "user",
