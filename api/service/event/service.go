@@ -54,7 +54,6 @@ func (s *Service) List(ctx context.Context, params models.ListParams) ([]models.
 	arg := db.ListEventsParams{
 		UserLat:    params.Lat,
 		UserLon:    params.Lon,
-		IsAdmin:    params.IsAdmin,
 		SearchTerm: params.Search,
 		TagIds:     params.TagIDs,
 		DateRange:  params.DateRange,
@@ -368,4 +367,25 @@ func (s *Service) GetOwnedUserEvents(ctx context.Context, userID int32) ([]model
 	resp := convertEventType(rows)
 
 	return resp, nil
+}
+
+func (s *Service) ListAll(ctx context.Context, params models.ListParams) ([]models.Event, error) {
+	arg := db.ListAllParams{
+		TagIds: params.TagIDs,
+		SearchTerm: params.Search,
+		DateRange: params.DateRange,
+	}
+
+	rows, err := s.store.ListAll(ctx, arg)
+	if err != nil {
+		return nil, err
+	}
+
+	result := convertEventType(rows)
+
+	return result, nil
+}
+
+func (s *Service) AdminDelete(ctx context.Context, id int32) error {
+	return s.store.DeleteEvent(ctx, id)
 }

@@ -52,7 +52,6 @@ type CreateParams struct {
 type ListParams struct {
 	Lat       pgtype.Numeric
 	Lon       pgtype.Numeric
-	IsAdmin   bool
 	Search    string
 	TagIDs    []int32
 	DateRange string

@@ -42,6 +42,7 @@ type Querier interface {
 	GetUserRecommendedEvents(ctx context.Context, arg GetUserRecommendedEventsParams) ([]GetUserRecommendedEventsRow, error)
 	GetUserWithTags(ctx context.Context, id int32) (UserWithTagsView, error)
 	IsParticipant(ctx context.Context, arg IsParticipantParams) (bool, error)
+	ListAll(ctx context.Context, arg ListAllParams) ([]ListAllRow, error)
 	ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) (pgtype.Bool, error)
