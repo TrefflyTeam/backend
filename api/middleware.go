@@ -122,3 +122,29 @@ func RateLimitMiddleware(store rateLimitStore, limit int, window time.Duration) 
 		ctx.Next()
 	}
 }
+
+func AdminMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		payload, exists := ctx.Get(authorizationPayloadKey)
+		if !exists {
+			ctx.Error(apperror.Forbidden.WithCause(errors.New("authorization payload missing")))
+			ctx.Abort()
+			return
+		}
+
+		authPayload, ok := payload.(*token.Payload)
+		if !ok {
+			ctx.Error(apperror.Forbidden.WithCause(errors.New("invalid authorization payload")))
+			ctx.Abort()
+			return
+		}
+
+		if !authPayload.IsAdmin {
+			ctx.Error(apperror.Forbidden.WithCause(errors.New("admin access required")))
+			ctx.Abort()
+			return
+		}
+
+		ctx.Next()
+	}
+}
