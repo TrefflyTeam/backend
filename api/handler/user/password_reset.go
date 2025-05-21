@@ -48,7 +48,9 @@ func (h *PasswordResetHandler) InitiatePasswordReset(ctx *gin.Context) {
 		return
 	}
 
-	err = h.mailer.SendPasswordReset(req.Email, code, h.config.ResetCodeTTL)
+	if code != "" {
+		err = h.mailer.SendPasswordReset(req.Email, code, h.config.ResetCodeTTL)
+	}
 
 	ctx.JSON(http.StatusOK,  gin.H{"Message": "Код был успешно отправлен"})
 }
