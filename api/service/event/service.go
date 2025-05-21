@@ -71,8 +71,8 @@ func (s *Service) List(ctx context.Context, params models.ListParams) ([]models.
 
 func (s *Service) Update(ctx context.Context, params models.UpdateParams) (models.Event, error) {
 	getArg := db.GetEventParams{
-		ID: params.EventID,
-		OwnerID:  params.UserID,
+		ID:      params.EventID,
+		OwnerID: params.UserID,
 	}
 	event, err := s.store.GetEvent(ctx, getArg)
 	if err != nil {
@@ -125,8 +125,8 @@ func (s *Service) Update(ctx context.Context, params models.UpdateParams) (model
 
 func (s *Service) Delete(ctx context.Context, params models.DeleteParams) error {
 	getArg := db.GetEventParams{
-		ID: params.EventID,
-		OwnerID:  params.UserID,
+		ID:      params.EventID,
+		OwnerID: params.UserID,
 	}
 	event, err := s.store.GetEvent(ctx, getArg)
 	if err != nil {
@@ -261,13 +261,13 @@ func (s *Service) Subscribe(ctx context.Context, params models.SubscriptionParam
 	arg := db.SubscribeToEventParams{
 		EventID: params.EventID,
 		UserID:  params.UserID,
-		Token: params.Token,
+		Token:   params.Token,
 	}
 
 	getArg := db.GetEventParams{
-		ID: params.EventID,
-		OwnerID:  params.UserID,
-		Token: params.Token,
+		ID:      params.EventID,
+		OwnerID: params.UserID,
+		Token:   params.Token,
 	}
 
 	event, err := s.store.GetEvent(ctx, getArg)
@@ -310,9 +310,9 @@ func (s *Service) Unsubscribe(ctx context.Context, params models.SubscriptionPar
 
 func (s *Service) GetEvent(ctx context.Context, eventID, userID int32, token string) (models.Event, error) {
 	getArg := db.GetEventParams{
-		ID: eventID,
-		OwnerID:  userID,
-		Token: token,
+		ID:      eventID,
+		OwnerID: userID,
+		Token:   token,
 	}
 	event, err := s.store.GetEvent(ctx, getArg)
 	if err != nil {
@@ -367,4 +367,25 @@ func (s *Service) GetOwnedUserEvents(ctx context.Context, userID int32) ([]model
 	resp := convertEventType(rows)
 
 	return resp, nil
+}
+
+func (s *Service) ListAll(ctx context.Context, params models.ListParams) ([]models.Event, error) {
+	arg := db.ListAllEventsParams{
+		TagIds: params.TagIDs,
+		SearchTerm: params.Search,
+		DateRange: params.DateRange,
+	}
+
+	rows, err := s.store.ListAllEvents(ctx, arg)
+	if err != nil {
+		return nil, err
+	}
+
+	result := convertEventType(rows)
+
+	return result, nil
+}
+
+func (s *Service) AdminDelete(ctx context.Context, id int32) error {
+	return s.store.DeleteEvent(ctx, id)
 }

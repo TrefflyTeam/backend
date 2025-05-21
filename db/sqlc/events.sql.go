@@ -956,6 +956,138 @@ func (q *Queries) GetUserRecommendedEvents(ctx context.Context, arg GetUserRecom
 	return items, nil
 }
 
+const listAllEvents = `-- name: ListAllEvents :many
+SELECT
+    evt.id,
+    evt.name,
+    evt.description,
+    evt.capacity,
+    evt.latitude,
+    evt.longitude,
+    evt.address,
+    evt.date,
+    evt.owner_id,
+    evt.owner_username,
+    evt.is_private,
+    evt.is_premium,
+    evt.created_at,
+    evt.tags,
+    evt.participants_count,
+    evt.event_image_path,
+    evt.user_image_path,
+    (
+        SELECT COUNT(*)
+        FROM event_tags et
+        WHERE et.event_id = evt.id
+          AND et.tag_id = ANY($1::int[])
+    ) AS matched_tags,
+    NULL::float AS distance
+FROM event_with_tags_view evt
+WHERE
+    evt.date > NOW()
+  AND (
+    $2::text = ''
+        OR (
+            evt.name ILIKE '%' || $2 || '%'
+            OR evt.description ILIKE '%' || $2 || '%'
+        )
+    )
+  AND (
+    cardinality($1::int[]) = 0
+        OR EXISTS (
+        SELECT 1
+        FROM event_tags et
+        WHERE et.event_id = evt.id
+          AND et.tag_id = ANY($1::int[])
+    )
+    )
+  AND (
+    $3::text IS NULL
+        OR $3::text = ''
+        OR CASE
+            WHEN $3 = 'day' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 day'
+            WHEN $3 = 'week' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '7 days'
+            WHEN $3 = 'month' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 month'
+            ELSE TRUE
+        END
+    )
+ORDER BY
+    CASE WHEN $2::text <> '' THEN
+             SIMILARITY(evt.name, $2) +
+             SIMILARITY(evt.description, $2)
+         ELSE 0 END DESC,
+    matched_tags DESC,
+    evt.created_at DESC
+`
+
+type ListAllEventsParams struct {
+	TagIds     []int32 `json:"tag_ids"`
+	SearchTerm string  `json:"search_term"`
+	DateRange  string  `json:"date_range"`
+}
+
+type ListAllEventsRow struct {
+	ID                int32          `json:"id"`
+	Name              string         `json:"name"`
+	Description       string         `json:"description"`
+	Capacity          int32          `json:"capacity"`
+	Latitude          pgtype.Numeric `json:"latitude"`
+	Longitude         pgtype.Numeric `json:"longitude"`
+	Address           string         `json:"address"`
+	Date              time.Time      `json:"date"`
+	OwnerID           int32          `json:"owner_id"`
+	OwnerUsername     pgtype.Text    `json:"owner_username"`
+	IsPrivate         bool           `json:"is_private"`
+	IsPremium         bool           `json:"is_premium"`
+	CreatedAt         time.Time      `json:"created_at"`
+	Tags              []Tag          `json:"tags"`
+	ParticipantsCount int64          `json:"participants_count"`
+	EventImagePath    pgtype.Text    `json:"event_image_path"`
+	UserImagePath     pgtype.Text    `json:"user_image_path"`
+	MatchedTags       int64          `json:"matched_tags"`
+	Distance          pgtype.Float8  `json:"distance"`
+}
+
+func (q *Queries) ListAllEvents(ctx context.Context, arg ListAllEventsParams) ([]ListAllEventsRow, error) {
+	rows, err := q.db.Query(ctx, listAllEvents, arg.TagIds, arg.SearchTerm, arg.DateRange)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAllEventsRow{}
+	for rows.Next() {
+		var i ListAllEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Capacity,
+			&i.Latitude,
+			&i.Longitude,
+			&i.Address,
+			&i.Date,
+			&i.OwnerID,
+			&i.OwnerUsername,
+			&i.IsPrivate,
+			&i.IsPremium,
+			&i.CreatedAt,
+			&i.Tags,
+			&i.ParticipantsCount,
+			&i.EventImagePath,
+			&i.UserImagePath,
+			&i.MatchedTags,
+			&i.Distance,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listEvents = `-- name: ListEvents :many
 SELECT
     evt.id,
@@ -978,8 +1110,7 @@ SELECT
     (
         SELECT COUNT(*)
         FROM event_tags et
-        WHERE
-            et.event_id = evt.id
+        WHERE et.event_id = evt.id
           AND et.tag_id = ANY($1::int[])
     ) AS matched_tags,
     ST_Distance(
@@ -1007,8 +1138,7 @@ WHERE
         OR EXISTS (
         SELECT 1
         FROM event_tags et
-        WHERE
-            et.event_id = evt.id
+        WHERE et.event_id = evt.id
           AND et.tag_id = ANY($1::int[])
     )
     )

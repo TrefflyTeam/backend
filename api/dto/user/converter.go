@@ -43,3 +43,10 @@ func (c *UserConverter) convertTagsToResponse(tags []models.Tag) []TagResponse {
 	}
 	return result
 }
+
+func (c *UserConverter) ToAdminUserResponse(user models.User) AdminUserResponse {
+	return AdminUserResponse{
+		ID: user.ID,
+		UserResponse: c.ToUserResponse(user),
+	}
+}

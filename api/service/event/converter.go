@@ -27,18 +27,19 @@ func ConvertGetEventRow(e db.GetEventRow, isOwner, isParticipant bool) models.Ev
 		Description:    e.Description,
 		Capacity:       e.Capacity,
 		Latitude:       lat,
-		Longitude:      lon,
-		Address:        e.Address,
-		Date:           e.Date,
-		OwnerUsername:  safeString(e.OwnerUsername),
-		Tags:           convertTags(e.Tags),
-		IsPrivate:      e.IsPrivate,
-		IsPremium:      e.IsPremium,
-		CreatedAt:      e.CreatedAt,
-		IsOwner:        isOwner,
-		IsParticipant:  isParticipant,
-		ImagePath:      safeString(e.EventImagePath),
-		OwnerImagePath: safeString(e.UserImagePath),
+		Longitude:        lon,
+		Address:          e.Address,
+		Date:             e.Date,
+		OwnerUsername:    safeString(e.OwnerUsername),
+		Tags:             convertTags(e.Tags),
+		IsPrivate:        e.IsPrivate,
+		IsPremium:        e.IsPremium,
+		CreatedAt:        e.CreatedAt,
+		IsOwner:          isOwner,
+		IsParticipant:    isParticipant,
+		ParticipantCount: int(e.ParticipantsCount),
+		ImagePath:        safeString(e.EventImagePath),
+		OwnerImagePath:   safeString(e.UserImagePath),
 	}
 
 	return base
@@ -63,6 +64,7 @@ func ConvertListEventsRow(e db.ListEventsRow) models.Event {
 		CreatedAt:      e.CreatedAt,
 		IsOwner:        false,
 		IsParticipant:  false,
+		ParticipantCount: int(e.ParticipantsCount),
 		ImagePath:      safeString(e.EventImagePath),
 		OwnerImagePath: safeString(e.UserImagePath),
 	}
@@ -131,6 +133,7 @@ func convertUserRecommended(e db.GetUserRecommendedEventsRow) models.Event {
 		IsPrivate:      e.IsPrivate,
 		IsPremium:      e.IsPremium,
 		CreatedAt:      e.CreatedAt,
+		ParticipantCount: int(e.ParticipantsCount),
 		ImagePath:      safeString(e.EventImagePath),
 		OwnerImagePath: safeString(e.UserImagePath),
 	}
@@ -155,6 +158,7 @@ func convertGuestRecommended(e db.GetGuestRecommendedEventsRow) models.Event {
 		IsPrivate:      e.IsPrivate,
 		IsPremium:      e.IsPremium,
 		CreatedAt:      e.CreatedAt,
+		ParticipantCount: int(e.ParticipantsCount),
 		ImagePath:      safeString(e.EventImagePath),
 		OwnerImagePath: safeString(e.UserImagePath),
 	}
@@ -184,9 +188,36 @@ func convertEventType[T any](rows []T) []models.Event {
 			result[i] = convertPastEventsRow(v)
 		case db.GetOwnedUserEventsRow:
 			result[i] = convertOwnedEventsRow(v)
+		case db.ListAllEventsRow:
+			result[i] = convertListAllEventsRow(v)
 		}
 	}
 	return result
+}
+
+func convertListAllEventsRow(e db.ListAllEventsRow) models.Event {
+	lat, _ := util.NumericToFloat64(e.Latitude)
+	lon, _ := util.NumericToFloat64(e.Longitude)
+	base := models.Event{
+		ID:             e.ID,
+		Name:           e.Name,
+		Description:    e.Description,
+		Capacity:       e.Capacity,
+		Latitude:       lat,
+		Longitude:      lon,
+		Address:        e.Address,
+		Date:           e.Date,
+		OwnerUsername:  safeString(e.OwnerUsername),
+		Tags:           convertTags(e.Tags),
+		IsPrivate:      e.IsPrivate,
+		IsPremium:      e.IsPremium,
+		CreatedAt:      e.CreatedAt,
+		ParticipantCount: int(e.ParticipantsCount),
+		ImagePath:      safeString(e.EventImagePath),
+		OwnerImagePath: safeString(e.UserImagePath),
+	}
+
+	return base
 }
 
 func convertOwnedEventsRow(e db.GetOwnedUserEventsRow) models.Event {
@@ -206,6 +237,7 @@ func convertOwnedEventsRow(e db.GetOwnedUserEventsRow) models.Event {
 		IsPrivate:      e.IsPrivate,
 		IsPremium:      e.IsPremium,
 		CreatedAt:      e.CreatedAt,
+		ParticipantCount: int(e.ParticipantsCount),
 		ImagePath:      safeString(e.EventImagePath),
 		OwnerImagePath: safeString(e.UserImagePath),
 	}
@@ -230,6 +262,7 @@ func convertPastEventsRow(e db.GetPastUserEventsRow) models.Event {
 		IsPrivate:      e.IsPrivate,
 		IsPremium:      e.IsPremium,
 		CreatedAt:      e.CreatedAt,
+		ParticipantCount: int(e.ParticipantsCount),
 		ImagePath:      safeString(e.EventImagePath),
 		OwnerImagePath: safeString(e.UserImagePath),
 	}
@@ -254,6 +287,7 @@ func convertUpcomingEventsRow(e db.GetUpcomingUserEventsRow) models.Event {
 		IsPrivate:      e.IsPrivate,
 		IsPremium:      e.IsPremium,
 		CreatedAt:      e.CreatedAt,
+		ParticipantCount: int(e.ParticipantsCount),
 		ImagePath:      safeString(e.EventImagePath),
 		OwnerImagePath: safeString(e.UserImagePath),
 	}
@@ -278,6 +312,7 @@ func convertPremiumEvent(e db.GetPremiumEventsRow) models.Event {
 		IsPrivate:      e.IsPrivate,
 		IsPremium:      e.IsPremium,
 		CreatedAt:      e.CreatedAt,
+		ParticipantCount: int(e.ParticipantsCount),
 		ImagePath:      safeString(e.EventImagePath),
 		OwnerImagePath: safeString(e.UserImagePath),
 	}
@@ -302,6 +337,7 @@ func convertLatestEvent(e db.GetLatestEventsRow) models.Event {
 		IsPrivate:      e.IsPrivate,
 		IsPremium:      e.IsPremium,
 		CreatedAt:      e.CreatedAt,
+		ParticipantCount: int(e.ParticipantsCount),
 		ImagePath:      safeString(e.EventImagePath),
 		OwnerImagePath: safeString(e.UserImagePath),
 	}
@@ -326,6 +362,7 @@ func convertPopularEvent(e db.GetPopularEventsRow) models.Event {
 		IsPrivate:      e.IsPrivate,
 		IsPremium:      e.IsPremium,
 		CreatedAt:      e.CreatedAt,
+		ParticipantCount: int(e.ParticipantsCount),
 		ImagePath:      safeString(e.EventImagePath),
 		OwnerImagePath: safeString(e.UserImagePath),
 	}

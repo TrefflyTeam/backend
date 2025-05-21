@@ -94,8 +94,7 @@ SELECT
     (
         SELECT COUNT(*)
         FROM event_tags et
-        WHERE
-            et.event_id = evt.id
+        WHERE et.event_id = evt.id
           AND et.tag_id = ANY(@tag_ids::int[])
     ) AS matched_tags,
     ST_Distance(
@@ -123,8 +122,7 @@ WHERE
         OR EXISTS (
         SELECT 1
         FROM event_tags et
-        WHERE
-            et.event_id = evt.id
+        WHERE et.event_id = evt.id
           AND et.tag_id = ANY(@tag_ids::int[])
     )
     )
@@ -407,3 +405,66 @@ INSERT INTO event_tokens (
     token,
     expires_at
 ) VALUES ($1, $2, $3);
+
+-- name: ListAllEvents :many
+SELECT
+    evt.id,
+    evt.name,
+    evt.description,
+    evt.capacity,
+    evt.latitude,
+    evt.longitude,
+    evt.address,
+    evt.date,
+    evt.owner_id,
+    evt.owner_username,
+    evt.is_private,
+    evt.is_premium,
+    evt.created_at,
+    evt.tags,
+    evt.participants_count,
+    evt.event_image_path,
+    evt.user_image_path,
+    (
+        SELECT COUNT(*)
+        FROM event_tags et
+        WHERE et.event_id = evt.id
+          AND et.tag_id = ANY(@tag_ids::int[])
+    ) AS matched_tags,
+    NULL::float AS distance
+FROM event_with_tags_view evt
+WHERE
+    evt.date > NOW()
+  AND (
+    @search_term::text = ''
+        OR (
+            evt.name ILIKE '%' || @search_term || '%'
+            OR evt.description ILIKE '%' || @search_term || '%'
+        )
+    )
+  AND (
+    cardinality(@tag_ids::int[]) = 0
+        OR EXISTS (
+        SELECT 1
+        FROM event_tags et
+        WHERE et.event_id = evt.id
+          AND et.tag_id = ANY(@tag_ids::int[])
+    )
+    )
+  AND (
+    @date_range::text IS NULL
+        OR @date_range::text = ''
+        OR CASE
+            WHEN @date_range = 'day' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 day'
+            WHEN @date_range = 'week' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '7 days'
+            WHEN @date_range = 'month' THEN evt.date BETWEEN NOW() AND NOW() + INTERVAL '1 month'
+            ELSE TRUE
+        END
+    )
+ORDER BY
+    CASE WHEN @search_term::text <> '' THEN
+             SIMILARITY(evt.name, @search_term) +
+             SIMILARITY(evt.description, @search_term)
+         ELSE 0 END DESC,
+    matched_tags DESC,
+    evt.created_at DESC;
