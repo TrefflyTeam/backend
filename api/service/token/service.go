@@ -59,7 +59,7 @@ func (s *Service) RefreshTokens(ctx context.Context, reqRefreshToken string) (ac
 
 	accessToken, _, err = s.tokenMaker.CreateToken(
 		reqRefreshPayload.UserID,
-		false,
+		reqRefreshPayload.IsAdmin,
 		s.config.AccessTokenDuration,
 	)
 	if err != nil {
@@ -68,7 +68,7 @@ func (s *Service) RefreshTokens(ctx context.Context, reqRefreshToken string) (ac
 
 	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
 		reqRefreshPayload.UserID,
-		false,
+		reqRefreshPayload.IsAdmin,
 		s.config.RefreshTokenDuration,
 	)
 	if err != nil {
