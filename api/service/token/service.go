@@ -88,38 +88,38 @@ func (s *Service) RefreshTokens(ctx context.Context, reqRefreshToken string) (ac
 	return accessToken, refreshToken, nil
 }
 
-func (s *Service) ValidateSession(ctx context.Context, refreshToken string) error {
+func (s *Service) ValidateSession(ctx context.Context, refreshToken string) (bool, error) {
 	payload, err := s.tokenMaker.VerifyToken(refreshToken)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	session, err := s.store.GetSession(ctx, payload.ID)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if session.IsBlocked {
 		err = fmt.Errorf("blocked session")
-		return err
+		return false, err
 	}
 
 	if session.UserID != payload.UserID {
 		err = fmt.Errorf("incorrect session user")
-		return err
+		return false, err
 	}
 
 	if session.RefreshToken != refreshToken {
 		err = fmt.Errorf("mismatched session token")
-		return err
+		return false, err
 	}
 
 	if time.Now().After(session.ExpiresAt) {
 		err = fmt.Errorf("expired session")
-		return err
+		return false, err
 	}
 
-	return nil
+	return payload.IsAdmin, err
 }
 
 func (s *Service) CreatePrivateEventToken(ctx context.Context, eventID int32, userID int32) (string, error) {
