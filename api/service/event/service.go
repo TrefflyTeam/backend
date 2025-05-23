@@ -296,12 +296,12 @@ func (s *Service) Unsubscribe(ctx context.Context, params models.SubscriptionPar
 		UserID:  params.UserID,
 	}
 
-	event, err := s.GetEvent(ctx, params.EventID, params.UserID, params.Token)
-	if err != nil {
+	if err := s.store.UnsubscribeFromEvent(ctx, arg); err != nil {
 		return models.Event{}, err
 	}
 
-	if err := s.store.UnsubscribeFromEvent(ctx, arg); err != nil {
+	event, err := s.GetEvent(ctx, params.EventID, params.UserID, params.Token)
+	if err != nil {
 		return models.Event{}, err
 	}
 
