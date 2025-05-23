@@ -243,7 +243,7 @@ func (h *CRUDHandler) Delete(ctx *gin.Context) {
 	}
 
 	_, path, err := h.imageService.GetDBImageByEventID(ctx, int32(eventID)) //TODO: make deletes transactional
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		ctx.Error(apperror.WrapDBError(err))
 		return
 	}
