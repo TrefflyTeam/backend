@@ -10,6 +10,7 @@ type User struct {
 	Username     string
 	Email        string
 	CreatedAt    time.Time
+	IsAdmin      bool
 }
 
 type UserWithTags struct {

@@ -14,7 +14,7 @@ import (
 
 type tokenManager interface {
 	RefreshTokens(ctx context.Context, reqRefreshToken string) (accessToken string, refreshToken string, err error)
-	ValidateSession(ctx context.Context, refreshToken string) error
+	ValidateSession(ctx context.Context, refreshToken string) (bool, error)
 	CreatePrivateEventToken(ctx context.Context, eventID int32, userID int32) (string, error)
 }
 
@@ -67,7 +67,7 @@ func (h *Handler) Auth(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
-	err = h.tokenManager.ValidateSession(ctx, token)
+	isAdmin, err := h.tokenManager.ValidateSession(ctx, token)
 	if err != nil {
 		common.SetTokenCookie(ctx, "refresh_token", "",
 			common.RefreshTokenCookiePath, -1, h.config.Environment)
@@ -75,7 +75,7 @@ func (h *Handler) Auth(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	ctx.JSON(http.StatusOK, gin.H{"is_admin": isAdmin})
 }
 
 func (h *Handler) CreatePrivateEventToken(ctx *gin.Context) {

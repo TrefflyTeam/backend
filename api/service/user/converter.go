@@ -26,22 +26,23 @@ func safeString(s pgtype.Text) string {
 
 func ConvertUser(dbUser db.User) models.User {
 	return models.User{
-		ID:       dbUser.ID,
-		Username: dbUser.Username,
-		Email:    dbUser.Email,
+		ID:        dbUser.ID,
+		Username:  dbUser.Username,
+		Email:     dbUser.Email,
 		CreatedAt: dbUser.CreatedAt,
+		IsAdmin:   dbUser.IsAdmin,
 	}
 }
 
 func ConvertUserWithTags(dbUser db.UserWithTagsView) models.UserWithTags {
 	return models.UserWithTags{
 		User: models.User{
-			ID: dbUser.ID,
-			Username: dbUser.Username,
-			Email: dbUser.Email,
+			ID:        dbUser.ID,
+			Username:  dbUser.Username,
+			Email:     dbUser.Email,
 			CreatedAt: dbUser.CreatedAt,
 		},
-		Tags: convertTags(dbUser.Tags),
+		Tags:      convertTags(dbUser.Tags),
 		ImagePath: safeString(dbUser.ImagePath),
 	}
 }

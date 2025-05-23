@@ -19,17 +19,18 @@ func NewUserConverter(env, domain string) *UserConverter {
 
 func (c *UserConverter) ToUserResponse(user models.User) UserResponse {
 	return UserResponse{
-		Username: user.Username,
-		Email:    user.Email,
+		Username:  user.Username,
+		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
+		IsAdmin:   user.IsAdmin,
 	}
 }
 
 func (c *UserConverter) ToUserWithTagsResponse(user models.UserWithTags) UserWithTagsResponse {
 	return UserWithTagsResponse{
 		UserResponse: c.ToUserResponse(user.User),
-		Tags: c.convertTagsToResponse(user.Tags),
-		ImageURL: common.ImageURL(c.env, c.domain, user.ImagePath),
+		Tags:         c.convertTagsToResponse(user.Tags),
+		ImageURL:     common.ImageURL(c.env, c.domain, user.ImagePath),
 	}
 }
 
@@ -46,7 +47,7 @@ func (c *UserConverter) convertTagsToResponse(tags []models.Tag) []TagResponse {
 
 func (c *UserConverter) ToAdminUserResponse(user models.User) AdminUserResponse {
 	return AdminUserResponse{
-		ID: user.ID,
+		ID:           user.ID,
 		UserResponse: c.ToUserResponse(user),
 	}
 }
