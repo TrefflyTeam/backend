@@ -56,6 +56,9 @@ jobs:
           echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> app.env
           echo "SMTP_DEFAULT_FROM=${{ secrets.SMTP_DEFAULT_FROM }}" >> app.env
           echo "SEND_CODE_RATE_LIMIT=${{ secrets.SEND_CODE_RATE_LIMIT }}" >> app.env
+          
+          echo "PAYMENT_SHOP=${{ secrets.PAYMENT_SHOP }}" >> app.env
+          echo "PAYMENT_PREMIUM_PRICE=${{ secrets.PAYMENT_PREMIUM_PRICE }}" >> app.env
 
       - name: Copy files to the server
         run: |
