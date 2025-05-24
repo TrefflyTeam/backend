@@ -95,3 +95,20 @@ type SubscriptionParams struct {
 type UserEventsParams struct {
 	UserID int32
 }
+
+type PremiumOrder struct {
+	ID        int32     `json:"id"`
+	UserID    int32     `json:"user_id"`
+	EventID   int32     `json:"event_id"`
+	Shop      string    `json:"shop"`
+	Price     float64   `json:"price"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type PremiumOrderParams struct {
+	UserID    int32     `json:"user_id"`
+	EventID   int32     `json:"event_id"`
+	Shop      string    `json:"shop"`
+	Price     float64   `json:"price"`
+}

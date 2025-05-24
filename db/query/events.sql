@@ -468,3 +468,36 @@ ORDER BY
          ELSE 0 END DESC,
     matched_tags DESC,
     evt.created_at DESC;
+
+-- name: CreatePremiumOrder :one
+INSERT INTO premium_orders (
+    user_id,
+    event_id,
+    shop,
+    price
+) VALUES (
+    $1, $2, $3, $4
+         ) RETURNING *;
+
+-- name: GetPremiumOrder :one
+SELECT * FROM premium_orders
+WHERE id = $1;
+
+-- name: SetEventPremium :exec
+WITH
+    get_event AS (
+        SELECT event_id
+        FROM premium_orders
+        WHERE premium_orders.id = $1
+    ),
+    update_event AS (
+UPDATE events
+SET is_premium = true
+WHERE id = (SELECT event_id FROM get_event)
+    ),
+update_order AS (
+    UPDATE premium_orders
+    SET status = 'complete'
+    WHERE id = $1
+)
+SELECT 1;

@@ -36,3 +36,12 @@ type HomeEventsResponse struct {
 	Latest      []EventResponse `json:"latest"`
 	Popular     []EventResponse `json:"popular"`
 }
+
+type PremiumOrderResponse struct {
+	ID        int32     `json:"id"`
+	EventID   int32     `json:"event_id"`
+	Shop      string    `json:"shop"`
+	Price     float64   `json:"price"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+}

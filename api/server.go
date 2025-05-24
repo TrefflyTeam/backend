@@ -186,6 +186,11 @@ func (server *Server) setupRouter() {
 	adminRoutes.GET("/users", adminUserHandler.ListAll)
 	adminRoutes.DELETE("/users/:id", adminUserHandler.Delete)
 
+	premiumHandler := event.NewPremiumHandler(eventService, server.config.PaymentShop, server.config.PaymentPremiumPrice)
+	authRoutes.POST("/premium-payment", premiumHandler.CreatePremiumOrder)
+	authRoutes.GET("/premium-payment/:id", premiumHandler.GetPremiumOrder)
+	authRoutes.POST("/premium-payment/:id/complete", premiumHandler.CompletePremiumOrder)
+
 	server.router = router
 }
 
