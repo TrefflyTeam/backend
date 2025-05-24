@@ -32,3 +32,5 @@ sql:
             go_type:
               type: "Tag"
               slice: true
+          - column: "premium_orders.status"
+            go_type: "string"

@@ -389,3 +389,38 @@ func (s *Service) ListAll(ctx context.Context, params models.ListParams) ([]mode
 func (s *Service) AdminDelete(ctx context.Context, id int32) error {
 	return s.store.DeleteEvent(ctx, id)
 }
+
+func (s *Service) CreatePremiumOrder(ctx context.Context, params models.PremiumOrderParams) (models.PremiumOrder, error) {
+	arg := db.CreatePremiumOrderParams{
+		UserID: params.UserID,
+		EventID: params.EventID,
+		Shop: params.Shop,
+		Price: util.Float64ToNumeric(params.Price),
+	}
+
+	order, err := s.store.CreatePremiumOrder(ctx, arg)
+	if err != nil {
+		return models.PremiumOrder{}, err
+	}
+
+	resp := ConvertPremiumOrder(order)
+
+	return resp, nil
+}
+
+func (s *Service) GetPremiumOrder(ctx context.Context, id int32) (models.PremiumOrder, error) {
+	order, err := s.store.GetPremiumOrder(ctx, id)
+	if err != nil {
+		return models.PremiumOrder{}, err
+	}
+
+	resp := ConvertPremiumOrder(order)
+
+	return resp, nil
+}
+
+func (s *Service) CompletePremiumOrder(ctx context.Context, id int32) error {
+	err := s.store.SetEventPremium(ctx, id)
+
+	return err
+}

@@ -16,6 +16,7 @@ type Querier interface {
 	AddUserTags(ctx context.Context, arg AddUserTagsParams) error
 	CreateEvent(ctx context.Context, arg CreateEventParams) (CreateEventRow, error)
 	CreateImage(ctx context.Context, arg CreateImageParams) (Image, error)
+	CreatePremiumOrder(ctx context.Context, arg CreatePremiumOrderParams) (PremiumOrder, error)
 	CreatePrivateEventToken(ctx context.Context, arg CreatePrivateEventTokenParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
@@ -34,6 +35,7 @@ type Querier interface {
 	GetPastUserEvents(ctx context.Context, userID int32) ([]GetPastUserEventsRow, error)
 	GetPopularEvents(ctx context.Context) ([]GetPopularEventsRow, error)
 	GetPremiumEvents(ctx context.Context) ([]GetPremiumEventsRow, error)
+	GetPremiumOrder(ctx context.Context, id int32) (PremiumOrder, error)
 	GetSession(ctx context.Context, argUuid uuid.UUID) (Session, error)
 	GetTags(ctx context.Context) ([]Tag, error)
 	GetUpcomingUserEvents(ctx context.Context, userID int32) ([]GetUpcomingUserEventsRow, error)
@@ -46,6 +48,7 @@ type Querier interface {
 	ListAllUsers(ctx context.Context, username string) ([]User, error)
 	ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	SetEventPremium(ctx context.Context, id int32) error
 	SubscribeToEvent(ctx context.Context, arg SubscribeToEventParams) (pgtype.Bool, error)
 	UnsubscribeFromEvent(ctx context.Context, arg UnsubscribeFromEventParams) error
 	UpdateEvent(ctx context.Context, arg UpdateEventParams) error

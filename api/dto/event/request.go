@@ -29,3 +29,7 @@ type UpdateEventRequest struct {
 	Tags        []int32        `form:"tags" binding:"required,min=1,max=3,dive,required,positive"`
 	DeleteImage bool           `form:"delete_image" binding:"boolean"`
 }
+
+type CreatePremiumOrderRequest struct {
+	EventID int32 `json:"event_id" binding:"required,min=1"`
+}

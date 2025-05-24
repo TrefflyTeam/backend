@@ -5,11 +5,55 @@
 package db
 
 import (
+	"database/sql/driver"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type OrdersStatus string
+
+const (
+	OrdersStatusPending  OrdersStatus = "pending"
+	OrdersStatusComplete OrdersStatus = "complete"
+)
+
+func (e *OrdersStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OrdersStatus(s)
+	case string:
+		*e = OrdersStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OrdersStatus: %T", src)
+	}
+	return nil
+}
+
+type NullOrdersStatus struct {
+	OrdersStatus OrdersStatus `json:"orders_status"`
+	Valid        bool         `json:"valid"` // Valid is true if OrdersStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOrdersStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.OrdersStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OrdersStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOrdersStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OrdersStatus), nil
+}
 
 type Event struct {
 	ID          int32          `json:"id"`
@@ -70,6 +114,16 @@ type EventWithTagsView struct {
 type Image struct {
 	ID   uuid.UUID `json:"id"`
 	Path string    `json:"path"`
+}
+
+type PremiumOrder struct {
+	ID        int32          `json:"id"`
+	UserID    int32          `json:"user_id"`
+	EventID   int32          `json:"event_id"`
+	Shop      string         `json:"shop"`
+	Price     pgtype.Numeric `json:"price"`
+	Status    string         `json:"status"`
+	CreatedAt time.Time      `json:"created_at"`
 }
 
 type Session struct {

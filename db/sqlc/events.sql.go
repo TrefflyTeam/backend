@@ -101,6 +101,44 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Creat
 	return i, err
 }
 
+const createPremiumOrder = `-- name: CreatePremiumOrder :one
+INSERT INTO premium_orders (
+    user_id,
+    event_id,
+    shop,
+    price
+) VALUES (
+    $1, $2, $3, $4
+         ) RETURNING id, user_id, event_id, shop, price, status, created_at
+`
+
+type CreatePremiumOrderParams struct {
+	UserID  int32          `json:"user_id"`
+	EventID int32          `json:"event_id"`
+	Shop    string         `json:"shop"`
+	Price   pgtype.Numeric `json:"price"`
+}
+
+func (q *Queries) CreatePremiumOrder(ctx context.Context, arg CreatePremiumOrderParams) (PremiumOrder, error) {
+	row := q.db.QueryRow(ctx, createPremiumOrder,
+		arg.UserID,
+		arg.EventID,
+		arg.Shop,
+		arg.Price,
+	)
+	var i PremiumOrder
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.EventID,
+		&i.Shop,
+		&i.Price,
+		&i.Status,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createPrivateEventToken = `-- name: CreatePrivateEventToken :exec
 INSERT INTO event_tokens (
     event_id,
@@ -750,6 +788,26 @@ func (q *Queries) GetPremiumEvents(ctx context.Context) ([]GetPremiumEventsRow, 
 	return items, nil
 }
 
+const getPremiumOrder = `-- name: GetPremiumOrder :one
+SELECT id, user_id, event_id, shop, price, status, created_at FROM premium_orders
+WHERE id = $1
+`
+
+func (q *Queries) GetPremiumOrder(ctx context.Context, id int32) (PremiumOrder, error) {
+	row := q.db.QueryRow(ctx, getPremiumOrder, id)
+	var i PremiumOrder
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.EventID,
+		&i.Shop,
+		&i.Price,
+		&i.Status,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getUpcomingUserEvents = `-- name: GetUpcomingUserEvents :many
 SELECT
     e.id,
@@ -1236,6 +1294,31 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 		return nil, err
 	}
 	return items, nil
+}
+
+const setEventPremium = `-- name: SetEventPremium :exec
+WITH
+    get_event AS (
+        SELECT event_id
+        FROM premium_orders
+        WHERE premium_orders.id = $1
+    ),
+    update_event AS (
+UPDATE events
+SET is_premium = true
+WHERE id = (SELECT event_id FROM get_event)
+    ),
+update_order AS (
+    UPDATE premium_orders
+    SET status = 'complete'
+    WHERE id = $1
+)
+SELECT 1
+`
+
+func (q *Queries) SetEventPremium(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, setEventPremium, id)
+	return err
 }
 
 const updateEvent = `-- name: UpdateEvent :exec
