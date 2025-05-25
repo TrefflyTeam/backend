@@ -769,6 +769,8 @@ paths:
     delete:
       summary: Удалить мероприятие, требуются права администратора
       description: Удаляет мероприятие по его ID
+      tags:
+        - Events
       parameters:
         - in: path
           name: id
