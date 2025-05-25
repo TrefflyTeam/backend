@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"treffly/api/common"
 	userdto "treffly/api/dto/user"
@@ -78,6 +79,10 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 	user, accessToken, refreshToken, err := h.authService.LoginUser(ctx, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			ctx.Error(apperror.InvalidCredentials.WithCause(err))
+			return
+		}
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			ctx.Error(apperror.InvalidCredentials.WithCause(err))
 			return
 		}
