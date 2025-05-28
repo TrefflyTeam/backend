@@ -190,23 +190,62 @@ func ParseSuggestResponse(data []byte) ([]geodto.SuggestItem, error) {
 
 	items := make([]geodto.SuggestItem, 0, len(response.Results))
 	addressSet := make(map[string]bool)
+
+	streetTypes := []string{
+		"улица ", "проспект ", "площадь ", "бульвар ", "переулок ",
+		"ул. ", "пр. ", "пл. ", "б-р ", "пер. ",
+	}
+
 	for _, res := range response.Results {
-		if addressSet[res.Address.FormattedAddress] {
+		originalAddr := res.Address.FormattedAddress
+		if addressSet[originalAddr] {
 			continue
 		}
+		addressSet[originalAddr] = true
 
-		addressSet[res.Address.FormattedAddress] = true
-		kind := "Неизвестно"
+		var city string
 		for _, comp := range res.Address.Components {
 			if slices.Contains(comp.Kind, "LOCALITY") {
-				kind = comp.Name
+				city = comp.Name
 				break
 			}
 		}
+
+		addr := originalAddr
+
+		if city != "" {
+			prefixes := []string{
+				city + ", ",
+				city + ",",
+				city + " ",
+			}
+			for _, p := range prefixes {
+				if strings.HasPrefix(addr, p) {
+					addr = addr[len(p):]
+					break
+				}
+			}
+		}
+
+		addr = strings.TrimPrefix(addr, ", ")
+		addr = strings.TrimPrefix(addr, ",")
+		addr = strings.TrimSpace(addr)
+
+		for _, st := range streetTypes {
+			if strings.HasPrefix(addr, st) {
+				addr = addr[len(st):]
+				break
+			}
+		}
+
+		if addr == "" {
+			addr = originalAddr
+		}
+
 		items = append(items, geodto.SuggestItem{
 			ID:      uuid.New().String(),
 			Title:   res.Title.Text,
-			Address: fmt.Sprintf("%s, %s", kind, res.Address.FormattedAddress),
+			Address: addr,
 		})
 	}
 
