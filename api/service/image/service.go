@@ -31,7 +31,7 @@ func New(imageStore image.Store, config util.Config, store db.Store) *Service {
 func (s *Service) Upload(file multipart.File, header *multipart.FileHeader, objType string, id string) (string, error) {
 	defer file.Close()
 
-	if header.Size > 5<<20 {
+	if header.Size > 30<<20 {
 		return "", errors.New("file too large")
 	}
 
