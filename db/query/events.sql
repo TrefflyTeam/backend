@@ -47,6 +47,7 @@ SELECT
     e.user_image_path,
     CASE
         WHEN $2 = e.owner_id THEN true
+        WHEN (SELECT is_admin FROM users WHERE id = $2) THEN true
         WHEN NOT e.is_private THEN true
         WHEN EXISTS (
             SELECT 1 FROM event_user eu
@@ -69,6 +70,7 @@ WHERE e.id = $1
         EXISTS (SELECT 1 FROM event_user WHERE event_id = e.id AND user_id = $2)
             OR et.token IS NOT NULL
             OR $2 = e.owner_id
+            OR (SELECT is_admin FROM users WHERE id = $2)
         ))
     );
 
