@@ -930,7 +930,7 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
 
-  /premium-payment/me:
+  /premium-payment:
     post:
       summary: Отправить запрос на создание счета на отплату покупки премиума
       description: Содаёт счёт, привязанный к текущему пользователю.
@@ -938,6 +938,15 @@ paths:
         - Premium
       security:
         - CookieAuth: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_id:
+                  type: integer
+                  example: 1
       responses:
         200:
           description: Успешно возвращает ID счета
@@ -992,7 +1001,7 @@ paths:
                     type: string
                     format: date
 
-  /premium-payment/complete:
+  /premium-payment/{id}/complete:
     post:
       summary: Изменить статус покупки премиума на завершённый
       description: Изменяет статус покупки премиума текущего пользователя на завершённый.
@@ -1000,15 +1009,12 @@ paths:
         - Premium
       security:
         - CookieAuth: [ ]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                new_password:
-                  type: string
-                  example: secret123
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
       responses:
         200:
           description: Успешно изменяет статус
